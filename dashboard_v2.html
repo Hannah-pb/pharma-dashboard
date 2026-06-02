@@ -89,11 +89,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic','맑은 고딕
 
 /* ── Tables ── */
 .tbl-wrap{overflow-x:auto;border-radius:8px}
-table{width:100%;border-collapse:collapse;font-size:12px;min-width:480px}
-th,td{padding:8px 10px;text-align:left;border-bottom:1px solid #f1f5f9;white-space:nowrap}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:480px;table-layout:auto}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid #f1f5f9;white-space:nowrap}
 th{background:#f8fafc;font-weight:600;color:#64748b;font-size:11px;letter-spacing:.03em;position:sticky;top:0;z-index:2}
 tr:hover td{background:#f8fafc}
 td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+td.prod-cell{max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .up{color:#15803d;font-weight:600}
 .down{color:#dc2626;font-weight:600}
 .gray{color:#94a3b8}
@@ -108,9 +109,9 @@ tr.row-hl td{background:#fefce8;font-weight:600}
 /* ── Heatmap ── */
 .heatmap-wrap{overflow-x:auto;padding-bottom:4px}
 .heatmap{border-collapse:collapse;font-size:11px}
-.heatmap th{padding:5px 6px;background:#f8fafc;color:#64748b;font-weight:600;text-align:center;border:1px solid #e2e8f0;position:sticky;top:0;z-index:2}
-.hm-label{padding:5px 10px;background:#f8fafc;font-weight:600;color:#1e293b;text-align:right;border:1px solid #e2e8f0;font-size:11px;position:sticky;left:0;z-index:3}
-.hm-cell{width:30px;height:26px;border:1px solid rgba(0,0,0,.04);cursor:default;position:relative}
+.heatmap th{padding:6px 4px;background:#f8fafc;color:#64748b;font-weight:600;text-align:center;border:1px solid #e2e8f0;position:sticky;top:0;z-index:2;min-width:58px}
+.hm-label{padding:7px 12px;background:#f8fafc;font-weight:600;color:#1e293b;text-align:right;border:1px solid #e2e8f0;font-size:12px;position:sticky;left:0;z-index:3;min-width:42px}
+.hm-cell{min-width:58px;height:34px;border:1px solid rgba(0,0,0,.06);cursor:default;position:relative;text-align:center;vertical-align:middle;font-size:11px;padding:2px 3px}
 .hm-cell:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100%+4px);left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;font-size:10px;padding:4px 8px;border-radius:4px;white-space:nowrap;z-index:99;pointer-events:none}
 
 /* ── Drilldown ── */
@@ -237,8 +238,7 @@ tr.row-hl td{background:#fefce8;font-weight:600}
       </div>
       <div id="ss-weekly" class="tab-pane">
         <div class="card"><div class="card-title">주간 매출 (스마트스토어)</div>
-          <div class="chart-wrap" style="height:240px"><canvas id="chartSSWeekly"></canvas></div>
-          <div class="tbl-wrap" style="margin-top:12px"><table id="tblSSWeekly"></table></div>
+          <div class="tbl-wrap"><table id="tblSSWeekly"></table></div>
         </div>
       </div>
       <div id="ss-monthly" class="tab-pane">
@@ -271,8 +271,7 @@ tr.row-hl td{background:#fefce8;font-weight:600}
       </div>
       <div id="c24-weekly" class="tab-pane">
         <div class="card"><div class="card-title">주간 매출 (카페24)</div>
-          <div class="chart-wrap" style="height:240px"><canvas id="chartC24Weekly"></canvas></div>
-          <div class="tbl-wrap" style="margin-top:12px"><table id="tblC24Weekly"></table></div>
+          <div class="tbl-wrap"><table id="tblC24Weekly"></table></div>
         </div>
       </div>
       <div id="c24-monthly" class="tab-pane">
@@ -342,9 +341,8 @@ const SHEET_ID = '1nkKrL8YaudsdjTjIZjDmE5NYoubgcSRIFUObyLiJRlQ';
 const GID      = '1605737796';
 const YEARLY_TARGET = 12_000_000_000;
 
-// SELECT O,P,Q,R,S,T,U,V,J,K,Y  → 0-based after gviz projection
-const C = { CH:0, DIST:1, BRAND:2, YEAR:3, MONTH:4, DAY:5, WEEK:6, PROD:7, QTY:8, REV:9, FINAL_QTY:10 };
-const TQ = 'SELECT O,P,Q,R,S,T,U,V,J,K,Y';
+// Column indices resolved from CSV header row at load time
+let C = {};
 
 const CH_ALL    = ['스마트스토어','친한 스토어','카페24','쿠팡','카카오톡스토어','수기발주'];
 const DIST_MAIN = ['1.일반','2.친한구매','3.공동구매','4.임직원','5.B2B'];
@@ -382,41 +380,78 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ═══════════════════════════════════════════════════════
-//  DATA LOADING
+//  DATA LOADING  (CSV fetch — ignores sheet filters)
 // ═══════════════════════════════════════════════════════
-function loadData() {
-  return new Promise((resolve, reject) => {
-    const cb = '__gcb' + Date.now();
-    const timer = setTimeout(() => { delete window[cb]; reject(new Error('요청 시간 초과 (30초)')); }, 30000);
-    window[cb] = resp => {
-      clearTimeout(timer);
-      delete window[cb];
-      if (resp.status === 'error') { reject(new Error(resp.errors?.[0]?.detailed_message || '알 수 없는 오류')); return; }
-      const raw = (resp.table.rows || []).map(row => (row.c || []).map(c2 => c2 ? c2.v : null));
-      ROWS = raw.map(r => ({
-        qty:      toInt(r[C.QTY]),
-        rev:      toInt(r[C.REV]),
-        ch:       toStr(r[C.CH]),
-        dist:     toStr(r[C.DIST]),
-        brand:    toStr(r[C.BRAND]),
-        year:     toInt(r[C.YEAR]),
-        month:    toInt(r[C.MONTH]),
-        day:      toInt(r[C.DAY]),
-        week:     toInt(r[C.WEEK]),
-        prod:     toStr(r[C.PROD]),
-        fqty:     toInt(r[C.FINAL_QTY]),
-      })).filter(r => r.year > 0 && r.month > 0 && r.ch !== '' && r.rev !== 0);
-      resolve();
-    };
-    const s = document.createElement('script');
-    s.onerror = () => { clearTimeout(timer); delete window[cb]; reject(new Error('시트 로드 실패 — 시트가 공개로 설정되어 있는지 확인하세요.')); };
-    s.src = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?gid=${GID}&tqx=out:json;responseHandler:${cb}&tq=${encodeURIComponent(TQ)}`;
-    document.head.appendChild(s);
-  });
+async function loadData() {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${GID}`;
+  const resp = await fetch(url);
+  if (!resp.ok) throw new Error(`HTTP ${resp.status} — 시트가 공개(공유) 상태인지 확인하세요.`);
+  const text = await resp.text();
+  const rows = parseCSV(text);
+  if (rows.length < 2) throw new Error('데이터가 비어있습니다.');
+
+  // Resolve column indices from header row
+  const hdr = rows[0].map(h => h.replace(/\n/g,' ').trim());
+  const idx = (name) => hdr.indexOf(name);
+  C = {
+    CH:   idx('대표채널명'),
+    DIST: idx('구분 (*주의)'),
+    BRAND:idx('브랜드'),
+    YEAR: idx('연'),
+    MONTH:idx('월'),
+    DAY:  idx('일'),
+    WEEK: idx('주차'),
+    PROD: idx('대표품목명'),
+    QTY:  idx('수량'),
+    REV:  idx('실결제금액'),
+    FQTY: idx('최종 수량'),
+  };
+
+  ROWS = rows.slice(1)
+    .filter(r => r.length > C.PROD)
+    .map(r => ({
+      ch:    toStr(r[C.CH]),
+      dist:  toStr(r[C.DIST]),
+      brand: toStr(r[C.BRAND]),
+      year:  toInt(r[C.YEAR]),
+      month: toInt(r[C.MONTH]),
+      day:   toInt(r[C.DAY]),
+      week:  toInt(r[C.WEEK]),
+      prod:  toStr(r[C.PROD]),
+      qty:   toInt(r[C.QTY]),
+      rev:   toNum(r[C.REV]),
+      fqty:  toInt(r[C.FQTY]),
+    }))
+    .filter(r => r.year > 0 && r.month > 0 && r.ch !== '' && r.rev !== 0);
 }
 
-const toInt = v => { if (v == null || v === '') return 0; const n = parseInt(String(v).replace(/[,\s]/g,'')); return isNaN(n)?0:n; };
-const toStr = v => (v == null) ? '' : String(v).trim();
+// Robust CSV parser: handles quoted fields with embedded commas/newlines
+function parseCSV(text) {
+  const result = [];
+  let row = [], field = '', inQ = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (c === '"') {
+      if (inQ && text[i+1] === '"') { field += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) {
+      row.push(field); field = '';
+    } else if ((c === '\n' || c === '\r') && !inQ) {
+      row.push(field); field = '';
+      if (row.length > 1 || row[0] !== '') result.push(row);
+      row = [];
+      if (c === '\r' && text[i+1] === '\n') i++;
+    } else {
+      field += c;
+    }
+  }
+  if (field !== '' || row.length) { row.push(field); if (row.length > 1 || row[0] !== '') result.push(row); }
+  return result;
+}
+
+const toInt = v => { if (v==null||v==='') return 0; const n=parseInt(String(v).replace(/[,\s₩]/g,'')); return isNaN(n)?0:n; };
+const toNum = v => { if (v==null||v==='') return 0; const n=parseFloat(String(v).replace(/[,\s₩]/g,'')); return isNaN(n)?0:Math.round(n); };
+const toStr = v => (v==null)?'':String(v).trim();
 
 // ═══════════════════════════════════════════════════════
 //  HELPERS: date / format
@@ -440,7 +475,7 @@ function fmtM(v) {
   return v.toLocaleString();
 }
 function fmtWon(v) { return v==null?'—':v.toLocaleString()+'원'; }
-function fmtQty(v) { return v==null||v===0?'—':v.toLocaleString()+'개'; }
+function fmtQty(v) { return v==null||v===0?'—':v.toLocaleString(); }
 function pctHtml(cur,prev) {
   if (!prev||prev===0) return '<span class="gray">—</span>';
   const r=(cur-prev)/prev*100;
@@ -795,49 +830,68 @@ function renderSalesDist() {
 // ═══════════════════════════════════════════════════════
 function renderHeatmap(channel, year, containerId) {
   const rows = ROWS.filter(r=>r.ch===channel && r.year===year);
-  if (!rows.length) { document.getElementById(containerId).innerHTML='<p style="color:#94a3b8;padding:12px">데이터 없음</p>'; return; }
+  if (!rows.length) { document.getElementById(containerId).innerHTML='<p style="color:#94a3b8;padding:16px">데이터 없음</p>'; return; }
 
-  // Build day→rev map
+  // Build month×day revenue map
   const dayMap = {};
   for(const r of rows) {
     const k = `${r.month}-${r.day}`;
     if(!dayMap[k]) dayMap[k]={rev:0,qty:0};
-    dayMap[k].rev  += r.rev;
-    dayMap[k].qty  += r.fqty||r.qty;
+    dayMap[k].rev += r.rev;
+    dayMap[k].qty += r.fqty||r.qty;
   }
   const maxRev = Math.max(...Object.values(dayMap).map(v=>v.rev), 1);
 
-  // Heatmap color (blue scale)
-  function hmColor(rev) {
-    if (!rev) return '#f8fafc';
-    const t = rev/maxRev;
-    // t=0 → very light blue, t=1 → deep blue
-    const r = Math.round(255 - t*200);
-    const g = Math.round(255 - t*130);
-    const b = Math.round(255 - t*10);
-    return `rgb(${r},${g},${b})`;
+  function hmBg(rev) {
+    if (!rev) return '';
+    const t = Math.pow(rev/maxRev, 0.6); // power scale for better spread
+    const r2= Math.round(255 - t*190);
+    const g2= Math.round(255 - t*120);
+    const b2= Math.round(255 - t*5);
+    return `rgb(${r2},${g2},${b2})`;
+  }
+  function hmText(rev) {
+    if (!rev) return '#cbd5e1';
+    return rev/maxRev > 0.5 ? '#fff' : '#1e293b';
   }
 
   const months = year===getNow().y ? getNow().m : 12;
-  let html = '<table class="heatmap"><thead><tr><th></th>';
-  for(let d=1;d<=31;d++) html+=`<th>${d}</th>`;
+
+  // 총계 per day
+  const dayTotals = {};
+  for(let d=1;d<=31;d++) dayTotals[d] = 0;
+  for(let m=1;m<=months;m++) {
+    for(let d=1;d<=31;d++) {
+      dayTotals[d] += (dayMap[`${m}-${d}`]||{rev:0}).rev;
+    }
+  }
+
+  let html = '<table class="heatmap"><thead><tr><th style="min-width:42px"></th>';
+  for(let d=1;d<=31;d++) html+=`<th style="min-width:58px;text-align:center">${d}일</th>`;
   html += '</tr></thead><tbody>';
 
   for(let m=1;m<=months;m++){
     const dim = new Date(year,m,0).getDate();
     html += `<tr><td class="hm-label">${m}월</td>`;
     for(let d=1;d<=31;d++){
-      if(d>dim){ html+='<td style="background:#fafafa;border-color:#f1f5f9"></td>'; continue; }
-      const k=`${m}-${d}`;
-      const v = dayMap[k];
-      const bg = hmColor(v?.rev||0);
-      const tip = v ? `${year}.${String(m).padStart(2,'0')}.${String(d).padStart(2,'0')} | ${fmtWon(v.rev)} | ${v.qty}개` : `${year}.${m}.${d} | —`;
-      const textC = v&&v.rev/maxRev>0.55?'rgba(255,255,255,0.9)':'transparent';
-      html+=`<td class="hm-cell" style="background:${bg};color:${textC}" data-tip="${tip}">${d}</td>`;
+      if(d>dim){ html+='<td style="background:#f8fafc"></td>'; continue; }
+      const v = dayMap[`${m}-${d}`];
+      const rev = v?.rev||0;
+      const bg  = hmBg(rev);
+      const tc  = hmText(rev);
+      const tip = `${year}.${String(m).padStart(2,'0')}.${String(d).padStart(2,'0')} | ${fmtWon(rev)}`;
+      html+=`<td class="hm-cell" style="${bg?`background:${bg};`:''}color:${tc}" data-tip="${tip}">${rev?fmtM(rev):'—'}</td>`;
     }
     html += '</tr>';
   }
-  html += '</tbody></table>';
+
+  // 총계 row
+  html += '<tr style="border-top:2px solid #3b82f6"><td class="hm-label" style="font-weight:700;color:#1d4ed8">총계</td>';
+  for(let d=1;d<=31;d++){
+    const v = dayTotals[d];
+    html += `<td style="text-align:center;font-size:11px;font-weight:600;color:${v?'#1d4ed8':'#cbd5e1'};padding:6px 4px">${v?fmtM(v):'—'}</td>`;
+  }
+  html += '</tr></tbody></table>';
   document.getElementById(containerId).innerHTML = html;
 }
 
@@ -847,41 +901,57 @@ function renderC24Heatmap() { renderHeatmap('카페24',       c24HmYear, 'hmC24'
 // ═══════════════════════════════════════════════════════
 //  WEEKLY
 // ═══════════════════════════════════════════════════════
-function renderWeekly(channel, chartId, tableId) {
+// ISO week start: returns Monday date of given ISO week number
+function isoWeekStart(year, week) {
+  const jan4 = new Date(Date.UTC(year, 0, 4));
+  const dow  = jan4.getUTCDay() || 7;
+  const mon1 = new Date(jan4);
+  mon1.setUTCDate(jan4.getUTCDate() - dow + 1);
+  const result = new Date(mon1);
+  result.setUTCDate(mon1.getUTCDate() + (week-1)*7);
+  return result;
+}
+function fmtDateShort(d) {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
+}
+
+function renderWeekly(channel, tableId) {
+  const n    = getNow();
   const rows = ROWS.filter(r=>r.ch===channel);
-  const agg = sumBy(rows,'year','week');
-  const years = [2025, getNow().y].filter(y=>ROWS.some(r=>r.year===y&&r.ch===channel));
+  const agg  = sumBy(rows,'year','week');
+  const years = [n.y-1, n.y].filter(y=>rows.some(r=>r.year===y));
   const weeks = [...new Set(rows.map(r=>r.week))].sort((a,b)=>a-b).filter(w=>w>0);
 
-  // Chart
-  const labels = weeks.map(w=>w+'주');
-  const ds = years.map((y,yi)=>({
-    label: y+'년',
-    data: weeks.map(w=>(agg[`${y}|${w}`]||{rev:0}).rev),
-    backgroundColor: yi===0?'#d0d2d8':'#3b82f6',
-    borderRadius:3
-  }));
-  mkChart(chartId, { type:'bar', data:{labels,datasets:ds}, options:{responsive:true,maintainAspectRatio:false, plugins:{legend:{position:'bottom',labels:{boxWidth:12,font:{size:10}}}}, scales:{y:{ticks:{callback:v=>fmtM(v),font:{size:10}}},x:{ticks:{font:{size:10}}}}}});
+  let html = `<thead><tr>
+    <th style="width:52px">주차</th>
+    <th class="r" style="width:110px">${years[0]}년</th>
+    <th class="r" style="width:110px">${years[1]||n.y}년</th>
+    <th style="width:108px;color:#94a3b8;font-size:11px;text-align:center">${years[0]} 날짜</th>
+    <th style="width:108px;color:#94a3b8;font-size:11px;text-align:center">${years[1]||n.y} 날짜</th>
+    <th class="r" style="width:80px">전주比</th>
+  </tr></thead><tbody>`;
 
-  // Table
-  let html = '<thead><tr><th>주차</th>';
-  for(const y of years) html+=`<th class="r">${y}년</th>`;
-  html += '<th class="r">전주비</th><th class="r">YoY</th></tr></thead><tbody>';
   for(const w of weeks){
-    const vals = years.map(y=>(agg[`${y}|${w}`]||{rev:0}).rev);
-    const cur = vals[vals.length-1];
-    const prevW = w>1 ? (agg[`${getNow().y}|${w-1}`]||{rev:0}).rev : null;
-    const prev25 = years.includes(2025)?(agg[`2025|${w}`]||{rev:0}).rev:null;
-    html += `<tr><td>${w}주차</td>`;
-    for(const v of vals) html+=`<td class="r">${fmtM(v)||'—'}</td>`;
-    html += `<td class="r">${prevW!=null?pctHtml(cur,prevW):'—'}</td>`;
-    html += `<td class="r">${prev25!=null?pctHtml(cur,prev25):'—'}</td></tr>`;
+    const rev25 = (agg[`${years[0]}|${w}`]||{rev:0}).rev;
+    const rev26 = (agg[`${years[1]||n.y}|${w}`]||{rev:0}).rev;
+    const prevW = w>1 ? (agg[`${years[1]||n.y}|${w-1}`]||{rev:0}).rev : null;
+    const date25 = fmtDateShort(isoWeekStart(years[0], w));
+    const date26 = fmtDateShort(isoWeekStart(years[1]||n.y, w));
+    const womHtml = prevW!=null ? pctHtml(rev26,prevW) : '<span class="gray">—</span>';
+    html += `<tr>
+      <td style="font-weight:600">${w}주</td>
+      <td class="r">${rev25?fmtM(rev25):'—'}</td>
+      <td class="r" style="font-weight:600">${rev26?fmtM(rev26):'—'}</td>
+      <td style="text-align:center;color:#94a3b8;font-size:11px">${date25}</td>
+      <td style="text-align:center;color:#94a3b8;font-size:11px">${date26}</td>
+      <td class="r">${womHtml}</td>
+    </tr>`;
   }
   html += '</tbody>';
   document.getElementById(tableId).innerHTML = html;
 }
-function renderSSWeekly()  { renderWeekly('스마트스토어','chartSSWeekly','tblSSWeekly'); }
-function renderC24Weekly() { renderWeekly('카페24','chartC24Weekly','tblC24Weekly'); }
+function renderSSWeekly()  { renderWeekly('스마트스토어','tblSSWeekly'); }
+function renderC24Weekly() { renderWeekly('카페24','tblC24Weekly'); }
 
 // ═══════════════════════════════════════════════════════
 //  CHANNEL MONTHLY (product breakdown)
