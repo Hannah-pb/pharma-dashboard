@@ -89,6 +89,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic','맑은 고딕
 
 /* ── Tables ── */
 .tbl-wrap{overflow-x:auto;border-radius:8px}
+.tbl-auto table{width:auto!important;min-width:unset}
 table{width:100%;border-collapse:collapse;font-size:12px;min-width:480px;table-layout:auto}
 th,td{padding:9px 12px;text-align:left;border-bottom:1px solid #f1f5f9;white-space:nowrap}
 th{background:#f8fafc;font-weight:600;color:#64748b;font-size:11px;letter-spacing:.03em;position:sticky;top:0;z-index:2}
@@ -109,9 +110,9 @@ tr.row-hl td{background:#fefce8;font-weight:600}
 /* ── Heatmap ── */
 .heatmap-wrap{overflow-x:auto;padding-bottom:4px}
 .heatmap{border-collapse:collapse;font-size:11px}
-.heatmap th{padding:6px 4px;background:#f8fafc;color:#64748b;font-weight:600;text-align:center;border:1px solid #e2e8f0;position:sticky;top:0;z-index:2;min-width:58px}
+.heatmap th{padding:6px 4px;background:#f8fafc;color:#64748b;font-weight:600;text-align:center;border:1px solid #e2e8f0;position:sticky;top:0;z-index:2;min-width:90px}
 .hm-label{padding:7px 12px;background:#f8fafc;font-weight:600;color:#1e293b;text-align:right;border:1px solid #e2e8f0;font-size:12px;position:sticky;left:0;z-index:3;min-width:42px}
-.hm-cell{min-width:58px;height:34px;border:1px solid rgba(0,0,0,.06);cursor:default;position:relative;text-align:center;vertical-align:middle;font-size:11px;padding:2px 3px}
+.hm-cell{min-width:90px;height:34px;border:1px solid rgba(0,0,0,.06);cursor:default;position:relative;text-align:center;vertical-align:middle;font-size:10px;padding:2px 3px;font-variant-numeric:tabular-nums}
 .hm-cell:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100%+4px);left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;font-size:10px;padding:4px 8px;border-radius:4px;white-space:nowrap;z-index:99;pointer-events:none}
 
 /* ── Drilldown ── */
@@ -207,9 +208,12 @@ tr.row-hl td{background:#fefce8;font-weight:600}
   <!-- ── 매출 현황 ── -->
   <div id="page-sales" class="page">
     <div class="page-body">
-      <div class="tab-bar">
-        <button class="tab-btn active" data-tab="sales-channel">채널별</button>
-        <button class="tab-btn" data-tab="sales-dist">구분별</button>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <div class="tab-bar" style="margin-bottom:0">
+          <button class="tab-btn active" data-tab="sales-channel">채널별</button>
+          <button class="tab-btn" data-tab="sales-dist">구분별</button>
+        </div>
+        <button id="btnToggleAllSubs" onclick="toggleAllSubRows(true)" style="padding:7px 12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;color:#64748b;cursor:pointer">통계 접기</button>
       </div>
       <div id="sales-channel" class="tab-pane active">
         <div class="card"><div class="card-title">채널별 월간 매출</div><div class="tbl-wrap"><table id="tblSalesChannel"></table></div></div>
@@ -238,7 +242,7 @@ tr.row-hl td{background:#fefce8;font-weight:600}
       </div>
       <div id="ss-weekly" class="tab-pane">
         <div class="card"><div class="card-title">주간 매출 (스마트스토어)</div>
-          <div class="tbl-wrap"><table id="tblSSWeekly"></table></div>
+          <div class="tbl-wrap tbl-auto"><table id="tblSSWeekly"></table></div>
         </div>
       </div>
       <div id="ss-monthly" class="tab-pane">
@@ -271,7 +275,7 @@ tr.row-hl td{background:#fefce8;font-weight:600}
       </div>
       <div id="c24-weekly" class="tab-pane">
         <div class="card"><div class="card-title">주간 매출 (카페24)</div>
-          <div class="tbl-wrap"><table id="tblC24Weekly"></table></div>
+          <div class="tbl-wrap tbl-auto"><table id="tblC24Weekly"></table></div>
         </div>
       </div>
       <div id="c24-monthly" class="tab-pane">
@@ -716,64 +720,74 @@ function setProgress(id, pct) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  SALES — CHANNEL
+//  SALES — CHANNEL  (per-channel sub-rows + collapsible)
 // ═══════════════════════════════════════════════════════
 function renderSalesChannel() {
   const n   = getNow();
   const agg = sumBy(ROWS, 'year','month','ch');
   const chList = CH_ALL.filter(ch => ROWS.some(r=>r.ch===ch));
+  const cols = Array.from({length:n.m},(_,i)=>i+1);
+  const colspan = cols.length + 2; // month cols + 합계 + YoY
 
-  // Build 2026 columns + 합계 + YoY
-  const cols2026 = Array.from({length:n.m},(_,i)=>i+1);
   let html = '<thead><tr><th>채널</th>';
-  for(const m of cols2026) html += `<th class="r">${n.y}.${String(m).padStart(2,'0')}</th>`;
+  for(const m of cols) html += `<th class="r">${n.y}.${String(m).padStart(2,'0')}</th>`;
   html += '<th class="r">합계</th><th class="r">YoY</th></tr></thead><tbody>';
 
   for(const ch of chList) {
-    const revs = cols2026.map(m => (agg[`${n.y}|${m}|${ch}`]||{rev:0}).rev);
+    const chKey = ch.replace(/[^a-zA-Z0-9가-힣]/g,'_');
+    const revs = cols.map(m => (agg[`${n.y}|${m}|${ch}`]||{rev:0}).rev);
     const tot26 = revs.reduce((s,v)=>s+v,0);
-    const tot25 = Array.from({length:n.m},(_,i)=>i+1).map(m=>(agg[`${n.y-1}|${m}|${ch}`]||{rev:0}).rev).reduce((s,v)=>s+v,0);
-    html += `<tr><td>${ch}</td>`;
+    const tot25 = cols.map(m=>(agg[`${n.y-1}|${m}|${ch}`]||{rev:0}).rev).reduce((s,v)=>s+v,0);
+    const days26 = cols.map(m=>maxDay(ROWS.filter(r=>r.year===n.y&&r.ch===ch), n.y, m)||new Date(n.y,m,0).getDate());
+
+    // Main row with toggle icon
+    html += `<tr class="ch-main-row" data-chkey="${chKey}">
+      <td><span class="sub-toggle" onclick="toggleSubRows('${chKey}')" style="cursor:pointer;margin-right:6px;font-size:10px;color:#94a3b8">▾</span>${ch}</td>`;
     for(const v of revs) html += `<td class="r">${v?fmtM(v):'—'}</td>`;
     html += `<td class="r"><b>${fmtM(tot26)}</b></td><td class="r">${pctHtml(tot26,tot25)}</td></tr>`;
+
+    // Sub-rows (collapsible)
+    // 일 평균
+    html += `<tr class="row-sub ch-sub-row" data-chkey="${chKey}"><td style="padding-left:22px">일 평균</td>`;
+    cols.forEach((m,i)=>{ const v=revs[i]; html+=`<td class="r">${days26[i]?fmtM(Math.round(v/days26[i])):'—'}</td>`; });
+    html += '<td></td><td></td></tr>';
+    // 전월비
+    html += `<tr class="row-sub ch-sub-row" data-chkey="${chKey}"><td style="padding-left:22px">전월비</td><td class="r gray">—</td>`;
+    for(let i=1;i<cols.length;i++) html+=`<td class="r">${pctHtml(revs[i],revs[i-1])}</td>`;
+    html += '<td></td><td></td></tr>';
+    // 전년비
+    html += `<tr class="row-sub ch-sub-row" data-chkey="${chKey}"><td style="padding-left:22px">전년비</td>`;
+    cols.forEach(m=>{ const c25=(agg[`${n.y-1}|${m}|${ch}`]||{rev:0}).rev, c26=(agg[`${n.y}|${m}|${ch}`]||{rev:0}).rev; html+=`<td class="r">${pctHtml(c26,c25)}</td>`;});
+    html += '<td></td><td></td></tr>';
   }
 
   // Total row
-  const totRevs = cols2026.map(m => chList.reduce((s,ch)=>(agg[`${n.y}|${m}|${ch}`]||{rev:0}).rev+s,0));
+  const totRevs = cols.map(m => chList.reduce((s,ch)=>(agg[`${n.y}|${m}|${ch}`]||{rev:0}).rev+s,0));
   const totAll  = totRevs.reduce((s,v)=>s+v,0);
-  const tot25All= Array.from({length:n.m},(_,i)=>i+1).map(m=>chList.reduce((s,ch)=>(agg[`${n.y-1}|${m}|${ch}`]||{rev:0}).rev+s,0)).reduce((s,v)=>s+v,0);
+  const tot25All= cols.map(m=>chList.reduce((s,ch)=>(agg[`${n.y-1}|${m}|${ch}`]||{rev:0}).rev+s,0)).reduce((s,v)=>s+v,0);
   html += '<tr class="row-total"><td>합계</td>';
-  for(const v of totRevs) html += `<td class="r">${fmtM(v)}</td>`;
+  for(const v of totRevs) html+=`<td class="r">${fmtM(v)}</td>`;
   html += `<td class="r">${fmtM(totAll)}</td><td class="r">${pctHtml(totAll,tot25All)}</td></tr>`;
-
-  // Daily avg sub-row
-  html += '<tr class="row-sub"><td>일 평균</td>';
-  for(const m of cols2026) {
-    const days = maxDay(ROWS.filter(r=>r.year===n.y), n.y, m)||new Date(n.y,m,0).getDate();
-    const v = (agg[`${n.y}|${m}|`]||{rev:0}).rev || chList.reduce((s,ch)=>(agg[`${n.y}|${m}|${ch}`]||{rev:0}).rev+s,0);
-    html += `<td class="r">${days?fmtM(Math.round(v/days)):'—'}</td>`;
-  }
-  html += '<td class="r">—</td><td></td></tr>';
-
-  // MoM sub-row
-  html += '<tr class="row-sub"><td>전월비</td><td class="r gray">—</td>';
-  for(let i=1;i<cols2026.length;i++){
-    const cur=totRevs[i], prev=totRevs[i-1];
-    html += `<td class="r">${pctHtml(cur,prev)}</td>`;
-  }
-  html += '<td></td><td></td></tr>';
-
-  // YoY sub-row
-  html += '<tr class="row-sub"><td>전년비</td>';
-  for(const m of cols2026) {
-    const cur26 = chList.reduce((s,ch)=>(agg[`${n.y}|${m}|${ch}`]||{rev:0}).rev+s,0);
-    const cur25 = chList.reduce((s,ch)=>(agg[`${n.y-1}|${m}|${ch}`]||{rev:0}).rev+s,0);
-    html += `<td class="r">${pctHtml(cur26,cur25)}</td>`;
-  }
-  html += '<td></td><td></td></tr>';
-
   html += '</tbody>';
+
   document.getElementById('tblSalesChannel').innerHTML = html;
+  makeSortable('tblSalesChannel', renderSalesChannel);
+}
+}
+
+function toggleSubRows(chKey) {
+  const subs = document.querySelectorAll(`.ch-sub-row[data-chkey="${chKey}"]`);
+  const icon = document.querySelector(`.ch-main-row[data-chkey="${chKey}"] .sub-toggle`);
+  const hidden = subs[0]?.style.display === 'none';
+  subs.forEach(r => r.style.display = hidden ? '' : 'none');
+  if (icon) icon.textContent = hidden ? '▾' : '▸';
+}
+
+function toggleAllSubRows(collapse) {
+  document.querySelectorAll('.ch-sub-row, .row-sub').forEach(r => r.style.display = collapse ? 'none' : '');
+  document.querySelectorAll('.sub-toggle').forEach(el => el.textContent = collapse ? '▸' : '▾');
+  const btn = document.getElementById('btnToggleAllSubs');
+  if (btn) btn.textContent = collapse ? '통계 펴기' : '통계 접기';
 }
 
 // ═══════════════════════════════════════════════════════
@@ -823,6 +837,7 @@ function renderSalesDist() {
   html += `<td class="r">${fmtM(totAll)}</td><td class="r">${pctHtml(totAll,tot25All)}</td></tr>`;
   html += '</tbody>';
   document.getElementById('tblSalesDist').innerHTML = html;
+  makeSortable('tblSalesDist', renderSalesDist);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -880,7 +895,7 @@ function renderHeatmap(channel, year, containerId) {
       const bg  = hmBg(rev);
       const tc  = hmText(rev);
       const tip = `${year}.${String(m).padStart(2,'0')}.${String(d).padStart(2,'0')} | ${fmtWon(rev)}`;
-      html+=`<td class="hm-cell" style="${bg?`background:${bg};`:''}color:${tc}" data-tip="${tip}">${rev?fmtM(rev):'—'}</td>`;
+      html+=`<td class="hm-cell" style="${bg?`background:${bg};`:''}color:${tc}" data-tip="${tip}">${rev?rev.toLocaleString():'—'}</td>`;
     }
     html += '</tr>';
   }
@@ -897,6 +912,87 @@ function renderHeatmap(channel, year, containerId) {
 
 function renderSSHeatmap()  { renderHeatmap('스마트스토어', ssHmYear,  'hmSS'); }
 function renderC24Heatmap() { renderHeatmap('카페24',       c24HmYear, 'hmC24'); }
+
+// ═══════════════════════════════════════════════════════
+//  SORTABLE TABLES
+// ═══════════════════════════════════════════════════════
+const _sortState = {}; // tableId → {col, dir}
+
+function makeSortable(tableId, rerenderFn) {
+  const tbl = document.getElementById(tableId);
+  if (!tbl) return;
+  tbl.querySelectorAll('thead th').forEach((th, ci) => {
+    th.style.cursor = 'pointer';
+    th.title = '클릭하여 정렬';
+    th.addEventListener('click', () => _sortBy(tableId, ci, rerenderFn));
+  });
+}
+
+function _sortBy(tableId, colIdx, rerenderFn) {
+  const cur = (_sortState[tableId] || {});
+  let dir;
+  if (cur.col === colIdx) {
+    dir = cur.dir === 'none' ? 'desc' : cur.dir === 'desc' ? 'asc' : 'none';
+  } else {
+    dir = 'desc';
+  }
+  _sortState[tableId] = {col: colIdx, dir};
+
+  if (dir === 'none') { rerenderFn(); return; }
+
+  const tbl = document.getElementById(tableId);
+  if (!tbl) return;
+
+  // Update header icons
+  tbl.querySelectorAll('thead th').forEach((th, i) => {
+    th.querySelectorAll('.srt-icon').forEach(el=>el.remove());
+    if (i === colIdx) {
+      const s = document.createElement('span');
+      s.className = 'srt-icon';
+      s.style.cssText = 'margin-left:4px;color:#3b82f6;font-size:10px';
+      s.textContent = dir === 'asc' ? '▲' : '▼';
+      th.appendChild(s);
+    }
+  });
+
+  // Parse cell text to sortable value
+  function cellVal(tr) {
+    const td = tr.cells[colIdx];
+    if (!td) return 0;
+    const t = td.textContent.replace(/[,\s]/g,'').replace('억','e8').replace('만','e4');
+    if (t.startsWith('▲')||t.startsWith('▼')) {
+      const n = parseFloat(t.slice(1));
+      return isNaN(n) ? 0 : (t.startsWith('▲') ? n : -n);
+    }
+    if (t === '—' || t === '') return dir === 'asc' ? Infinity : -Infinity;
+    const num = parseFloat(t);
+    return isNaN(num) ? t : num;
+  }
+
+  const tbody = tbl.querySelector('tbody');
+  if (!tbody) return;
+
+  // Group: each data row with its following .row-sub rows; total rows go last
+  const groups = [], totals = [];
+  let g = null;
+  [...tbody.rows].forEach(tr => {
+    if (tr.classList.contains('row-total')) { totals.push(tr); return; }
+    if (tr.classList.contains('row-sub') || tr.classList.contains('ch-sub-row')) {
+      if (g) g.push(tr); else totals.unshift(tr);
+    } else {
+      g = [tr]; groups.push(g);
+    }
+  });
+
+  groups.sort((a, b) => {
+    const va = cellVal(a[0]), vb = cellVal(b[0]);
+    if (typeof va === 'number' && typeof vb === 'number') return dir === 'asc' ? va - vb : vb - va;
+    return dir === 'asc' ? String(va).localeCompare(String(vb)) : String(vb).localeCompare(String(va));
+  });
+
+  groups.forEach(grp => grp.forEach(tr => tbody.appendChild(tr)));
+  totals.forEach(tr => tbody.appendChild(tr));
+}
 
 // ═══════════════════════════════════════════════════════
 //  WEEKLY
@@ -950,8 +1046,8 @@ function renderWeekly(channel, tableId) {
   html += '</tbody>';
   document.getElementById(tableId).innerHTML = html;
 }
-function renderSSWeekly()  { renderWeekly('스마트스토어','tblSSWeekly'); }
-function renderC24Weekly() { renderWeekly('카페24','tblC24Weekly'); }
+function renderSSWeekly()  { renderWeekly('스마트스토어','tblSSWeekly');  makeSortable('tblSSWeekly',  renderSSWeekly); }
+function renderC24Weekly() { renderWeekly('카페24','tblC24Weekly');    makeSortable('tblC24Weekly', renderC24Weekly); }
 
 // ═══════════════════════════════════════════════════════
 //  CHANNEL MONTHLY (product breakdown)
@@ -1006,8 +1102,8 @@ function renderChannelMonthly(channel, vm, tableId) {
   document.getElementById(tableId).innerHTML = html;
 }
 
-function renderSSMonthly()  { renderChannelMonthly('스마트스토어', vmSS,  'tblSSMonthly'); }
-function renderC24Monthly() { renderChannelMonthly('카페24',       vmC24, 'tblC24Monthly'); }
+function renderSSMonthly()  { renderChannelMonthly('스마트스토어', vmSS,  'tblSSMonthly');  makeSortable('tblSSMonthly',  renderSSMonthly); }
+function renderC24Monthly() { renderChannelMonthly('카페24',       vmC24, 'tblC24Monthly'); makeSortable('tblC24Monthly', renderC24Monthly); }
 
 // ═══════════════════════════════════════════════════════
 //  PRODUCTS page
@@ -1056,6 +1152,7 @@ function renderProducts() {
   html+=`<td class="r">${fmtM(grandTot)}</td></tr>`;
   html += '</tbody>';
   document.getElementById('tblProducts').innerHTML = html;
+  makeSortable('tblProducts', renderProducts);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1103,6 +1200,7 @@ function renderDist() {
   html+=`<td class="r">${fmtM(gt)}</td></tr>`;
   html += '</tbody>';
   document.getElementById('tblDist').innerHTML = html;
+  makeSortable('tblDist', renderDist);
 }
 
 // ═══════════════════════════════════════════════════════
