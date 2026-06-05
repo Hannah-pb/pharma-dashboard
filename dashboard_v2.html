@@ -432,22 +432,6 @@ async function loadData() {
     ...(rows26.length >= 2 ? rows26.slice(1) : []),
   ];
 
-  const hdr = rows[0].map(h => h.replace(/\n/g,' ').trim());
-  const col = name => hdr.indexOf(name);
-  C = {
-    CH:   col('대표채널명'),
-    DIST: col('구분 (*주의)'),
-    BRAND:col('브랜드'),
-    YEAR: col('연'),
-    MONTH:col('월'),
-    DAY:  col('일'),
-    WEEK: col('주차'),
-    PROD: col('대표품목명'),
-    QTY:  col('수량'),
-    REV:  col('실결제금액'),
-    FQTY: col('최종 수량'),
-  };
-
   ROWS = allRows
     .filter(r => r.length > C.PROD)
     .map(r => ({
