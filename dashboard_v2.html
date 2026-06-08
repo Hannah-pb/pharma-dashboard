@@ -128,6 +128,20 @@ tr.row-hl td{background:#fefce8;font-weight:600}
 .drill-kpi .lbl{font-size:10px;color:#94a3b8;margin-bottom:3px}
 .drill-kpi .val{font-size:15px;font-weight:700;color:#1e293b}
 
+/* ── Nav parent/child ── */
+.nav-parent{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;color:#94b4d4;font-size:13px;user-select:none;transition:background .12s,color .12s}
+.nav-parent:hover{background:#1a3a5c;color:#fff}
+.nav-arrow{font-size:10px;margin-left:auto;transition:transform .2s;flex-shrink:0}
+.nav-parent.open .nav-arrow{transform:rotate(90deg)}
+.nav-children{overflow:hidden;max-height:0;transition:max-height .2s ease}
+.nav-children.open{max-height:200px}
+.nav-child{display:flex;align-items:center;gap:8px;padding:9px 14px 9px 32px;cursor:pointer;color:#7aa3c4;font-size:12px;transition:background .12s,color .12s}
+.nav-child:hover{background:#1a3a5c;color:#fff}
+.nav-child.active{background:#1d4ed8;color:#fff;font-weight:600}
+#sidebar.collapsed .nav-parent .nav-label{opacity:0;width:0}
+#sidebar.collapsed .nav-arrow{display:none}
+#sidebar.collapsed .nav-children{display:none}
+
 /* ── Hamburger (mobile) ── */
 #hamburger{display:none;position:fixed;top:12px;left:12px;z-index:60;background:#0f2744;color:#fff;border:none;border-radius:8px;width:40px;height:40px;font-size:20px;cursor:pointer}
 #overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:40}
@@ -162,10 +176,22 @@ tr.row-hl td{background:#fefce8;font-weight:600}
   <ul class="nav-list">
     <li class="nav-item active" data-page="kpi"><span class="nav-icon">📊</span><span class="nav-label">KPI</span></li>
     <li class="nav-item" data-page="sales"><span class="nav-icon">📈</span><span class="nav-label">매출 현황</span></li>
-    <li class="nav-item" data-page="smartstore"><span class="nav-icon">🛍</span><span class="nav-label">스마트스토어</span></li>
-    <li class="nav-item" data-page="cafe24"><span class="nav-icon">🏪</span><span class="nav-label">카페24</span></li>
-    <li class="nav-item" data-page="products"><span class="nav-icon">📦</span><span class="nav-label">상품별</span></li>
-    <li class="nav-item" data-page="distribution"><span class="nav-icon">🚚</span><span class="nav-label">유통별</span></li>
+    <!-- 일반매출 아코디언 -->
+    <li class="nav-parent open" id="navParentGeneral" onclick="toggleNavParent('navParentGeneral')">
+      <span class="nav-icon">🛒</span><span class="nav-label">일반매출</span><span class="nav-arrow">▶</span>
+    </li>
+    <div class="nav-children open" id="navChildrenGeneral">
+      <div class="nav-child active" data-page="smartstore"><span>🛍</span> 스마트스토어</div>
+      <div class="nav-child" data-page="cafe24"><span>🏪</span> 카페24</div>
+    </div>
+    <!-- 상품매출 아코디언 -->
+    <li class="nav-parent" id="navParentProducts" onclick="toggleNavParent('navParentProducts')">
+      <span class="nav-icon">📦</span><span class="nav-label">상품매출</span><span class="nav-arrow">▶</span>
+    </li>
+    <div class="nav-children" id="navChildrenProducts">
+      <div class="nav-child" data-page="products" data-subtab="prod-channel"><span>📊</span> 채널별</div>
+      <div class="nav-child" data-page="products" data-subtab="prod-dist"><span>🚚</span> 유통별</div>
+    </div>
   </ul>
   <div class="sb-footer">
     <button id="refreshBtn" onclick="location.reload()">🔄 <span class="btn-label">새로고침</span></button>
@@ -290,33 +316,37 @@ tr.row-hl td{background:#fefce8;font-weight:600}
     </div>
   </div>
 
-  <!-- ── 상품별 ── -->
+  <!-- ── 상품매출 (채널별 + 유통별 통합) ── -->
   <div id="page-products" class="page">
     <div class="page-body">
-      <div class="ctrl-row">
-        <span class="ctrl-label">보기:</span>
-        <button class="tog-btn active" data-vm="both">수량+매출</button>
-        <button class="tog-btn" data-vm="rev">매출만</button>
-        <button class="tog-btn" data-vm="qty">수량만</button>
-        <span class="ctrl-label" style="margin-left:8px">기준:</span>
-        <select class="sel-month" id="selProductsMonth"></select>
+      <div class="tab-bar" style="margin-bottom:12px">
+        <button class="tab-btn active" data-tab="prod-channel">채널별</button>
+        <button class="tab-btn" data-tab="prod-dist">유통별</button>
       </div>
-      <div class="card"><div class="card-title">상품별 채널 매트릭스</div><div class="tbl-wrap"><table id="tblProducts"></table></div></div>
-    </div>
-  </div>
-
-  <!-- ── 유통별 ── -->
-  <div id="page-distribution" class="page">
-    <div class="page-body">
-      <div class="ctrl-row">
-        <span class="ctrl-label">보기:</span>
-        <button class="tog-btn active" data-vm="both">수량+매출</button>
-        <button class="tog-btn" data-vm="rev">매출만</button>
-        <button class="tog-btn" data-vm="qty">수량만</button>
-        <span class="ctrl-label" style="margin-left:8px">기준:</span>
-        <select class="sel-month" id="selDistMonth"></select>
+      <!-- 채널별 -->
+      <div id="prod-channel" class="tab-pane active">
+        <div class="ctrl-row">
+          <span class="ctrl-label">보기:</span>
+          <button class="tog-btn active" data-vm="both" data-vm-scope="products">수량+매출</button>
+          <button class="tog-btn" data-vm="rev" data-vm-scope="products">매출</button>
+          <button class="tog-btn" data-vm="qty" data-vm-scope="products">수량</button>
+          <span class="ctrl-label" style="margin-left:8px">기준:</span>
+          <select class="sel-month" id="selProductsMonth"></select>
+        </div>
+        <div class="card"><div class="card-title">상품별 채널 매트릭스</div><div class="tbl-wrap"><table id="tblProducts"></table></div></div>
       </div>
-      <div class="card"><div class="card-title">유통별 상품 매트릭스</div><div class="tbl-wrap"><table id="tblDist"></table></div></div>
+      <!-- 유통별 -->
+      <div id="prod-dist" class="tab-pane">
+        <div class="ctrl-row">
+          <span class="ctrl-label">보기:</span>
+          <button class="tog-btn active" data-vm="both" data-vm-scope="dist">수량+매출</button>
+          <button class="tog-btn" data-vm="rev" data-vm-scope="dist">매출</button>
+          <button class="tog-btn" data-vm="qty" data-vm-scope="dist">수량</button>
+          <span class="ctrl-label" style="margin-left:8px">기준:</span>
+          <select class="sel-month" id="selDistMonth"></select>
+        </div>
+        <div class="card"><div class="card-title">유통별 상품 매트릭스</div><div class="tbl-wrap"><table id="tblDist"></table></div></div>
+      </div>
     </div>
   </div>
 
@@ -553,14 +583,49 @@ function mkChart(id, cfg) {
 // ═══════════════════════════════════════════════════════
 //  NAV / PAGE SWITCHING
 // ═══════════════════════════════════════════════════════
-const PAGE_TITLES = {kpi:'KPI 요약', sales:'매출 현황', smartstore:'스마트스토어', cafe24:'카페24', products:'상품별', distribution:'유통별'};
+const PAGE_TITLES = {kpi:'KPI 요약', sales:'매출 현황', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출'};
+
+function toggleNavParent(id) {
+  const parent = document.getElementById(id);
+  const childrenId = id.replace('navParent','navChildren');
+  const children = document.getElementById(childrenId);
+  parent.classList.toggle('open');
+  children.classList.toggle('open');
+}
 
 function bindNav() {
+  // nav-item clicks (KPI, 매출현황)
   document.querySelectorAll('.nav-item').forEach(el => {
     el.addEventListener('click', () => {
+      switchPage(el.dataset.page);
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('overlay').style.display='';
+    });
+  });
+
+  // nav-child clicks (스마트스토어, 카페24, 채널별, 유통별)
+  document.querySelectorAll('.nav-child').forEach(el => {
+    el.addEventListener('click', () => {
       const pg = el.dataset.page;
-      switchPage(pg);
-      // close mobile sidebar
+      const subtab = el.dataset.subtab;
+      document.querySelectorAll('.nav-child').forEach(c=>c.classList.remove('active'));
+      el.classList.add('active');
+      document.querySelectorAll('.nav-item').forEach(c=>c.classList.remove('active'));
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.getElementById('page-'+pg).classList.add('active');
+      document.getElementById('pageTitle').textContent = PAGE_TITLES[pg] || el.textContent.trim();
+      document.getElementById('pageMeta').textContent = updateMetaText();
+      if (subtab) {
+        // activate the right tab
+        const page = document.getElementById('page-'+pg);
+        page.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===subtab));
+        page.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+        const pane = document.getElementById(subtab);
+        if(pane) pane.classList.add('active');
+        onTabActivated(subtab);
+      } else {
+        renderPage(pg);
+      }
       document.getElementById('sidebar').classList.remove('open');
       document.getElementById('overlay').style.display='';
     });
@@ -580,18 +645,19 @@ function bindNav() {
     });
   });
 
-  // View mode toggles
+  // View mode toggles — scoped by data-vm-scope
   document.querySelectorAll('[data-vm]').forEach(btn => {
     btn.addEventListener('click', () => {
       const wrap = btn.closest('.ctrl-row');
       wrap.querySelectorAll('[data-vm]').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       const mode = btn.dataset.vm;
-      const page = btn.closest('.page').id;
-      if (page==='page-products') { vmProducts=mode; renderProducts(); }
-      else if (page==='page-distribution') { vmDist=mode; renderDist(); }
-      else if (page==='page-smartstore') { vmSS=mode; renderSSMonthly(); }
-      else if (page==='page-cafe24') { vmC24=mode; renderC24Monthly(); }
+      const scope = btn.dataset.vmScope;
+      const pageId = btn.closest('.page').id;
+      if (scope==='products' || pageId==='page-products') { vmProducts=mode; renderProducts(); }
+      else if (scope==='dist') { vmDist=mode; renderDist(); }
+      else if (pageId==='page-smartstore') { vmSS=mode; renderSSMonthly(); }
+      else if (pageId==='page-cafe24') { vmC24=mode; renderC24Monthly(); }
     });
   });
 
@@ -633,8 +699,9 @@ function bindSidebar() {
 
 function switchPage(pg) {
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active', el.dataset.page===pg));
+  document.querySelectorAll('.nav-child').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
-  document.getElementById('page-'+pg).classList.add('active');
+  document.getElementById('page-'+pg)?.classList.add('active');
   document.getElementById('pageTitle').textContent = PAGE_TITLES[pg] || pg;
   document.getElementById('pageMeta').textContent = updateMetaText();
   renderPage(pg);
@@ -652,17 +719,18 @@ function renderPage(pg) {
   else if (pg==='sales')   { renderSalesChannel(); renderSalesDist(); }
   else if (pg==='smartstore') { renderSSHeatmap(); }
   else if (pg==='cafe24')  { renderC24Heatmap(); }
-  else if (pg==='products')    renderProducts();
-  else if (pg==='distribution') renderDist();
+  else if (pg==='products') { renderProducts(); }  // 채널별 기본 탭
 }
 
 function onTabActivated(tabId) {
-  if (tabId==='ss-heatmap')  renderSSHeatmap();
-  else if (tabId==='ss-weekly')   renderSSWeekly();
-  else if (tabId==='ss-monthly')  renderSSMonthly();
-  else if (tabId==='c24-heatmap') renderC24Heatmap();
-  else if (tabId==='c24-weekly')  renderC24Weekly();
-  else if (tabId==='c24-monthly') renderC24Monthly();
+  if      (tabId==='ss-heatmap')   renderSSHeatmap();
+  else if (tabId==='ss-weekly')    renderSSWeekly();
+  else if (tabId==='ss-monthly')   renderSSMonthly();
+  else if (tabId==='c24-heatmap')  renderC24Heatmap();
+  else if (tabId==='c24-weekly')   renderC24Weekly();
+  else if (tabId==='c24-monthly')  renderC24Monthly();
+  else if (tabId==='prod-channel') renderProducts();
+  else if (tabId==='prod-dist')    renderDist();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1057,99 +1125,147 @@ function fmtDateShort(d) {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`;
 }
 
+function weekDateRange(year, week) {
+  const mon = isoWeekStart(year, week);
+  const sun = new Date(mon); sun.setUTCDate(mon.getUTCDate() + 6);
+  const fmt = d => `${String(d.getUTCMonth()+1).padStart(2,'0')}.${String(d.getUTCDate()).padStart(2,'0')}`;
+  return `${fmt(mon)}~${fmt(sun)}`;
+}
+
 function renderWeekly(channel, tableId) {
   const n    = getNow();
-  const rows = ROWS.filter(r=>r.ch===channel);
+  // 1.일반 필터
+  const rows = ROWS.filter(r=>r.ch===channel && r.dist==='1.일반');
   const agg  = sumBy(rows,'year','week');
-  const years = [n.y-1, n.y].filter(y=>rows.some(r=>r.year===y));
+  const py   = n.y-1, cy = n.y;
   const weeks = [...new Set(rows.map(r=>r.week))].sort((a,b)=>a-b).filter(w=>w>0);
 
-  let html = `<thead><tr>
-    <th style="width:52px">주차</th>
-    <th class="r" style="width:110px">${years[0]}년</th>
-    <th class="r" style="width:110px">${years[1]||n.y}년</th>
-    <th style="width:108px;color:#94a3b8;font-size:11px;text-align:center">${years[0]} 날짜</th>
-    <th style="width:108px;color:#94a3b8;font-size:11px;text-align:center">${years[1]||n.y} 날짜</th>
-    <th class="r" style="width:80px">전주比</th>
+  // 2행 헤더
+  let html = `<thead>
+  <tr>
+    <th rowspan="2" style="width:48px;vertical-align:bottom">주차</th>
+    <th colspan="2" class="r" style="color:#94a3b8;border-bottom:1px solid #e2e8f0">${py}년</th>
+    <th colspan="2" class="r" style="border-bottom:1px solid #e2e8f0">${cy}년</th>
+    <th rowspan="2" class="r" style="vertical-align:bottom">전주比</th>
+  </tr>
+  <tr>
+    <th style="color:#94a3b8;font-size:10px;font-weight:500;text-align:center">날짜</th>
+    <th class="r" style="color:#94a3b8;font-size:10px;font-weight:500">매출</th>
+    <th style="font-size:10px;font-weight:500;text-align:center">날짜</th>
+    <th class="r" style="font-size:10px;font-weight:500">매출</th>
   </tr></thead><tbody>`;
 
   for(const w of weeks){
-    const rev25 = (agg[`${years[0]}|${w}`]||{rev:0}).rev;
-    const rev26 = (agg[`${years[1]||n.y}|${w}`]||{rev:0}).rev;
-    const prevW = w>1 ? (agg[`${years[1]||n.y}|${w-1}`]||{rev:0}).rev : null;
-    const date25 = fmtDateShort(isoWeekStart(years[0], w));
-    const date26 = fmtDateShort(isoWeekStart(years[1]||n.y, w));
-    const womHtml = prevW!=null ? pctHtml(rev26,prevW) : '<span class="gray">—</span>';
+    const r25 = (agg[`${py}|${w}`]||{rev:0}).rev;
+    const r26 = (agg[`${cy}|${w}`]||{rev:0}).rev;
+    const prevW = w>1 ? (agg[`${cy}|${w-1}`]||{rev:0}).rev : null;
+    const wom = prevW!=null ? pctHtml(r26,prevW) : '<span class="gray">—</span>';
     html += `<tr>
       <td style="font-weight:600">${w}주</td>
-      <td class="r">${rev25?fmtM(rev25):'—'}</td>
-      <td class="r" style="font-weight:600">${rev26?fmtM(rev26):'—'}</td>
-      <td style="text-align:center;color:#94a3b8;font-size:11px">${date25}</td>
-      <td style="text-align:center;color:#94a3b8;font-size:11px">${date26}</td>
-      <td class="r">${womHtml}</td>
+      <td style="text-align:center;color:#94a3b8;font-size:11px">${weekDateRange(py,w)}</td>
+      <td class="r" style="color:#94a3b8">${r25?fmtM(r25):'—'}</td>
+      <td style="text-align:center;font-size:11px">${weekDateRange(cy,w)}</td>
+      <td class="r" style="font-weight:600">${r26?fmtM(r26):'—'}</td>
+      <td class="r">${wom}</td>
     </tr>`;
   }
   html += '</tbody>';
   document.getElementById(tableId).innerHTML = html;
+  makeSortable(tableId, tableId==='tblSSWeekly'?renderSSWeekly:renderC24Weekly);
 }
-function renderSSWeekly()  { renderWeekly('스마트스토어','tblSSWeekly');  makeSortable('tblSSWeekly',  renderSSWeekly); }
-function renderC24Weekly() { renderWeekly('카페24','tblC24Weekly');    makeSortable('tblC24Weekly', renderC24Weekly); }
+function renderSSWeekly()  { renderWeekly('스마트스토어','tblSSWeekly'); }
+function renderC24Weekly() { renderWeekly('카페24','tblC24Weekly'); }
 
 // ═══════════════════════════════════════════════════════
-//  CHANNEL MONTHLY (product breakdown)
+//  CHANNEL MONTHLY (product breakdown) — 2-row header
 // ═══════════════════════════════════════════════════════
 function renderChannelMonthly(channel, vm, tableId) {
-  const n = getNow();
-  const rows = ROWS.filter(r=>r.ch===channel);
-  const prods = [...new Set(rows.map(r=>r.prod))].filter(Boolean).sort();
-  const cols2026 = Array.from({length:n.m},(_,i)=>i+1);
-  const agg = sumBy(rows,'prod','year','month');
+  const n   = getNow();
+  const py  = n.y-1, cy = n.y;
+  // 스마트스토어/카페24는 1.일반 필터
+  const rows = ROWS.filter(r=>r.ch===channel && r.dist==='1.일반');
+  const agg  = sumBy(rows,'prod','year','month');
+  const prods = [...new Set(rows.map(r=>r.prod))].filter(Boolean);
 
-  const maxDayM = maxDay(rows.filter(r=>r.year===n.y), n.y, n.m) || n.dy;
-  const dim = n.dim;
+  // 2025: 전체 12개월 + 2026: 1..n.m + 예상
+  const cols25 = Array.from({length:12},(_,i)=>i+1);
+  const cols26 = Array.from({length:n.m},(_,i)=>i+1);
+  const allCols = [
+    ...cols25.map(m=>({y:py,m,fcast:false})),
+    ...cols26.map(m=>({y:cy,m,fcast:false})),
+    {y:cy, m:n.m, fcast:true},
+  ];
+  const mLabel = ({y,m,fcast}) => fcast
+    ? `${y}-${String(m).padStart(2,'0')} (예상)`
+    : `${y}-${String(m).padStart(2,'0')}`;
 
-  let html = '<thead><tr><th>상품</th>';
-  for(const y of [n.y-1, n.y]) {
-    for(const m of cols2026) html+=`<th class="r">${y==='2025'||y===n.y-1?'\'25':'\'26'}.${String(m).padStart(2,'0')}</th>`;
+  const maxDayM = maxDay(rows.filter(r=>r.year===cy),cy,n.m)||n.dy;
+
+  // Build header
+  let html = '<thead>';
+  if(vm==='both'){
+    html += '<tr><th rowspan="2">상품</th>';
+    allCols.forEach(c=>{
+      const st = c.fcast?'color:#1d4ed8;font-style:italic':c.y===py?'color:#94a3b8':'';
+      html+=`<th colspan="2" class="r" style="${st};border-bottom:1px solid #e2e8f0">${mLabel(c)}</th>`;
+    });
+    html += '<th rowspan="2" class="r">전월비</th></tr><tr>';
+    allCols.forEach((_,ci)=>{
+      // track column index for sorting: product=0, then pairs start at 1
+      const base = 1 + ci*2;
+      html+=`<th class="r" style="font-size:10px;font-weight:500;cursor:pointer" data-sort-col="${base}">수량</th>`;
+      html+=`<th class="r" style="font-size:10px;font-weight:500;cursor:pointer" data-sort-col="${base+1}">매출</th>`;
+    });
+    html += '</tr>';
+  } else {
+    html += '<tr><th>상품</th>';
+    allCols.forEach(c=>{
+      const st = c.fcast?'color:#1d4ed8;font-style:italic':c.y===py?'color:#94a3b8':'';
+      const lbl = vm==='rev'?'매출':'수량';
+      html+=`<th class="r" style="${st}">${mLabel(c)}<br><span style="font-size:10px;font-weight:400">${lbl}</span></th>`;
+    });
+    html += '<th class="r">전월비</th></tr>';
   }
-  html += `<th class="r">${n.y}.${String(n.m).padStart(2,'0')} 예상</th><th class="r">전월비</th></tr></thead><tbody>`;
+  html += '</thead><tbody>';
 
-  // Total row first, for sorting
-  const prodTotals = prods.map(p=>({p, tot: cols2026.reduce((s,m)=>s+(agg[`${p}|${n.y}|${m}`]||{rev:0}).rev,0)}));
-  prodTotals.sort((a,b)=>b.tot-a.tot);
+  // Sort by 2026 YTD revenue
+  const sorted = prods.map(p=>({p, tot:cols26.reduce((s,m)=>s+(agg[`${p}|${cy}|${m}`]||{rev:0}).rev,0)}));
+  sorted.sort((a,b)=>b.tot-a.tot);
 
-  for(const {p} of prodTotals){
-    const vals25 = cols2026.map(m=>(agg[`${p}|${n.y-1}|${m}`]||{rev:0}));
-    const vals26 = cols2026.map(m=>(agg[`${p}|${n.y}|${m}`]||{rev:0}));
-    const curMRev = vals26[n.m-1].rev;
-    const prevMRev = n.m>1?vals26[n.m-2].rev:0;
-    const fRev = forecastM(curMRev, maxDayM, dim);
-    const curMQty = vals26[n.m-1].fqty;
-    const fQty = forecastM(curMQty, maxDayM, dim);
+  for(const {p} of sorted){
+    const get = (y,m) => agg[`${p}|${y}|${m}`]||{rev:0,fqty:0};
+    const cur = get(cy,n.m);
+    const fRev = forecastM(cur.rev, maxDayM, n.dim);
+    const fQty = forecastM(cur.fqty, maxDayM, n.dim);
+    const prevM = n.m>1 ? get(cy,n.m-1) : get(py,12);
+    const pEsc = p.replace(/'/g,"\\'");
 
-    if (vm==='rev'||vm==='both'){
-      html += `<tr><td rowspan="${vm==='both'?2:1}" class="link" onclick="openDrillProd('${p.replace(/'/g,"\\'")}','${channel}')">${p}</td>`;
-      if(vm!=='qty') {
-        for(const v of vals25) html+=`<td class="r">${v.rev?fmtM(v.rev):'—'}</td>`;
-        for(const v of vals26) html+=`<td class="r">${v.rev?fmtM(v.rev):'—'}</td>`;
-        html += `<td class="r" style="color:#1d4ed8"><b>${fmtM(fRev)}</b></td>`;
-        html += `<td class="r">${pctHtml(curMRev,prevMRev)}</td></tr>`;
+    html += `<tr><td class="link" onclick="openDrillProd('${pEsc}','${channel}')">${p}</td>`;
+    for(const c of allCols){
+      const d = c.fcast ? {rev:fRev,fqty:fQty} : get(c.y,c.m);
+      const st = c.fcast?'style="color:#1d4ed8"':c.y===py?'style="color:#94a3b8"':'';
+      if(vm==='both'){
+        html+=`<td class="r" ${st}>${d.fqty?d.fqty.toLocaleString():'—'}</td>`;
+        html+=`<td class="r" ${st}>${d.rev?fmtM(d.rev):'—'}</td>`;
+      } else if(vm==='rev'){
+        html+=`<td class="r" ${st}>${d.rev?fmtM(d.rev):'—'}</td>`;
+      } else {
+        html+=`<td class="r" ${st}>${d.fqty?d.fqty.toLocaleString():'—'}</td>`;
       }
     }
-    if(vm==='qty'||vm==='both'){
-      if(vm==='qty') html+=`<tr><td class="link" onclick="openDrillProd('${p.replace(/'/g,"\\'")}','${channel}')">${p}</td>`;
-      else html+='<tr>';
-      for(const v of vals25) html+=`<td class="r gray">${v.fqty?fmtQty(v.fqty):'—'}</td>`;
-      for(const v of vals26) html+=`<td class="r gray">${v.fqty?fmtQty(v.fqty):'—'}</td>`;
-      html+=`<td class="r gray">${fmtQty(fQty)}</td><td class="r">${pctHtml(vals26[n.m-1].fqty, n.m>1?vals26[n.m-2].fqty:0)}</td></tr>`;
-    }
+    html += `<td class="r">${pctHtml(fRev,prevM.rev)}</td></tr>`;
   }
   html += '</tbody>';
   document.getElementById(tableId).innerHTML = html;
+  // inline sort via th data-sort-col (no full re-render needed for 2-row header)
+  document.getElementById(tableId).querySelectorAll('th[data-sort-col]').forEach(th=>{
+    th.addEventListener('click',()=>_sortBy(tableId, parseInt(th.dataset.sortCol),
+      tableId==='tblSSMonthly'?renderSSMonthly:renderC24Monthly));
+  });
 }
 
-function renderSSMonthly()  { renderChannelMonthly('스마트스토어', vmSS,  'tblSSMonthly');  makeSortable('tblSSMonthly',  renderSSMonthly); }
-function renderC24Monthly() { renderChannelMonthly('카페24',       vmC24, 'tblC24Monthly'); makeSortable('tblC24Monthly', renderC24Monthly); }
+function renderSSMonthly()  { renderChannelMonthly('스마트스토어', vmSS,  'tblSSMonthly'); }
+function renderC24Monthly() { renderChannelMonthly('카페24',       vmC24, 'tblC24Monthly'); }
 
 // ═══════════════════════════════════════════════════════
 //  PRODUCTS page
