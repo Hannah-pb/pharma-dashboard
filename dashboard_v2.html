@@ -213,7 +213,7 @@ tr.row-hl td{background:#fefce8;font-weight:600}
           <button class="tab-btn active" data-tab="sales-channel">채널별</button>
           <button class="tab-btn" data-tab="sales-dist">구분별</button>
         </div>
-        <button id="btnToggleAllSubs" onclick="toggleAllSubRows(true)" style="padding:7px 12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;color:#64748b;cursor:pointer">통계 접기</button>
+        <button id="btnToggleAllSubs" onclick="toggleAllSubRows(this)" style="padding:7px 12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;color:#64748b;cursor:pointer">통계 접기</button>
       </div>
       <div id="sales-channel" class="tab-pane active">
         <div class="card"><div class="card-title">채널별 월간 매출</div><div class="tbl-wrap"><table id="tblSalesChannel"></table></div></div>
@@ -413,17 +413,18 @@ async function loadData() {
   const hdr = headerRows[0].map(h => h.replace(/\n/g,' ').trim());
   const col = name => hdr.indexOf(name);
   C = {
-    CH:   col('대표채널명'),
-    DIST: col('구분 (*주의)'),
-    BRAND:col('브랜드'),
-    YEAR: col('연'),
-    MONTH:col('월'),
-    DAY:  col('일'),
-    WEEK: col('주차'),
-    PROD: col('대표품목명'),
-    QTY:  col('수량'),
-    REV:  col('실결제금액'),
-    FQTY: col('최종 수량'),
+    CH:      col('대표채널명'),
+    DIST:    col('구분 (*주의)'),
+    BRAND:   col('브랜드'),
+    YEAR:    col('연'),
+    MONTH:   col('월'),
+    DAY:     col('일'),
+    WEEK:    col('주차'),
+    PROD:    col('대표품목명'),
+    QTY:     col('수량'),
+    REV:     col('실결제금액'),
+    FQTY:    col('최종 수량'),
+    CATEGORY:col('건기/뷰티'),   // AD열: 건기식 / 뷰티 구분
   };
 
   // 두 시트 데이터를 합침 (각각 헤더 1행 제거)
@@ -435,19 +436,21 @@ async function loadData() {
   ROWS = allRows
     .filter(r => r.length > C.PROD)
     .map(r => ({
-      ch:    toStr(r[C.CH]),
-      dist:  toStr(r[C.DIST]),
-      brand: toStr(r[C.BRAND]),
-      year:  toInt(r[C.YEAR]),
-      month: toInt(r[C.MONTH]),
-      day:   toInt(r[C.DAY]),
-      week:  toInt(r[C.WEEK]),
-      prod:  toStr(r[C.PROD]),
-      qty:   toInt(r[C.QTY]),
-      rev:   toNum(r[C.REV]),
-      fqty:  toInt(r[C.FQTY]),
+      ch:       toStr(r[C.CH]),
+      dist:     toStr(r[C.DIST]),
+      brand:    toStr(r[C.BRAND]),
+      year:     toInt(r[C.YEAR]),
+      month:    toInt(r[C.MONTH]),
+      day:      toInt(r[C.DAY]),
+      week:     toInt(r[C.WEEK]),
+      prod:     toStr(r[C.PROD]),
+      qty:      toInt(r[C.QTY]),
+      rev:      toNum(r[C.REV]),
+      fqty:     toInt(r[C.FQTY]),
+      category: toStr(r[C.CATEGORY]),
     }))
-    .filter(r => r.year > 0 && r.month > 0 && r.ch !== '' && r.rev !== 0);
+    // 건기식만 사용 (AD열 = '건기식')
+    .filter(r => r.year > 0 && r.month > 0 && r.ch !== '' && r.rev !== 0 && r.category === '건기식');
 
   if (ROWS.length === 0) throw new Error('데이터 0건 — 시트 공유 설정 또는 필터를 확인하세요.');
 }
@@ -743,50 +746,64 @@ function setProgress(id, pct) {
 //  SALES — CHANNEL  (per-channel sub-rows + collapsible)
 // ═══════════════════════════════════════════════════════
 function renderSalesChannel() {
-  const n   = getNow();
-  const agg = sumBy(ROWS, 'year','month','ch');
+  const n    = getNow();
+  const py   = n.y - 1;
+  const cy   = n.y;
+  const agg  = sumBy(ROWS, 'year','month','ch');
   const chList = CH_ALL.filter(ch => ROWS.some(r=>r.ch===ch));
-  const cols = Array.from({length:n.m},(_,i)=>i+1);
-  const colspan = cols.length + 2; // month cols + 합계 + YoY
+  const cols = Array.from({length:n.m},(_,i)=>i+1); // 1..현재월
+  const mStr = m => `${cy}.${String(m).padStart(2,'0')}`;
+  // 현재월 경과 일수 (예상 계산용)
+  const curElapsed = ROWS.filter(r=>r.year===cy&&r.month===n.m).reduce((m,r)=>Math.max(m,r.day),0) || n.dy;
 
+  // Header
   let html = '<thead><tr><th>채널</th>';
-  for(const m of cols) html += `<th class="r">${n.y}.${String(m).padStart(2,'0')}</th>`;
+  for(const m of cols) html += `<th class="r">${mStr(m)}</th>`;
+  html += `<th class="r" style="color:#1d4ed8;font-style:italic">${mStr(n.m)} (예상)</th>`;
   html += '<th class="r">합계</th><th class="r">YoY</th></tr></thead><tbody>';
 
   for(const ch of chList) {
     const chKey = ch.replace(/[^a-zA-Z0-9가-힣]/g,'_');
-    const revs = cols.map(m => (agg[`${n.y}|${m}|${ch}`]||{rev:0}).rev);
+    const revs  = cols.map(m=>(agg[`${cy}|${m}|${ch}`]||{rev:0}).rev);
+    const curM  = revs[n.m-1];
+    const prevM = n.m>1 ? revs[n.m-2] : 0;
+    const chElapsed = ROWS.filter(r=>r.year===cy&&r.month===n.m&&r.ch===ch).reduce((mx,r)=>Math.max(mx,r.day),0)||curElapsed;
+    const fRev  = forecastM(curM, chElapsed, n.dim);
+    const py_curM = (agg[`${py}|${n.m}|${ch}`]||{rev:0}).rev;
     const tot26 = revs.reduce((s,v)=>s+v,0);
-    const tot25 = cols.map(m=>(agg[`${n.y-1}|${m}|${ch}`]||{rev:0}).rev).reduce((s,v)=>s+v,0);
-    const days26 = cols.map(m=>maxDay(ROWS.filter(r=>r.year===n.y&&r.ch===ch), n.y, m)||new Date(n.y,m,0).getDate());
+    const tot25 = cols.map(m=>(agg[`${py}|${m}|${ch}`]||{rev:0}).rev).reduce((s,v)=>s+v,0);
+    const days26 = cols.map(m=>maxDay(ROWS.filter(r=>r.year===cy&&r.ch===ch),cy,m)||new Date(cy,m,0).getDate());
 
-    // Main row with toggle icon
     html += `<tr class="ch-main-row" data-chkey="${chKey}">
       <td><span class="sub-toggle" onclick="toggleSubRows('${chKey}')" style="cursor:pointer;margin-right:6px;font-size:10px;color:#94a3b8">▾</span>${ch}</td>`;
     for(const v of revs) html += `<td class="r">${v?fmtM(v):'—'}</td>`;
+    html += `<td class="r" style="color:#1d4ed8"><b>${fmtM(fRev)}</b></td>`;
     html += `<td class="r"><b>${fmtM(tot26)}</b></td><td class="r">${pctHtml(tot26,tot25)}</td></tr>`;
 
-    // Sub-rows (collapsible)
     // 일 평균
     html += `<tr class="row-sub ch-sub-row" data-chkey="${chKey}"><td style="padding-left:22px">일 평균</td>`;
-    cols.forEach((m,i)=>{ const v=revs[i]; html+=`<td class="r">${days26[i]?fmtM(Math.round(v/days26[i])):'—'}</td>`; });
-    html += '<td></td><td></td></tr>';
+    cols.forEach((m,i)=>{ html+=`<td class="r">${days26[i]?fmtM(Math.round(revs[i]/days26[i])):'—'}</td>`; });
+    html += `<td class="r" style="color:#94a3b8">${n.dim?fmtM(Math.round(fRev/n.dim)):'—'}</td><td></td><td></td></tr>`;
+
     // 전월비
     html += `<tr class="row-sub ch-sub-row" data-chkey="${chKey}"><td style="padding-left:22px">전월비</td><td class="r gray">—</td>`;
     for(let i=1;i<cols.length;i++) html+=`<td class="r">${pctHtml(revs[i],revs[i-1])}</td>`;
-    html += '<td></td><td></td></tr>';
+    html += `<td class="r">${pctHtml(fRev,prevM)}</td><td></td><td></td></tr>`;
+
     // 전년비
     html += `<tr class="row-sub ch-sub-row" data-chkey="${chKey}"><td style="padding-left:22px">전년비</td>`;
-    cols.forEach(m=>{ const c25=(agg[`${n.y-1}|${m}|${ch}`]||{rev:0}).rev, c26=(agg[`${n.y}|${m}|${ch}`]||{rev:0}).rev; html+=`<td class="r">${pctHtml(c26,c25)}</td>`;});
-    html += '<td></td><td></td></tr>';
+    cols.forEach(m=>{ const c25=(agg[`${py}|${m}|${ch}`]||{rev:0}).rev, c26=(agg[`${cy}|${m}|${ch}`]||{rev:0}).rev; html+=`<td class="r">${pctHtml(c26,c25)}</td>`;});
+    html += `<td class="r">${pctHtml(fRev,py_curM)}</td><td></td><td></td></tr>`;
   }
 
-  // Total row
-  const totRevs = cols.map(m => chList.reduce((s,ch)=>(agg[`${n.y}|${m}|${ch}`]||{rev:0}).rev+s,0));
+  // 합계 행
+  const totRevs = cols.map(m=>chList.reduce((s,ch)=>(agg[`${cy}|${m}|${ch}`]||{rev:0}).rev+s,0));
   const totAll  = totRevs.reduce((s,v)=>s+v,0);
-  const tot25All= cols.map(m=>chList.reduce((s,ch)=>(agg[`${n.y-1}|${m}|${ch}`]||{rev:0}).rev+s,0)).reduce((s,v)=>s+v,0);
+  const totFcast= chList.reduce((s,ch)=>{ const v=(agg[`${cy}|${n.m}|${ch}`]||{rev:0}).rev; const d=ROWS.filter(r=>r.year===cy&&r.month===n.m&&r.ch===ch).reduce((mx,r)=>Math.max(mx,r.day),0)||curElapsed; return s+forecastM(v,d,n.dim); },0);
+  const tot25All= cols.map(m=>chList.reduce((s,ch)=>(agg[`${py}|${m}|${ch}`]||{rev:0}).rev+s,0)).reduce((s,v)=>s+v,0);
   html += '<tr class="row-total"><td>합계</td>';
   for(const v of totRevs) html+=`<td class="r">${fmtM(v)}</td>`;
+  html += `<td class="r" style="color:#1d4ed8"><b>${fmtM(totFcast)}</b></td>`;
   html += `<td class="r">${fmtM(totAll)}</td><td class="r">${pctHtml(totAll,tot25All)}</td></tr>`;
   html += '</tbody>';
 
@@ -802,57 +819,67 @@ function toggleSubRows(chKey) {
   if (icon) icon.textContent = hidden ? '▾' : '▸';
 }
 
-function toggleAllSubRows(collapse) {
-  document.querySelectorAll('.ch-sub-row, .row-sub').forEach(r => r.style.display = collapse ? 'none' : '');
-  document.querySelectorAll('.sub-toggle').forEach(el => el.textContent = collapse ? '▸' : '▾');
-  const btn = document.getElementById('btnToggleAllSubs');
-  if (btn) btn.textContent = collapse ? '통계 펴기' : '통계 접기';
+function toggleAllSubRows(btn) {
+  const isExpanding = btn.textContent.trim() === '통계 펴기';
+  document.querySelectorAll('.ch-sub-row, .row-sub').forEach(r => r.style.display = isExpanding ? '' : 'none');
+  document.querySelectorAll('.sub-toggle').forEach(el => el.textContent = isExpanding ? '▾' : '▸');
+  btn.textContent = isExpanding ? '통계 접기' : '통계 펴기';
 }
 
 // ═══════════════════════════════════════════════════════
 //  SALES — DIST
 // ═══════════════════════════════════════════════════════
 function renderSalesDist() {
-  const n   = getNow();
-  const agg = sumBy(ROWS,'year','month','dist');
-  const distList = DIST_MAIN.filter(d=>ROWS.some(r=>r.dist===d));
-  // Also include "기타" (anything not in DIST_MAIN)
-  const otherDists = distinct(ROWS,'dist').filter(d=>d&&!DIST_MAIN.includes(d)&&!d.startsWith('사은품'));
-
-  const allDists = [...distList];
-
+  const n    = getNow();
+  const py   = n.y - 1;
+  const cy   = n.y;
+  const agg  = sumBy(ROWS,'year','month','dist');
+  const allDists = DIST_MAIN.filter(d=>ROWS.some(r=>r.dist===d));
   const cols = Array.from({length:n.m},(_,i)=>i+1);
+  const mStr = m => `${cy}.${String(m).padStart(2,'0')}`;
+  const curElapsed = ROWS.filter(r=>r.year===cy&&r.month===n.m).reduce((m,r)=>Math.max(m,r.day),0)||n.dy;
+
   let html = '<thead><tr><th>구분</th>';
-  for(const m of cols) html += `<th class="r">${n.y}.${String(m).padStart(2,'0')}</th>`;
+  for(const m of cols) html += `<th class="r">${mStr(m)}</th>`;
+  html += `<th class="r" style="color:#1d4ed8;font-style:italic">${mStr(n.m)} (예상)</th>`;
   html += '<th class="r">합계</th><th class="r">YoY</th></tr></thead><tbody>';
 
   for(const dist of allDists){
-    const revs = cols.map(m=>(agg[`${n.y}|${m}|${dist}`]||{rev:0}).rev);
-    const tot26 = revs.reduce((s,v)=>s+v,0);
-    const tot25 = cols.map(m=>(agg[`${n.y-1}|${m}|${dist}`]||{rev:0}).rev).reduce((s,v)=>s+v,0);
+    const revs   = cols.map(m=>(agg[`${cy}|${m}|${dist}`]||{rev:0}).rev);
+    const curM   = revs[n.m-1];
+    const prevM  = n.m>1 ? revs[n.m-2] : 0;
+    const dElapsed = ROWS.filter(r=>r.year===cy&&r.month===n.m&&r.dist===dist).reduce((mx,r)=>Math.max(mx,r.day),0)||curElapsed;
+    const fRev   = forecastM(curM, dElapsed, n.dim);
+    const py_curM= (agg[`${py}|${n.m}|${dist}`]||{rev:0}).rev;
+    const tot26  = revs.reduce((s,v)=>s+v,0);
+    const tot25  = cols.map(m=>(agg[`${py}|${m}|${dist}`]||{rev:0}).rev).reduce((s,v)=>s+v,0);
+
     html += `<tr><td>${dist}</td>`;
     for(const v of revs) html += `<td class="r">${v?fmtM(v):'—'}</td>`;
+    html += `<td class="r" style="color:#1d4ed8"><b>${fmtM(fRev)}</b></td>`;
     html += `<td class="r"><b>${fmtM(tot26)}</b></td><td class="r">${pctHtml(tot26,tot25)}</td></tr>`;
 
-    // Sub rows
-    const days26 = cols.map(m=>maxDay(ROWS.filter(r=>r.year===n.y), n.y, m)||new Date(n.y,m,0).getDate());
+    const days26 = cols.map(m=>maxDay(ROWS.filter(r=>r.year===cy&&r.dist===dist),cy,m)||new Date(cy,m,0).getDate());
     html += '<tr class="row-sub"><td>일 평균</td>';
     cols.forEach((m,i)=>{ html+=`<td class="r">${days26[i]?fmtM(Math.round(revs[i]/days26[i])):'—'}</td>`; });
-    html += '<td></td><td></td></tr>';
+    html += `<td class="r" style="color:#94a3b8">${n.dim?fmtM(Math.round(fRev/n.dim)):'—'}</td><td></td><td></td></tr>`;
+
     html += '<tr class="row-sub"><td>전월비</td><td class="gray r">—</td>';
     for(let i=1;i<cols.length;i++) html+=`<td class="r">${pctHtml(revs[i],revs[i-1])}</td>`;
-    html += '<td></td><td></td></tr>';
+    html += `<td class="r">${pctHtml(fRev,prevM)}</td><td></td><td></td></tr>`;
+
     html += '<tr class="row-sub"><td>전년비</td>';
-    cols.forEach(m=>{ const c25=(agg[`${n.y-1}|${m}|${dist}`]||{rev:0}).rev, c26=(agg[`${n.y}|${m}|${dist}`]||{rev:0}).rev; html+=`<td class="r">${pctHtml(c26,c25)}</td>`;});
-    html += '<td></td><td></td></tr>';
+    cols.forEach(m=>{ const c25=(agg[`${py}|${m}|${dist}`]||{rev:0}).rev, c26=(agg[`${cy}|${m}|${dist}`]||{rev:0}).rev; html+=`<td class="r">${pctHtml(c26,c25)}</td>`;});
+    html += `<td class="r">${pctHtml(fRev,py_curM)}</td><td></td><td></td></tr>`;
   }
 
-  // Total
-  const totRevs = cols.map(m=>allDists.reduce((s,d)=>(agg[`${n.y}|${m}|${d}`]||{rev:0}).rev+s,0));
+  const totRevs = cols.map(m=>allDists.reduce((s,d)=>(agg[`${cy}|${m}|${d}`]||{rev:0}).rev+s,0));
   const totAll  = totRevs.reduce((s,v)=>s+v,0);
-  const tot25All= cols.map(m=>allDists.reduce((s,d)=>(agg[`${n.y-1}|${m}|${d}`]||{rev:0}).rev+s,0)).reduce((s,v)=>s+v,0);
+  const totFcast= allDists.reduce((s,d)=>{ const v=(agg[`${cy}|${n.m}|${d}`]||{rev:0}).rev; const el=ROWS.filter(r=>r.year===cy&&r.month===n.m&&r.dist===d).reduce((mx,r)=>Math.max(mx,r.day),0)||curElapsed; return s+forecastM(v,el,n.dim); },0);
+  const tot25All= cols.map(m=>allDists.reduce((s,d)=>(agg[`${py}|${m}|${d}`]||{rev:0}).rev+s,0)).reduce((s,v)=>s+v,0);
   html += '<tr class="row-total"><td>합계</td>';
   for(const v of totRevs) html+=`<td class="r">${fmtM(v)}</td>`;
+  html += `<td class="r" style="color:#1d4ed8"><b>${fmtM(totFcast)}</b></td>`;
   html += `<td class="r">${fmtM(totAll)}</td><td class="r">${pctHtml(totAll,tot25All)}</td></tr>`;
   html += '</tbody>';
   document.getElementById('tblSalesDist').innerHTML = html;
