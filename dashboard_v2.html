@@ -272,12 +272,6 @@ tr.row-hl td{background:#fefce8;font-weight:600}
         </div>
       </div>
       <div id="ss-monthly" class="tab-pane">
-        <div class="ctrl-row">
-          <span class="ctrl-label">보기:</span>
-          <button class="tog-btn active" data-vm="both">수량+매출</button>
-          <button class="tog-btn" data-vm="rev">매출만</button>
-          <button class="tog-btn" data-vm="qty">수량만</button>
-        </div>
         <div class="card"><div class="card-title">월간 상품별 매출 (스마트스토어)</div><div class="tbl-wrap"><table id="tblSSMonthly"></table></div></div>
       </div>
     </div>
@@ -305,12 +299,6 @@ tr.row-hl td{background:#fefce8;font-weight:600}
         </div>
       </div>
       <div id="c24-monthly" class="tab-pane">
-        <div class="ctrl-row">
-          <span class="ctrl-label">보기:</span>
-          <button class="tog-btn active" data-vm="both">수량+매출</button>
-          <button class="tog-btn" data-vm="rev">매출만</button>
-          <button class="tog-btn" data-vm="qty">수량만</button>
-        </div>
         <div class="card"><div class="card-title">월간 상품별 매출 (카페24)</div><div class="tbl-wrap"><table id="tblC24Monthly"></table></div></div>
       </div>
     </div>
@@ -528,6 +516,14 @@ function fmtM(v) {
   if (v===0) return '—';
   const a = Math.abs(v);
   if (a>=1e8) return (v/1e8).toFixed(1)+'억';
+  if (a>=1e4) return Math.round(v/1e4).toLocaleString()+'만';
+  return v.toLocaleString();
+}
+// 주간용: 억 단위 소수점 3자리까지 표시 (trailing zero 제거)
+function fmtMWeek(v) {
+  if (v==null||isNaN(v)||v===0) return '—';
+  const a = Math.abs(v);
+  if (a>=1e8) return parseFloat((v/1e8).toFixed(3))+'억';
   if (a>=1e4) return Math.round(v/1e4).toLocaleString()+'만';
   return v.toLocaleString();
 }
@@ -1008,8 +1004,8 @@ function renderHeatmap(channel, year, containerId) {
       const rev = v?.rev||0;
       const bg  = hmBg(rev);
       const tc  = hmText(rev);
-      const tip = `${year}.${String(m).padStart(2,'0')}.${String(d).padStart(2,'0')} | ${fmtWon(rev)}`;
-      html+=`<td class="hm-cell" style="${bg?`background:${bg};`:''}color:${tc}" data-tip="${tip}">${rev?rev.toLocaleString():'—'}</td>`;
+      const dateStr = `${year}.${String(m).padStart(2,'0')}.${String(d).padStart(2,'0')}`;
+      html+=`<td class="hm-cell" style="${bg?`background:${bg};`:''}color:${tc}" data-date="${dateStr}" data-rev="${rev}" onclick="hmSelectCell(this,'${containerId}')">${rev?rev.toLocaleString():'—'}</td>`;
     }
     html += '</tr>';
   }
@@ -1020,12 +1016,51 @@ function renderHeatmap(channel, year, containerId) {
     const v = dayTotals[d];
     html += `<td style="text-align:center;font-size:11px;font-weight:600;color:${v?'#1d4ed8':'#cbd5e1'};padding:6px 4px">${v?fmtM(v):'—'}</td>`;
   }
-  html += '</tr></tbody></table>';
+  html += '</tr>';
+  // 선택 날짜 표시 행
+  html += `<tr id="hm-sel-${containerId}"><td class="hm-label" style="color:#7c3aed;font-size:11px">선택</td>
+    <td colspan="31" id="hm-sel-text-${containerId}" style="padding:6px 10px;font-size:12px;color:#7c3aed">날짜 셀을 클릭하면 해당 일자 매출을 확인할 수 있습니다</td>
+  </tr>`;
+  html += '</tbody></table>';
   document.getElementById(containerId).innerHTML = html;
 }
 
 function renderSSHeatmap()  { renderHeatmap('스마트스토어', ssHmYear,  'hmSS'); }
 function renderC24Heatmap() { renderHeatmap('카페24',       c24HmYear, 'hmC24'); }
+
+let _hmSelectedStart = null; // {containerId, date, rev, td}
+function hmSelectCell(td, containerId) {
+  const date = td.dataset.date;
+  const rev  = parseInt(td.dataset.rev)||0;
+  const textEl = document.getElementById(`hm-sel-text-${containerId}`);
+
+  if (!_hmSelectedStart || _hmSelectedStart.containerId !== containerId) {
+    // 첫 번째 클릭 — 단일 날짜 선택
+    if (_hmSelectedStart?.td) _hmSelectedStart.td.style.outline = '';
+    _hmSelectedStart = {containerId, date, rev, td};
+    td.style.outline = '2px solid #7c3aed';
+    textEl.innerHTML = `<b>${date}</b> &nbsp;|&nbsp; ${fmtWon(rev)}`;
+  } else if (_hmSelectedStart.date === date) {
+    // 같은 셀 재클릭 → 선택 해제
+    td.style.outline = '';
+    _hmSelectedStart = null;
+    textEl.textContent = '날짜 셀을 클릭하면 해당 일자 매출을 확인할 수 있습니다';
+  } else {
+    // 두 번째 클릭 — 기간 합계
+    const d1 = _hmSelectedStart.date, d2 = date;
+    const [start, end] = d1 <= d2 ? [d1,d2] : [d2,d1];
+    // sum all cells in range
+    let total = 0;
+    document.querySelectorAll(`#${containerId} .hm-cell`).forEach(cell => {
+      const cd = cell.dataset.date;
+      if (cd >= start && cd <= end) total += parseInt(cell.dataset.rev)||0;
+    });
+    if (_hmSelectedStart.td) _hmSelectedStart.td.style.outline = '';
+    td.style.outline = '';
+    _hmSelectedStart = null;
+    textEl.innerHTML = `<b>${start} ~ ${end}</b> &nbsp;|&nbsp; 합계 ${fmtWon(total)}`;
+  }
+}
 
 // ═══════════════════════════════════════════════════════
 //  SORTABLE TABLES
@@ -1163,9 +1198,9 @@ function renderWeekly(channel, tableId) {
     html += `<tr>
       <td style="font-weight:600">${w}주</td>
       <td style="text-align:center;color:#94a3b8;font-size:11px">${weekDateRange(py,w)}</td>
-      <td class="r" style="color:#94a3b8">${r25?fmtM(r25):'—'}</td>
+      <td class="r" style="color:#94a3b8">${r25?fmtMWeek(r25):'—'}</td>
       <td style="text-align:center;font-size:11px">${weekDateRange(cy,w)}</td>
-      <td class="r" style="font-weight:600">${r26?fmtM(r26):'—'}</td>
+      <td class="r" style="font-weight:600">${r26?fmtMWeek(r26):'—'}</td>
       <td class="r">${wom}</td>
     </tr>`;
   }
@@ -1264,8 +1299,8 @@ function renderChannelMonthly(channel, vm, tableId) {
   });
 }
 
-function renderSSMonthly()  { renderChannelMonthly('스마트스토어', vmSS,  'tblSSMonthly'); }
-function renderC24Monthly() { renderChannelMonthly('카페24',       vmC24, 'tblC24Monthly'); }
+function renderSSMonthly()  { renderChannelMonthly('스마트스토어', 'both', 'tblSSMonthly'); }
+function renderC24Monthly() { renderChannelMonthly('카페24',       'both', 'tblC24Monthly'); }
 
 // ═══════════════════════════════════════════════════════
 //  PRODUCTS page
