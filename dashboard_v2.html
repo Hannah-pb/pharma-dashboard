@@ -1017,12 +1017,14 @@ function renderHeatmap(channel, year, containerId) {
     html += `<td style="text-align:center;font-size:11px;font-weight:600;color:${v?'#1d4ed8':'#cbd5e1'};padding:6px 4px">${v?fmtM(v):'—'}</td>`;
   }
   html += '</tr>';
-  // 선택 날짜 표시 행
-  html += `<tr id="hm-sel-${containerId}"><td class="hm-label" style="color:#7c3aed;font-size:11px">선택</td>
-    <td colspan="31" id="hm-sel-text-${containerId}" style="padding:6px 10px;font-size:12px;color:#7c3aed">날짜 셀을 클릭하면 해당 일자 매출을 확인할 수 있습니다</td>
-  </tr>`;
   html += '</tbody></table>';
+  // 선택 날짜 표시 — 테이블 밖에 두어 가로스크롤과 무관하게 고정
   document.getElementById(containerId).innerHTML = html;
+  const selDiv = document.createElement('div');
+  selDiv.id = `hm-sel-text-${containerId}`;
+  selDiv.style.cssText = 'padding:8px 12px;font-size:12px;color:#7c3aed;border-top:1px solid #e2e8f0;background:#fff;margin-top:0;border-radius:0 0 8px 8px';
+  selDiv.innerHTML = '<b>선택</b> &nbsp; 날짜 셀을 클릭하면 해당 일자 매출을 확인할 수 있습니다';
+  document.getElementById(containerId).after(selDiv);
 }
 
 function renderSSHeatmap()  { renderHeatmap('스마트스토어', ssHmYear,  'hmSS'); }
@@ -1077,7 +1079,7 @@ function makeSortable(tableId, rerenderFn) {
   });
 }
 
-function _sortBy(tableId, colIdx, rerenderFn) {
+function _sortBy(tableId, colIdx, rerenderFn, targetTh) {
   const cur = (_sortState[tableId] || {});
   let dir;
   if (cur.col === colIdx) {
@@ -1092,10 +1094,11 @@ function _sortBy(tableId, colIdx, rerenderFn) {
   const tbl = document.getElementById(tableId);
   if (!tbl) return;
 
-  // Update header icons
+  // 아이콘 업데이트: targetTh가 있으면 그 th에 직접, 없으면 flat index로 찾음
   tbl.querySelectorAll('thead th').forEach((th, i) => {
     th.querySelectorAll('.srt-icon').forEach(el=>el.remove());
-    if (i === colIdx) {
+    const isTarget = targetTh ? th === targetTh : i === colIdx;
+    if (isTarget) {
       const s = document.createElement('span');
       s.className = 'srt-icon';
       s.style.cssText = 'margin-left:4px;color:#3b82f6;font-size:10px';
@@ -1206,7 +1209,7 @@ function renderWeekly(channel, tableId) {
   }
   html += '</tbody>';
   document.getElementById(tableId).innerHTML = html;
-  makeSortable(tableId, tableId==='tblSSWeekly'?renderSSWeekly:renderC24Weekly);
+  // 주간 테이블은 2행 헤더 구조상 정렬 비활성화
 }
 function renderSSWeekly()  { renderWeekly('스마트스토어','tblSSWeekly'); }
 function renderC24Weekly() { renderWeekly('카페24','tblC24Weekly'); }
@@ -1292,10 +1295,10 @@ function renderChannelMonthly(channel, vm, tableId) {
   }
   html += '</tbody>';
   document.getElementById(tableId).innerHTML = html;
-  // inline sort via th data-sort-col (no full re-render needed for 2-row header)
+  // 2행 헤더 정렬: 클릭한 th를 직접 전달해 화살표가 정확한 열에 표시되도록 함
   document.getElementById(tableId).querySelectorAll('th[data-sort-col]').forEach(th=>{
     th.addEventListener('click',()=>_sortBy(tableId, parseInt(th.dataset.sortCol),
-      tableId==='tblSSMonthly'?renderSSMonthly:renderC24Monthly));
+      tableId==='tblSSMonthly'?renderSSMonthly:renderC24Monthly, th));
   });
 }
 
