@@ -103,7 +103,7 @@ tr.row-total td{background:#eff6ff;font-weight:700;border-top:2px solid #3b82f6}
 tr.row-sub td{font-size:11px;color:#94a3b8;background:#fafafa;padding-top:4px;padding-bottom:4px}
 tr.row-sub td.up{color:#15803d}
 tr.row-sub td.down{color:#dc2626}
-tr.row-hl td{background:#fefce8;font-weight:700}
+tr.row-hl td{background:#fefce8;font-weight:600}
 .link{cursor:pointer;color:#1d4ed8;font-weight:500}
 .link:hover{text-decoration:underline}
 
@@ -141,6 +141,27 @@ tr.row-hl td{background:#fefce8;font-weight:700}
 #sidebar.collapsed .nav-parent .nav-label{opacity:0;width:0}
 #sidebar.collapsed .nav-arrow{display:none}
 #sidebar.collapsed .nav-children{display:none}
+
+/* ── Inventory ── */
+.inv-badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;margin-left:4px;vertical-align:middle;white-space:nowrap}
+.inv-badge.red{background:#fee2e2;color:#dc2626}
+.inv-badge.orange{background:#ffedd5;color:#ea580c}
+.inv-badge.yellow{background:#fef9c3;color:#ca8a04}
+.inv-badge.green{background:#dcfce7;color:#16a34a}
+.inv-badge.blue{background:#dbeafe;color:#1d4ed8}
+.inv-badge.gray{background:#f1f5f9;color:#64748b}
+tr.alarm-red td{background:#fff5f5}
+tr.alarm-red:hover td{background:#fecaca!important}
+tr.alarm-orange td{background:#fffaf5}
+tr.alarm-orange:hover td{background:#fed7aa!important}
+tr.alarm-yellow td{background:#fefef0}
+tr.alarm-yellow:hover td{background:#fef08a!important}
+.expiry-bar{height:5px;border-radius:3px;background:#e2e8f0;margin-top:5px;overflow:hidden;width:100%;max-width:140px}
+.expiry-bar-fill{height:100%;border-radius:3px;transition:width .4s}
+.inv-loading{display:flex;align-items:center;justify-content:center;padding:60px;gap:12px;color:#3b82f6;font-size:13px}
+.kpi-grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:12px}
+@media(max-width:900px){.kpi-grid-5{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:480px){.kpi-grid-5{grid-template-columns:1fr 1fr}}
 
 /* ── Hamburger (mobile) ── */
 #hamburger{display:none;position:fixed;top:12px;left:12px;z-index:60;background:#0f2744;color:#fff;border:none;border-radius:8px;width:40px;height:40px;font-size:20px;cursor:pointer}
@@ -192,6 +213,8 @@ tr.row-hl td{background:#fefce8;font-weight:700}
       <div class="nav-child" data-page="products" data-subtab="prod-channel"><span>📊</span> 채널별</div>
       <div class="nav-child" data-page="products" data-subtab="prod-dist"><span>🚚</span> 유통별</div>
     </div>
+    <!-- 재고관리 -->
+    <li class="nav-item" data-page="inventory"><span class="nav-icon">📋</span><span class="nav-label">재고관리</span></li>
   </ul>
   <div class="sb-footer">
     <button id="refreshBtn" onclick="location.reload()">🔄 <span class="btn-label">새로고침</span></button>
@@ -235,9 +258,18 @@ tr.row-hl td{background:#fefce8;font-weight:700}
   <div id="page-sales" class="page">
     <div class="page-body">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <div class="tab-bar" style="margin-bottom:0">
+          <button class="tab-btn active" data-tab="sales-channel">채널별</button>
+          <button class="tab-btn" data-tab="sales-dist">구분별</button>
+        </div>
         <button id="btnToggleAllSubs" onclick="toggleAllSubRows(this)" style="padding:7px 12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;color:#64748b;cursor:pointer">통계 접기</button>
       </div>
-      <div class="card"><div class="card-title">매출 현황</div><div class="tbl-wrap"><table id="tblSalesSummary"></table></div></div>
+      <div id="sales-channel" class="tab-pane active">
+        <div class="card"><div class="card-title">채널별 월간 매출</div><div class="tbl-wrap"><table id="tblSalesChannel"></table></div></div>
+      </div>
+      <div id="sales-dist" class="tab-pane">
+        <div class="card"><div class="card-title">구분별 월간 매출</div><div class="tbl-wrap"><table id="tblSalesDist"></table></div></div>
+      </div>
     </div>
   </div>
 
@@ -304,20 +336,68 @@ tr.row-hl td{background:#fefce8;font-weight:700}
       </div>
       <!-- 채널별 -->
       <div id="prod-channel" class="tab-pane active">
-        <div class="ctrl-row" style="margin-bottom:8px">
-          <span class="ctrl-label">기준:</span>
+        <div class="ctrl-row">
+          <span class="ctrl-label">보기:</span>
+          <button class="tog-btn active" data-vm="both" data-vm-scope="products">수량+매출</button>
+          <button class="tog-btn" data-vm="rev" data-vm-scope="products">매출</button>
+          <button class="tog-btn" data-vm="qty" data-vm-scope="products">수량</button>
+          <span class="ctrl-label" style="margin-left:8px">기준:</span>
           <select class="sel-month" id="selProductsMonth"></select>
         </div>
-        <div class="card"><div class="card-title">상품별 채널 매트릭스</div><div class="tbl-wrap tbl-auto"><table id="tblProducts"></table></div></div>
+        <div class="card"><div class="card-title">상품별 채널 매트릭스</div><div class="tbl-wrap"><table id="tblProducts"></table></div></div>
       </div>
       <!-- 유통별 -->
       <div id="prod-dist" class="tab-pane">
-        <div class="ctrl-row" style="margin-bottom:8px">
-          <span class="ctrl-label">기준:</span>
+        <div class="ctrl-row">
+          <span class="ctrl-label">보기:</span>
+          <button class="tog-btn active" data-vm="both" data-vm-scope="dist">수량+매출</button>
+          <button class="tog-btn" data-vm="rev" data-vm-scope="dist">매출</button>
+          <button class="tog-btn" data-vm="qty" data-vm-scope="dist">수량</button>
+          <span class="ctrl-label" style="margin-left:8px">기준:</span>
           <select class="sel-month" id="selDistMonth"></select>
         </div>
-        <div class="card"><div class="card-title">유통별 상품 매트릭스</div><div class="tbl-wrap tbl-auto"><table id="tblDist"></table></div></div>
+        <div class="card"><div class="card-title">유통별 상품 매트릭스</div><div class="tbl-wrap"><table id="tblDist"></table></div></div>
       </div>
+    </div>
+  </div>
+
+  <!-- ── 재고관리 ── -->
+  <div id="page-inventory" class="page">
+    <div class="page-body">
+
+      <!-- 로딩 / 에러 -->
+      <div id="inv-loading" class="inv-loading" style="display:none">
+        <div class="spinner"></div><span id="inv-loading-text">재고 데이터 불러오는 중…</span>
+      </div>
+
+      <div id="inv-content">
+        <!-- 섹션 1: KPI 카드 -->
+        <div class="section-label" style="margin-top:4px">재고 현황 요약</div>
+        <div class="kpi-grid-5" id="invKpiCards"></div>
+
+        <!-- 섹션 2: 발주 알람 -->
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span>🔔 발주 알람 <span id="invAlarmCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
+            <span style="font-size:11px;font-weight:400;color:#94a3b8">소진 예상일 = (재고 − 공구할당 − 사입) ÷ 상시판매 일평균, 입고 전후 공구 분리 계산</span>
+          </div>
+          <div class="tbl-wrap"><table id="tblOrderAlarm"></table></div>
+        </div>
+
+        <!-- 섹션 3: 소비기한 임박 -->
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span>⚠️ 소비기한 임박 (6개월 이내) <span id="invExpiryCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
+            <span style="font-size:11px;font-weight:400;color:#94a3b8">
+              <span class="inv-badge red">1개월↓</span>
+              <span class="inv-badge orange">3개월↓</span>
+              <span class="inv-badge yellow">6개월↓</span>
+            </span>
+          </div>
+          <div class="tbl-wrap"><table id="tblExpiry"></table></div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -349,6 +429,11 @@ const GID = '1605737796';
 const SHEET_ID = SHEET_ID_2026;
 const YEARLY_TARGET = 12_000_000_000;
 
+// ── 재고관리 시트 ──
+const INV_SHEET_ID  = '1hVQZOo3MYhksqhsE6B4TFYUr997HgiDzo27zKVBNx2I';
+const INV_TAB_MAIN  = '재고관리';
+const INV_TAB_GONGU = '공구 판매데이터';
+
 // Column indices resolved from CSV header row at load time
 let C = {};
 
@@ -368,6 +453,12 @@ let vmDist     = 'both';
 let vmSS       = 'both';
 let vmC24      = 'both';
 let drillData  = null;
+
+// 재고관리 상태
+let INV_ROWS   = [];
+let GONGU_ROWS = [];
+let invLoaded  = false;
+let invLoading = false;
 
 // ═══════════════════════════════════════════════════════
 //  INIT
@@ -562,7 +653,7 @@ function mkChart(id, cfg) {
 // ═══════════════════════════════════════════════════════
 //  NAV / PAGE SWITCHING
 // ═══════════════════════════════════════════════════════
-const PAGE_TITLES = {kpi:'KPI 요약', sales:'매출 현황', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출'};
+const PAGE_TITLES = {kpi:'KPI 요약', sales:'매출 현황', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출', inventory:'재고관리'};
 
 function toggleNavParent(id) {
   const parent = document.getElementById(id);
@@ -682,8 +773,14 @@ function switchPage(pg) {
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+pg)?.classList.add('active');
   document.getElementById('pageTitle').textContent = PAGE_TITLES[pg] || pg;
-  document.getElementById('pageMeta').textContent = updateMetaText();
+  document.getElementById('pageMeta').textContent = pg === 'inventory' ? invMetaText() : updateMetaText();
   renderPage(pg);
+}
+
+function invMetaText() {
+  if (!invLoaded) return '재고 데이터 로딩 중…';
+  const today = new Date();
+  return `기준일: ${today.getFullYear()}.${String(today.getMonth()+1).padStart(2,'0')}.${String(today.getDate()).padStart(2,'0')} · ${INV_ROWS.length}개 SKU`;
 }
 
 function updateMetaText() {
@@ -695,10 +792,11 @@ function updateMetaText() {
 
 function renderPage(pg) {
   if (pg==='kpi')          renderKPI();
-  else if (pg==='sales')   renderSalesSummary();
+  else if (pg==='sales')   { renderSalesChannel(); renderSalesDist(); }
   else if (pg==='smartstore') { renderSSHeatmap(); }
   else if (pg==='cafe24')  { renderC24Heatmap(); }
   else if (pg==='products') { renderProducts(); }  // 채널별 기본 탭
+  else if (pg==='inventory') { renderInventory(); }
 }
 
 function onTabActivated(tabId) {
@@ -790,128 +888,7 @@ function setProgress(id, pct) {
 }
 
 // ═══════════════════════════════════════════════════════
-//  SALES SUMMARY — 계층 구조 (PB 최종 / 공구 / 일반 매출 최종)
-// ═══════════════════════════════════════════════════════
-function renderSalesSummary() {
-  const n  = getNow();
-  const cy = n.y, py = n.y-1;
-  const cols = Array.from({length:n.m},(_,i)=>i+1);
-  const mStr = m=>`${cy}.${String(m).padStart(2,'0')}`;
-  const curElapsed = ROWS.filter(r=>r.year===cy&&r.month===n.m).reduce((m,r)=>Math.max(m,r.day),0)||n.dy;
-
-  // 데이터 집계 헬퍼
-  function getRevs(filterFn) {
-    return cols.map(m=>ROWS.filter(r=>r.year===cy&&r.month===m&&filterFn(r)).reduce((s,r)=>s+r.rev,0));
-  }
-  function getPyRevs(filterFn) {
-    return cols.map(m=>ROWS.filter(r=>r.year===py&&r.month===m&&filterFn(r)).reduce((s,r)=>s+r.rev,0));
-  }
-  function fcastRev(revArr) {
-    const cur=revArr[n.m-1];
-    const el=ROWS.filter(r=>r.year===cy&&r.month===n.m).reduce((m,r)=>Math.max(m,r.day),0)||curElapsed;
-    return forecastM(cur,el,n.dim);
-  }
-
-  // 필터 정의
-  const fIlban    = r=>r.dist==='1.일반';
-  const fChinhan  = r=>r.dist==='2.친한구매';
-  const fSaib     = r=>r.dist.includes('사입');
-  const fImjik    = r=>r.dist==='4.임직원';
-  const fB2B      = r=>r.dist==='5.B2B';
-  const fGongu    = r=>r.dist==='3.공동구매';
-  const fSS       = r=>r.ch==='스마트스토어'&&r.dist==='1.일반';
-  const fC24      = r=>r.ch==='카페24'&&r.dist==='1.일반';
-  const fCoupang  = r=>r.ch==='쿠팡'&&r.dist==='1.일반';
-  const fKakao    = r=>r.ch==='카카오톡스토어'&&r.dist==='1.일반';
-
-  const REV = {
-    ilban:   getRevs(fIlban),
-    chinhan: getRevs(fChinhan),
-    saib:    getRevs(fSaib),
-    imjik:   getRevs(fImjik),
-    b2b:     getRevs(fB2B),
-    gongu:   getRevs(fGongu),
-    ss:      getRevs(fSS),
-    c24:     getRevs(fC24),
-    coupang: getRevs(fCoupang),
-    kakao:   getRevs(fKakao),
-  };
-  // 파생
-  REV.ilbanTotal = cols.map((_,i)=>REV.ilban[i]+REV.chinhan[i]+REV.saib[i]+REV.imjik[i]+REV.b2b[i]);
-  REV.pbTotal    = cols.map((_,i)=>REV.ilbanTotal[i]+REV.gongu[i]);
-
-  const PY = {
-    ilban: getPyRevs(fIlban), chinhan: getPyRevs(fChinhan), saib: getPyRevs(fSaib),
-    imjik: getPyRevs(fImjik), b2b: getPyRevs(fB2B), gongu: getPyRevs(fGongu),
-    ss: getPyRevs(fSS), c24: getPyRevs(fC24), coupang: getPyRevs(fCoupang), kakao: getPyRevs(fKakao),
-  };
-  PY.ilbanTotal = cols.map((_,i)=>PY.ilban[i]+PY.chinhan[i]+PY.saib[i]+PY.imjik[i]+PY.b2b[i]);
-  PY.pbTotal    = cols.map((_,i)=>PY.ilbanTotal[i]+PY.gongu[i]);
-
-  // 테이블 빌더
-  function tot(arr){ return arr.reduce((s,v)=>s+v,0); }
-  function row(label, revArr, pyArr, cls='', indent=0, rowId='') {
-    const t26=tot(revArr), t25=tot(pyArr), fc=fcastRev(revArr);
-    const prev=n.m>1?revArr[n.m-2]:0;
-    const idAttr = rowId ? `id="${rowId}"` : '';
-    let r=`<tr class="${cls}" ${idAttr}><td style="padding-left:${8+indent*16}px;${cls.includes('row-hl')?'font-weight:700':''}">${label}</td>`;
-    for(const v of revArr) r+=`<td class="r">${v?fmtM(v):'—'}</td>`;
-    r+=`<td class="r" style="color:#1d4ed8"><b>${fmtM(fc)}</b></td>`;
-    r+=`<td class="r"><b>${fmtM(t26)}</b></td><td class="r">${pctHtml(t26,t25)}</td></tr>`;
-    return r;
-  }
-  function subRows(revArr, label, indent, chKey) {
-    const days26 = cols.map(m=>maxDay(ROWS.filter(r=>r.year===cy),cy,m)||new Date(cy,m,0).getDate());
-    const cKey = chKey||label.replace(/[^a-zA-Z0-9가-힣]/g,'_');
-    let r=`<tr class="row-sub ch-sub-row" data-chkey="${cKey}"><td style="padding-left:${8+indent*16}px">일 평균</td>`;
-    cols.forEach((m,i)=>{ r+=`<td class="r">${days26[i]?fmtM(Math.round(revArr[i]/days26[i])):'—'}</td>`; });
-    r+='<td></td><td></td><td></td></tr>';
-    r+=`<tr class="row-sub ch-sub-row" data-chkey="${cKey}"><td style="padding-left:${8+indent*16}px">MoM</td><td class="r gray">—</td>`;
-    for(let i=1;i<cols.length;i++) r+=`<td class="r">${pctHtml(revArr[i],revArr[i-1])}</td>`;
-    r+='<td></td><td></td><td></td></tr>';
-    r+=`<tr class="row-sub ch-sub-row" data-chkey="${cKey}"><td style="padding-left:${8+indent*16}px">YoY</td>`;
-    cols.forEach(m=>{ const a=PY.ilban[m-1]||0; r+=`<td class="r">${pctHtml(revArr[m-1],a)}</td>`; });
-    r+='<td></td><td></td><td></td></tr>';
-    return r;
-  }
-
-  // Header
-  let html='<thead><tr><th style="min-width:160px">항목</th>';
-  for(const m of cols) html+=`<th class="r" style="min-width:70px">${mStr(m)}</th>`;
-  html+=`<th class="r" style="color:#1d4ed8;font-style:italic;min-width:80px">${mStr(n.m)} (예상)</th>`;
-  html+='<th class="r" style="min-width:80px">합계</th><th class="r" style="min-width:60px">YoY</th></tr></thead><tbody>';
-
-  const chKey_ilban='ilban_커머스';
-  html += row('PB 최종',REV.pbTotal,PY.pbTotal,'row-hl',0,'row-pb');
-  html += row('공구',REV.gongu,PY.gongu,'',0,'row-gongu');
-  html += row('일반 매출 최종',REV.ilbanTotal,PY.ilbanTotal,'row-hl',0,'row-ilban-total');
-  html += `<tr class="ch-main-row" data-chkey="${chKey_ilban}">
-    <td style="padding-left:8px"><span class="sub-toggle" onclick="toggleSubRows('${chKey_ilban}')" style="cursor:pointer;margin-right:6px;font-size:10px;color:#94a3b8">▾</span>일반 커머스</td>`;
-  for(const v of REV.ilban) html+=`<td class="r">${v?fmtM(v):'—'}</td>`;
-  html+=`<td class="r" style="color:#1d4ed8"><b>${fmtM(fcastRev(REV.ilban))}</b></td>`;
-  html+=`<td class="r"><b>${fmtM(tot(REV.ilban))}</b></td><td class="r">${pctHtml(tot(REV.ilban),tot(PY.ilban))}</td></tr>`;
-  html += subRows(REV.ilban,'일반커머스',1,chKey_ilban);
-
-  html += row('스마트스토어',REV.ss,PY.ss,'',2);
-  html += row('카페24',REV.c24,PY.c24,'',2);
-  html += row('쿠팡 합계',REV.coupang,PY.coupang,'',2);
-  html += row('카카오톡스토어',REV.kakao,PY.kakao,'',2);
-  html += row('친한구매',REV.chinhan,PY.chinhan,'',1);
-  html += row('사입',REV.saib,PY.saib,'',1);
-  html += row('임직원',REV.imjik,PY.imjik,'',1);
-  html += row('B2B',REV.b2b,PY.b2b,'',1);
-  html += '</tbody>';
-
-  document.getElementById('tblSalesSummary').innerHTML = html;
-  // 노란 배경
-  ['row-pb','row-ilban-total'].forEach(id=>{
-    const el = document.getElementById(id);
-    if(el) { el.style.background='#fefce8'; el.querySelectorAll('td').forEach(td=>td.style.fontWeight='700'); }
-  });
-}
-
-// ═══════════════════════════════════════════════════════
-//  SALES — CHANNEL  (기존 유지, 현재는 미사용)
+//  SALES — CHANNEL  (per-channel sub-rows + collapsible)
 // ═══════════════════════════════════════════════════════
 function renderSalesChannel() {
   const n    = getNow();
@@ -1121,14 +1098,12 @@ function renderHeatmap(channel, year, containerId) {
     html += `<td style="text-align:center;font-size:11px;font-weight:600;color:${v?'#1d4ed8':'#cbd5e1'};padding:6px 4px">${v?fmtM(v):'—'}</td>`;
   }
   html += '</tr>';
+  // 선택 날짜 표시 행
+  html += `<tr id="hm-sel-${containerId}"><td class="hm-label" style="color:#7c3aed;font-size:11px">선택</td>
+    <td colspan="31" id="hm-sel-text-${containerId}" style="padding:6px 10px;font-size:12px;color:#7c3aed">날짜 셀을 클릭하면 해당 일자 매출을 확인할 수 있습니다</td>
+  </tr>`;
   html += '</tbody></table>';
-  // 선택 날짜 표시 — 테이블 밖에 두어 가로스크롤과 무관하게 고정
   document.getElementById(containerId).innerHTML = html;
-  const selDiv = document.createElement('div');
-  selDiv.id = `hm-sel-text-${containerId}`;
-  selDiv.style.cssText = 'padding:8px 12px;font-size:12px;color:#7c3aed;border-top:1px solid #e2e8f0;background:#fff;margin-top:0;border-radius:0 0 8px 8px';
-  selDiv.innerHTML = '<b>선택</b> &nbsp; 날짜 셀을 클릭하면 해당 일자 매출을 확인할 수 있습니다';
-  document.getElementById(containerId).after(selDiv);
 }
 
 function renderSSHeatmap()  { renderHeatmap('스마트스토어', ssHmYear,  'hmSS'); }
@@ -1183,7 +1158,7 @@ function makeSortable(tableId, rerenderFn) {
   });
 }
 
-function _sortBy(tableId, colIdx, rerenderFn, targetTh) {
+function _sortBy(tableId, colIdx, rerenderFn) {
   const cur = (_sortState[tableId] || {});
   let dir;
   if (cur.col === colIdx) {
@@ -1198,11 +1173,10 @@ function _sortBy(tableId, colIdx, rerenderFn, targetTh) {
   const tbl = document.getElementById(tableId);
   if (!tbl) return;
 
-  // 아이콘 업데이트: targetTh가 있으면 그 th에 직접, 없으면 flat index로 찾음
+  // Update header icons
   tbl.querySelectorAll('thead th').forEach((th, i) => {
     th.querySelectorAll('.srt-icon').forEach(el=>el.remove());
-    const isTarget = targetTh ? th === targetTh : i === colIdx;
-    if (isTarget) {
+    if (i === colIdx) {
       const s = document.createElement('span');
       s.className = 'srt-icon';
       s.style.cssText = 'margin-left:4px;color:#3b82f6;font-size:10px';
@@ -1283,19 +1257,18 @@ function renderWeekly(channel, tableId) {
   const weeks = [...new Set(rows.map(r=>r.week))].sort((a,b)=>a-b).filter(w=>w>0);
 
   // 2행 헤더
-  const _ni = 'cursor:default;pointer-events:none;user-select:none'; // non-interactive
   let html = `<thead>
   <tr>
-    <th rowspan="2" style="width:48px;vertical-align:bottom;${_ni}">주차</th>
-    <th colspan="2" class="r" style="color:#94a3b8;border-bottom:1px solid #e2e8f0;${_ni}">${py}년</th>
-    <th colspan="2" class="r" style="border-bottom:1px solid #e2e8f0;${_ni}">${cy}년</th>
-    <th rowspan="2" class="r" style="vertical-align:bottom;${_ni}">전주比</th>
+    <th rowspan="2" style="width:48px;vertical-align:bottom">주차</th>
+    <th colspan="2" class="r" style="color:#94a3b8;border-bottom:1px solid #e2e8f0">${py}년</th>
+    <th colspan="2" class="r" style="border-bottom:1px solid #e2e8f0">${cy}년</th>
+    <th rowspan="2" class="r" style="vertical-align:bottom">전주比</th>
   </tr>
   <tr>
-    <th style="color:#94a3b8;font-size:10px;font-weight:500;text-align:center;${_ni}">날짜</th>
-    <th class="r" style="color:#94a3b8;font-size:10px;font-weight:500;${_ni}">매출</th>
-    <th style="font-size:10px;font-weight:500;text-align:center;${_ni}">날짜</th>
-    <th class="r" style="font-size:10px;font-weight:500;${_ni}">매출</th>
+    <th style="color:#94a3b8;font-size:10px;font-weight:500;text-align:center">날짜</th>
+    <th class="r" style="color:#94a3b8;font-size:10px;font-weight:500">매출</th>
+    <th style="font-size:10px;font-weight:500;text-align:center">날짜</th>
+    <th class="r" style="font-size:10px;font-weight:500">매출</th>
   </tr></thead><tbody>`;
 
   for(const w of weeks){
@@ -1314,7 +1287,7 @@ function renderWeekly(channel, tableId) {
   }
   html += '</tbody>';
   document.getElementById(tableId).innerHTML = html;
-  // 주간 테이블은 2행 헤더 구조상 정렬 비활성화
+  makeSortable(tableId, tableId==='tblSSWeekly'?renderSSWeekly:renderC24Weekly);
 }
 function renderSSWeekly()  { renderWeekly('스마트스토어','tblSSWeekly'); }
 function renderC24Weekly() { renderWeekly('카페24','tblC24Weekly'); }
@@ -1400,129 +1373,113 @@ function renderChannelMonthly(channel, vm, tableId) {
   }
   html += '</tbody>';
   document.getElementById(tableId).innerHTML = html;
-  // 2행 헤더 정렬: _sortMonthly를 사용해 클릭한 th에 직접 아이콘 표시
-  const rerenderFn = tableId==='tblSSMonthly'?renderSSMonthly:renderC24Monthly;
+  // inline sort via th data-sort-col (no full re-render needed for 2-row header)
   document.getElementById(tableId).querySelectorAll('th[data-sort-col]').forEach(th=>{
-    th.style.cursor = 'pointer';
-    th.addEventListener('click',()=>_sortMonthly(th, parseInt(th.dataset.sortCol), tableId, rerenderFn));
+    th.addEventListener('click',()=>_sortBy(tableId, parseInt(th.dataset.sortCol),
+      tableId==='tblSSMonthly'?renderSSMonthly:renderC24Monthly));
   });
 }
 
 function renderSSMonthly()  { renderChannelMonthly('스마트스토어', 'both', 'tblSSMonthly'); }
 function renderC24Monthly() { renderChannelMonthly('카페24',       'both', 'tblC24Monthly'); }
 
-// 월간 2행 헤더 전용 정렬: 클릭된 th에 직접 아이콘 표시
-function _sortMonthly(th, colIdx, tableId, rerenderFn) {
-  const cur = th.dataset.sortDir || 'none';
-  const next = cur === 'none' ? 'desc' : cur === 'desc' ? 'asc' : 'none';
-
-  // 모든 월간 th에서 아이콘과 sortDir 초기화
-  const tbl = document.getElementById(tableId);
-  tbl.querySelectorAll('th[data-sort-col]').forEach(t => {
-    t.querySelectorAll('.srt-icon').forEach(el=>el.remove());
-    delete t.dataset.sortDir;
-  });
-
-  if (next === 'none') { rerenderFn(); return; }
-
-  // 클릭한 th에 직접 아이콘 추가
-  th.dataset.sortDir = next;
-  const icon = document.createElement('span');
-  icon.className = 'srt-icon';
-  icon.style.cssText = 'margin-left:4px;color:#3b82f6;font-size:10px';
-  icon.textContent = next === 'asc' ? '▲' : '▼';
-  th.appendChild(icon);
-
-  // tbody 정렬
-  function cellVal(tr) {
-    const td = tr.cells[colIdx];
-    if (!td) return next==='asc'?Infinity:-Infinity;
-    const t = td.textContent.replace(/[,\s]/g,'').replace('억','e8').replace('만','e4');
-    if (t==='—'||t==='') return next==='asc'?Infinity:-Infinity;
-    const n = parseFloat(t);
-    return isNaN(n) ? t : n;
-  }
-
-  const tbody = tbl.querySelector('tbody');
-  if (!tbody) return;
-  const rows = [...tbody.rows];
-  rows.sort((a,b)=>{
-    const va=cellVal(a), vb=cellVal(b);
-    if (typeof va==='number'&&typeof vb==='number') return next==='asc'?va-vb:vb-va;
-    return next==='asc'?String(va).localeCompare(String(vb)):String(vb).localeCompare(String(va));
-  });
-  rows.forEach(tr=>tbody.appendChild(tr));
-}
-
 // ═══════════════════════════════════════════════════════
-//  PRODUCTS page — 2행 헤더 (채널 × 수량|매출)
+//  PRODUCTS page
 // ═══════════════════════════════════════════════════════
-function _render2rowMatrix(rows, groupKeys, tableId, rerenderFn) {
-  // groupKeys = ['ch'] or ['dist'] — the column grouping key
-  const gk = groupKeys[0];
-  const n = getNow();
-  const sel = tableId==='tblProducts'
-    ? document.getElementById('selProductsMonth').value
-    : document.getElementById('selDistMonth').value;
+function renderProducts() {
+  const sel = document.getElementById('selProductsMonth').value;
   if(!sel) return;
   const [y,m] = sel.split('-').map(Number);
-  const filtered = rows.filter(r=>r.year===y&&r.month===m);
-  const agg = sumBy(filtered,'prod',gk);
-  const groups = [...new Set(filtered.map(r=>r[gk]))].filter(Boolean).sort();
-  const prods  = [...new Set(filtered.map(r=>r.prod))].filter(Boolean);
-  const sorted = prods.map(p=>({p, t:groups.reduce((s,g)=>(agg[`${p}|${g}`]||{rev:0}).rev+s,0)}));
-  sorted.sort((a,b)=>b.t-a.t);
+  const agg = sumBy(ROWS.filter(r=>r.year===y&&r.month===m), 'prod','ch');
+  const prods = [...new Set(ROWS.filter(r=>r.year===y&&r.month===m).map(r=>r.prod))].filter(Boolean);
+  const chs = CH_ALL.filter(ch=>ROWS.some(r=>r.year===y&&r.month===m&&r.ch===ch));
 
-  // 2행 헤더
-  let html = `<thead style="position:sticky;top:0;z-index:3"><tr>
-    <th rowspan="2" style="width:200px;min-width:140px">상품</th>`;
-  groups.forEach((g,ci)=>{
-    const base = 1+ci*2;
-    html+=`<th colspan="2" class="r" style="border-bottom:1px solid #e2e8f0">${g}</th>`;
-  });
-  html+=`<th colspan="2" class="r" style="border-bottom:1px solid #e2e8f0">합계</th></tr><tr>`;
-  [...groups, '합계'].forEach((g,ci)=>{
-    const base = 1+ci*2;
-    html+=`<th class="r" style="width:60px;font-size:10px;font-weight:500;cursor:pointer" data-sort-col="${base}">수량</th>`;
-    html+=`<th class="r" style="width:72px;font-size:10px;font-weight:500;cursor:pointer" data-sort-col="${base+1}">매출</th>`;
-  });
-  html+=`</tr></thead><tbody>`;
+  const totals = prods.map(p=>({p, t: chs.reduce((s,ch)=>(agg[`${p}|${ch}`]||{rev:0}).rev+s,0)}));
+  totals.sort((a,b)=>b.t-a.t);
 
-  for(const {p} of sorted){
-    const pEsc = p.replace(/'/g,"\\'");
-    html+=`<tr><td class="link" style="max-width:200px;overflow:hidden;text-overflow:ellipsis" onclick="openDrillProd('${pEsc}',null)" title="${p}">${p}</td>`;
-    let totQty=0, totRev=0;
-    for(const g of groups){
-      const v = agg[`${p}|${g}`]||{rev:0,fqty:0};
-      html+=`<td class="r" style="width:60px">${v.fqty?v.fqty.toLocaleString():'—'}</td>`;
-      html+=`<td class="r" style="width:72px">${v.rev?fmtM(v.rev):'—'}</td>`;
-      totQty+=v.fqty; totRev+=v.rev;
+  let html = '<thead><tr><th>상품</th>';
+  for(const ch of chs) html+=`<th class="r">${ch}</th>`;
+  html += '<th class="r">합계</th></tr></thead><tbody>';
+
+  for(const {p} of totals){
+    const vals = chs.map(ch=>agg[`${p}|${ch}`]||{rev:0,fqty:0});
+    const tot  = vals.reduce((s,v)=>s+v.rev,0);
+    if(vmProducts==='rev'||vmProducts==='both'){
+      html+=`<tr><td rowspan="${vmProducts==='both'?2:1}" class="link" onclick="openDrillProd('${p.replace(/'/g,"\\'")}',null)">${p}</td>`;
+      if(vmProducts!=='qty'){
+        for(const v of vals) html+=`<td class="r">${v.rev?fmtM(v.rev):'—'}</td>`;
+        html+=`<td class="r"><b>${fmtM(tot)}</b></td></tr>`;
+      }
     }
-    html+=`<td class="r" style="width:60px">${totQty?totQty.toLocaleString():'—'}</td>`;
-    html+=`<td class="r" style="width:72px"><b>${fmtM(totRev)}</b></td></tr>`;
+    if(vmProducts==='qty'||vmProducts==='both'){
+      if(vmProducts==='qty') html+=`<tr><td class="link" onclick="openDrillProd('${p.replace(/'/g,"\\'")}',null)">${p}</td>`;
+      else html+='<tr>';
+      for(const v of vals) html+=`<td class="r gray">${v.fqty?fmtQty(v.fqty):'—'}</td>`;
+      const tq = vals.reduce((s,v)=>s+v.fqty,0);
+      html+=`<td class="r gray">${fmtQty(tq)}</td></tr>`;
+    }
   }
 
-  // 합계 행
-  html+='<tr class="row-total"><td>합계</td>';
-  let gtQty=0,gtRev=0;
-  for(const g of groups){
-    const q=sorted.reduce((s,{p})=>(agg[`${p}|${g}`]||{fqty:0}).fqty+s,0);
-    const r=sorted.reduce((s,{p})=>(agg[`${p}|${g}`]||{rev:0}).rev+s,0);
-    html+=`<td class="r">${q?q.toLocaleString():'—'}</td><td class="r">${fmtM(r)}</td>`;
-    gtQty+=q; gtRev+=r;
+  // Total row
+  html += '<tr class="row-total"><td>합계</td>';
+  for(const ch of chs){
+    const v = totals.reduce((s,{p})=>s+(agg[`${p}|${ch}`]||{rev:0}).rev,0);
+    html+=`<td class="r">${fmtM(v)}</td>`;
   }
-  html+=`<td class="r">${gtQty?gtQty.toLocaleString():'—'}</td><td class="r"><b>${fmtM(gtRev)}</b></td></tr>`;
-  html+='</tbody>';
-
-  document.getElementById(tableId).innerHTML = html;
-  // 정렬
-  document.getElementById(tableId).querySelectorAll('th[data-sort-col]').forEach(th=>{
-    th.addEventListener('click',()=>_sortMonthly(th, parseInt(th.dataset.sortCol), tableId, rerenderFn));
-  });
+  const grandTot = totals.reduce((s,{t})=>s+t,0);
+  html+=`<td class="r">${fmtM(grandTot)}</td></tr>`;
+  html += '</tbody>';
+  document.getElementById('tblProducts').innerHTML = html;
+  makeSortable('tblProducts', renderProducts);
 }
 
-function renderProducts() { _render2rowMatrix(ROWS, ['ch'], 'tblProducts', renderProducts); }
-function renderDist()     { _render2rowMatrix(ROWS, ['dist'], 'tblDist', renderDist); }
+// ═══════════════════════════════════════════════════════
+//  DISTRIBUTION page
+// ═══════════════════════════════════════════════════════
+function renderDist() {
+  const sel = document.getElementById('selDistMonth').value;
+  if(!sel) return;
+  const [y,m] = sel.split('-').map(Number);
+  const dists = DIST_MAIN.filter(d=>ROWS.some(r=>r.year===y&&r.month===m&&r.dist===d));
+  const agg = sumBy(ROWS.filter(r=>r.year===y&&r.month===m), 'prod','dist');
+  const prods = [...new Set(ROWS.filter(r=>r.year===y&&r.month===m).map(r=>r.prod))].filter(Boolean);
+  const totals = prods.map(p=>({p, t: dists.reduce((s,d)=>(agg[`${p}|${d}`]||{rev:0}).rev+s,0)}));
+  totals.sort((a,b)=>b.t-a.t);
+
+  let html = '<thead><tr><th>상품</th>';
+  for(const d of dists) html+=`<th class="r">${d}</th>`;
+  html += '<th class="r">합계</th></tr></thead><tbody>';
+
+  for(const {p} of totals){
+    const vals = dists.map(d=>agg[`${p}|${d}`]||{rev:0,fqty:0});
+    const tot  = vals.reduce((s,v)=>s+v.rev,0);
+    if(vmDist==='rev'||vmDist==='both'){
+      html+=`<tr><td rowspan="${vmDist==='both'?2:1}" class="link" onclick="openDrillProd('${p.replace(/'/g,"\\'")}',null)">${p}</td>`;
+      if(vmDist!=='qty'){
+        for(const v of vals) html+=`<td class="r">${v.rev?fmtM(v.rev):'—'}</td>`;
+        html+=`<td class="r"><b>${fmtM(tot)}</b></td></tr>`;
+      }
+    }
+    if(vmDist==='qty'||vmDist==='both'){
+      if(vmDist==='qty') html+=`<tr><td class="link" onclick="openDrillProd('${p.replace(/'/g,"\\'")}',null)">${p}</td>`;
+      else html+='<tr>';
+      for(const v of vals) html+=`<td class="r gray">${v.fqty?fmtQty(v.fqty):'—'}</td>`;
+      const tq = vals.reduce((s,v)=>s+v.fqty,0);
+      html+=`<td class="r gray">${fmtQty(tq)}</td></tr>`;
+    }
+  }
+  // Total row
+  html += '<tr class="row-total"><td>합계</td>';
+  for(const d of dists){
+    const v = totals.reduce((s,{p})=>s+(agg[`${p}|${d}`]||{rev:0}).rev,0);
+    html+=`<td class="r">${fmtM(v)}</td>`;
+  }
+  const gt = totals.reduce((s,{t})=>s+t,0);
+  html+=`<td class="r">${fmtM(gt)}</td></tr>`;
+  html += '</tbody>';
+  document.getElementById('tblDist').innerHTML = html;
+  makeSortable('tblDist', renderDist);
+}
 
 // ═══════════════════════════════════════════════════════
 //  DRILLDOWN
@@ -1593,6 +1550,374 @@ function closeDrilldown() {
   document.getElementById('drilldown-panel').classList.remove('open');
   destroyChart('drillChartMonthly');
   destroyChart('drillChartPie');
+}
+
+// ═══════════════════════════════════════════════════════
+//  INVENTORY — DATA LOADING
+// ═══════════════════════════════════════════════════════
+async function loadInventoryData() {
+  const fetchInvCSV = async (tabName) => {
+    const url = `https://docs.google.com/spreadsheets/d/${INV_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`시트 로드 실패 (${tabName}) — HTTP ${resp.status}`);
+    const text = await resp.text();
+    if (text.startsWith('<!DOCTYPE') || text.startsWith('<html')) {
+      throw new Error(`"${tabName}" 탭을 찾을 수 없습니다. 탭 이름을 확인하거나 시트 공유 설정을 확인하세요.`);
+    }
+    return text;
+  };
+
+  const [mainText, gonguText] = await Promise.all([
+    fetchInvCSV(INV_TAB_MAIN),
+    fetchInvCSV(INV_TAB_GONGU).catch(() => ''),
+  ]);
+
+  // 메인탭 파싱: "품목명" 셀이 있는 행을 헤더로 사용
+  const mainRows = parseCSV(mainText);
+  const mainHdrIdx = mainRows.findIndex(r => r.some(c => c.trim() === '품목명'));
+  if (mainHdrIdx < 0) throw new Error('재고탭에서 헤더 행(품목명)을 찾을 수 없습니다. 시트를 웹에 게시했는지 확인하세요.');
+  const mainHdr = mainRows[mainHdrIdx].map(c => c.trim());
+
+  INV_ROWS = mainRows.slice(mainHdrIdx + 1)
+    .filter(r => r.length > 3 && r[mainHdr.indexOf('품목명')]?.trim())
+    .map(r => {
+      const obj = {};
+      mainHdr.forEach((h, i) => { obj[h] = (r[i] ?? '').trim(); });
+      return obj;
+    });
+
+  // 공구탭 파싱: "제품명" 셀이 있는 행을 헤더로 사용
+  if (gonguText) {
+    const gonguRows = parseCSV(gonguText);
+    const gonguHdrIdx = gonguRows.findIndex(r => r.some(c => c.trim() === '제품명'));
+    if (gonguHdrIdx >= 0) {
+      const gonguHdr = gonguRows[gonguHdrIdx].map(c => c.trim());
+      GONGU_ROWS = gonguRows.slice(gonguHdrIdx + 1)
+        .filter(r => r.length > 5 && r[gonguHdr.indexOf('제품명')]?.trim())
+        .map(r => {
+          const obj = {};
+          gonguHdr.forEach((h, i) => { obj[h] = (r[i] ?? '').trim(); });
+          return obj;
+        });
+    }
+  }
+
+  invLoaded = true;
+  invLoading = false;
+}
+
+// ═══════════════════════════════════════════════════════
+//  INVENTORY — DATE / NUMBER HELPERS
+// ═══════════════════════════════════════════════════════
+function parseInvNum(v) {
+  if (v == null || v === '') return 0;
+  const n = parseFloat(String(v).replace(/[,\s₩\-]/g, ''));
+  return isNaN(n) ? 0 : n;
+}
+
+// 날짜 파싱: ISO(2027-09-08), M/D( 6/9 ), 공구탭 포맷(26/6/9(화))
+function parseInvDate(v) {
+  if (!v || String(v).trim() === '' || String(v).trim() === '-') return null;
+  v = String(v).trim();
+  // ISO: 2027-09-08
+  if (/^\d{4}-\d{2}-\d{2}/.test(v)) {
+    const d = new Date(v.substring(0, 10));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  // 공구탭: 26/6/9(화) 또는 25/11/17(월)
+  const ymd = v.match(/^(\d{2})\/(\d{1,2})\/(\d{1,2})/);
+  if (ymd) {
+    const d = new Date(2000 + parseInt(ymd[1]), parseInt(ymd[2]) - 1, parseInt(ymd[3]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  // M/D or MM/DD (당해연도): 6/9, 8/7
+  const md = v.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (md) {
+    const thisYear = new Date().getFullYear();
+    const d = new Date(thisYear, parseInt(md[1]) - 1, parseInt(md[2]));
+    // 이미 지난 날이면 내년으로
+    if (d < new Date()) d.setFullYear(d.getFullYear() + 1);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
+function addDays(date, n) {
+  const d = new Date(date.getTime());
+  d.setDate(d.getDate() + Math.round(n));
+  return d;
+}
+
+function fmtDateInv(d) {
+  if (!d || isNaN(d.getTime())) return '—';
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  INVENTORY — 소진 예상일 계산
+// ═══════════════════════════════════════════════════════
+function calcSelloutDate(row, gonguRows, today) {
+  const stock      = parseInvNum(row['재고수량']);
+  const saip       = parseInvNum(row['사입']);
+  const sangsi90   = parseInvNum(row['상시판매']);
+  const dailySangsi = sangsi90 > 0 ? sangsi90 / 90 : 1;
+  const prodName   = (row['품목명'] || '').trim();
+
+  // 입고예정일: 1차 우선, 없으면 메인 컬럼
+  const delivDate = parseInvDate(row['입고예정일']) || parseInvDate(row['1차 입고예정일']);
+  const delivQty  = parseInvNum(row['발주수량']) || parseInvNum(row['1차 발주수량']);
+
+  // 공구탭에서 미래 이벤트 매칭 (제품명 포함 매칭, 종료 제외)
+  const upcoming = gonguRows.filter(g => {
+    if (!g['제품명'] || !g['시작일']) return false;
+    const gName   = g['제품명'].trim();
+    const gStatus = (g['진행여부'] || '').trim();
+    const gStart  = parseInvDate(g['시작일']);
+    return gName && prodName &&
+           (gName.includes(prodName) || prodName.includes(gName)) &&
+           gStatus !== '종료' &&
+           gStart && gStart >= today;
+  });
+
+  // 입고 전/후 공구 분류
+  const preGongu = upcoming
+    .filter(g => { const s = parseInvDate(g['시작일']); return delivDate && s && s < delivDate; })
+    .reduce((s, g) => s + parseInvNum(g['예상판매량']), 0);
+  const postGongu = upcoming
+    .filter(g => { const s = parseInvDate(g['시작일']); return !delivDate || !s || s >= delivDate; })
+    .reduce((s, g) => s + parseInvNum(g['예상판매량']), 0);
+
+  const preStock = stock - saip - preGongu;
+  if (preStock <= 0) return new Date(today.getTime()); // 즉시 품절
+
+  // 입고 없음
+  if (!delivDate || delivQty === 0) {
+    return addDays(today, preStock / dailySangsi);
+  }
+
+  const daysToDelivery = (delivDate.getTime() - today.getTime()) / 86400000;
+
+  // 입고일이 오늘이거나 이미 지난 경우 — 입고 즉시 반영
+  if (daysToDelivery <= 0) {
+    const postStock = stock - saip + delivQty - postGongu;
+    if (postStock <= 0) return new Date(today.getTime());
+    return addDays(today, postStock / dailySangsi);
+  }
+
+  // 입고 전에 재고가 먼저 소진되는지 확인
+  const stockAtDelivery = preStock - dailySangsi * daysToDelivery;
+  if (stockAtDelivery <= 0) {
+    return addDays(today, preStock / dailySangsi);
+  }
+
+  // 입고 후 재고
+  const postStock = stockAtDelivery + delivQty - postGongu;
+  if (postStock <= 0) return new Date(delivDate.getTime());
+  return addDays(delivDate, postStock / dailySangsi);
+}
+
+// ═══════════════════════════════════════════════════════
+//  INVENTORY — RENDER ENTRY
+// ═══════════════════════════════════════════════════════
+function renderInventory() {
+  const loadingEl = document.getElementById('inv-loading');
+  const contentEl = document.getElementById('inv-content');
+
+  if (invLoaded) {
+    loadingEl.style.display = 'none';
+    contentEl.style.display = '';
+    renderInvKPI();
+    renderOrderAlarm();
+    renderExpiry();
+    document.getElementById('pageMeta').textContent = invMetaText();
+    return;
+  }
+  if (invLoading) return; // 이미 로딩 중
+
+  invLoading = true;
+  loadingEl.style.display = 'flex';
+  contentEl.style.display = 'none';
+  document.getElementById('inv-loading-text').textContent = '재고 데이터 불러오는 중…';
+
+  loadInventoryData()
+    .then(() => {
+      loadingEl.style.display = 'none';
+      contentEl.style.display = '';
+      renderInvKPI();
+      renderOrderAlarm();
+      renderExpiry();
+      document.getElementById('pageMeta').textContent = invMetaText();
+    })
+    .catch(err => {
+      document.getElementById('inv-loading-text').innerHTML =
+        `<span style="color:#dc2626">재고 데이터 로드 실패: ${err.message}</span><br>
+         <button onclick="invLoading=false;renderInventory()" style="margin-top:10px;padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer">다시 시도</button>`;
+      invLoading = false;
+    });
+}
+
+// ═══════════════════════════════════════════════════════
+//  INVENTORY — KPI CARDS
+// ═══════════════════════════════════════════════════════
+function renderInvKPI() {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const rows  = INV_ROWS.filter(r => r['품목명']);
+
+  // 총 재고금액: 現 재고금액 컬럼 직접 합산 (없으면 단가×수량)
+  const totalVal = rows.reduce((s, r) => {
+    const direct = parseInvNum(r['現 재고금액'] || r[' 現 재고금액']);
+    if (direct > 0) return s + direct;
+    return s + parseInvNum(r[' 제품 단가 (vat-)'] || r['제품 단가 (vat-)']) * parseInvNum(r['재고수량']);
+  }, 0);
+
+  const alarmCount  = rows.filter(r => r['발주알람']?.trim() === '발주필요').length;
+  const expCount    = rows.filter(r => {
+    const exp = parseInvDate(r['소비기한']);
+    if (!exp) return false;
+    return (exp - today) / (30 * 86400000) <= 6;
+  }).length;
+  const todayAlloc  = rows.reduce((s, r) => s + parseInvNum(r['오늘 할당']), 0);
+
+  document.getElementById('invKpiCards').innerHTML =
+    invKpiCard('총 재고금액', fmtM(totalVal), '', '') +
+    invKpiCard('관리 SKU', rows.length.toLocaleString(), '개', '') +
+    invKpiCard('즉시 발주 필요', alarmCount.toString(), '건', alarmCount > 0 ? '#dc2626' : '') +
+    invKpiCard('소비기한 6개월 이내', expCount.toString(), '개', expCount > 0 ? '#ea580c' : '') +
+    invKpiCard('오늘 공구 출고', todayAlloc.toLocaleString(), '개', '');
+}
+
+function invKpiCard(label, val, unit, color) {
+  const valStyle = color ? `color:${color}` : '';
+  return `<div class="kpi-card">
+    <div class="lbl">${label}</div>
+    <div class="val" style="${valStyle}">${val}<span style="font-size:13px;font-weight:400;margin-left:2px">${unit}</span></div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  INVENTORY — 발주 알람 테이블
+// ═══════════════════════════════════════════════════════
+function renderOrderAlarm() {
+  const today     = new Date(); today.setHours(0, 0, 0, 0);
+  const GRADE_D   = { A: 150, B: 120, C: 100 };
+  const alarmRows = INV_ROWS.filter(r => r['발주알람']?.trim() === '발주필요');
+
+  document.getElementById('invAlarmCount').textContent = alarmRows.length ? `${alarmRows.length}건` : '';
+
+  if (!alarmRows.length) {
+    document.getElementById('tblOrderAlarm').innerHTML =
+      '<thead></thead><tbody><tr><td colspan="10" style="text-align:center;color:#94a3b8;padding:28px">✓ 발주 필요 상품이 없습니다</td></tr></tbody>';
+    return;
+  }
+
+  const processed = alarmRows.map(r => {
+    const sellout = calcSelloutDate(r, GONGU_ROWS, today);
+    const dDay    = sellout ? Math.round((sellout.getTime() - today.getTime()) / 86400000) : null;
+    return { r, sellout, dDay };
+  }).sort((a, b) => (a.dDay ?? 9999) - (b.dDay ?? 9999));
+
+  let html = `<thead><tr>
+    <th>품목명</th><th>브랜드</th><th>담당</th><th>등급</th>
+    <th class="r">현재고</th><th>소진 예상일</th><th class="r">D-Day</th>
+    <th>입고예정 / 발주수량</th><th>발주확정</th><th>비고</th>
+  </tr></thead><tbody>`;
+
+  for (const { r, sellout, dDay } of processed) {
+    const rowCls  = dDay !== null && dDay <= 30 ? 'alarm-red'
+                  : dDay !== null && dDay <= 60 ? 'alarm-orange'
+                  : 'alarm-yellow';
+    const grade   = r['관리등급']?.trim() || 'C';
+    const dDayTxt = dDay !== null ? `D-${dDay}` : '—';
+    const dDayCls = dDay !== null && dDay <= 30 ? 'red' : dDay !== null && dDay <= 60 ? 'orange' : 'yellow';
+    const gradeCls = grade === 'A' ? 'red' : grade === 'B' ? 'orange' : 'blue';
+    const delivTxt = r['입고예정일']?.trim()
+      ? `${r['입고예정일'].trim()} · ${parseInvNum(r['발주수량']).toLocaleString()}개`
+      : '—';
+    const note = (r['커머스 이슈'] || r['비고'] || '').substring(0, 60);
+
+    html += `<tr class="${rowCls}">
+      <td><b>${r['품목명']}</b></td>
+      <td style="font-size:11px">${r['브랜드'] || ''}</td>
+      <td style="font-size:11px">${r['상기담당'] || ''}</td>
+      <td><span class="inv-badge ${gradeCls}">${grade}</span></td>
+      <td class="r">${parseInvNum(r['재고수량']).toLocaleString()}</td>
+      <td>${fmtDateInv(sellout)}</td>
+      <td class="r"><span class="inv-badge ${dDayCls}">${dDayTxt}</span></td>
+      <td style="font-size:11px;white-space:nowrap">${delivTxt}</td>
+      <td style="font-size:11px">${r['발주 확정'] || '—'}</td>
+      <td style="font-size:11px;max-width:180px;white-space:normal;word-break:break-all">${note}</td>
+    </tr>`;
+  }
+  html += '</tbody>';
+  document.getElementById('tblOrderAlarm').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════
+//  INVENTORY — 소비기한 임박 테이블
+// ═══════════════════════════════════════════════════════
+function renderExpiry() {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const MS_PER_DAY = 86400000;
+  const MS_PER_MONTH = 30 * MS_PER_DAY;
+
+  const expRows = INV_ROWS.filter(r => {
+    const exp = parseInvDate(r['소비기한']);
+    if (!exp) return false;
+    const ms = exp.getTime() - today.getTime();
+    return ms > 0 && ms <= 6 * MS_PER_MONTH;
+  }).sort((a, b) => {
+    const da = parseInvDate(a['소비기한']);
+    const db = parseInvDate(b['소비기한']);
+    return (da?.getTime() ?? 0) - (db?.getTime() ?? 0);
+  });
+
+  document.getElementById('invExpiryCount').textContent = expRows.length ? `${expRows.length}건` : '';
+
+  if (!expRows.length) {
+    document.getElementById('tblExpiry').innerHTML =
+      '<thead></thead><tbody><tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:28px">✓ 소비기한 임박 상품이 없습니다</td></tr></tbody>';
+    return;
+  }
+
+  let html = `<thead><tr>
+    <th>품목명</th><th>소비기한</th><th class="r">현재고</th>
+    <th>소진 예상일</th><th>소진 가능 여부</th>
+  </tr></thead><tbody>`;
+
+  for (const r of expRows) {
+    const exp        = parseInvDate(r['소비기한']);
+    const daysLeft   = Math.round((exp.getTime() - today.getTime()) / MS_PER_DAY);
+    const monthsLeft = Math.floor(daysLeft / 30);
+    const badgeCls   = monthsLeft <= 1 ? 'red' : monthsLeft <= 3 ? 'orange' : 'yellow';
+    const monthLabel = monthsLeft <= 0 ? '1개월 미만' : `${monthsLeft}개월 남음`;
+
+    const sellout  = calcSelloutDate(r, GONGU_ROWS, today);
+    const canSell  = sellout && sellout.getTime() <= exp.getTime();
+    const statusBadge = canSell
+      ? `<span class="inv-badge green">소진 가능</span>`
+      : `<span class="inv-badge red">⚠ 소진 불가</span>`;
+
+    // 잔여 기간 시각화 (최대 6개월 = 180일 기준)
+    const pct      = Math.min(100, Math.max(2, (daysLeft / 180) * 100));
+    const barColor = badgeCls === 'red' ? '#dc2626' : badgeCls === 'orange' ? '#ea580c' : '#ca8a04';
+
+    html += `<tr>
+      <td>
+        <b>${r['품목명']}</b>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px">${r['브랜드'] || ''} · ${r['상기담당'] || ''}</div>
+      </td>
+      <td>
+        <span style="font-variant-numeric:tabular-nums">${fmtDateInv(exp)}</span>
+        <span class="inv-badge ${badgeCls}">${monthLabel}</span>
+        <div class="expiry-bar"><div class="expiry-bar-fill" style="width:${pct.toFixed(1)}%;background:${barColor}"></div></div>
+      </td>
+      <td class="r">${parseInvNum(r['재고수량']).toLocaleString()}</td>
+      <td>${fmtDateInv(sellout)}</td>
+      <td>${statusBadge}</td>
+    </tr>`;
+  }
+  html += '</tbody>';
+  document.getElementById('tblExpiry').innerHTML = html;
 }
 </script>
 </body>
