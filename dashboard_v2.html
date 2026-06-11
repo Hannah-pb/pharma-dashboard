@@ -278,14 +278,17 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
           <button class="tog-btn active" data-hm-year="2026" id="hmSS2026">2026</button>
           <button class="tog-btn" data-hm-year="2025" id="hmSS2025">2025</button>
         </div>
+        <div class="card" style="padding:16px 20px 8px"><canvas id="chartSSHeatmap" height="80"></canvas></div>
         <div class="card"><div class="card-title">일별 매출 히트맵 (스마트스토어)</div><div class="heatmap-wrap" id="hmSS"></div></div>
       </div>
       <div id="ss-weekly" class="tab-pane">
+        <div class="card" style="padding:16px 20px 8px"><canvas id="chartSSWeekly" height="80"></canvas></div>
         <div class="card"><div class="card-title">주간 매출 (스마트스토어)</div>
           <div class="tbl-wrap tbl-auto"><table id="tblSSWeekly"></table></div>
         </div>
       </div>
       <div id="ss-monthly" class="tab-pane">
+        <div class="card" style="padding:16px 20px 8px"><canvas id="chartSSMonthly" height="80"></canvas></div>
         <div class="card"><div class="card-title">월간 상품별 매출 (스마트스토어)</div><div class="tbl-wrap"><table id="tblSSMonthly"></table></div></div>
       </div>
     </div>
@@ -305,14 +308,17 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
           <button class="tog-btn active" data-hm-year="2026" id="hmC242026">2026</button>
           <button class="tog-btn" data-hm-year="2025" id="hmC242025">2025</button>
         </div>
+        <div class="card" style="padding:16px 20px 8px"><canvas id="chartC24Heatmap" height="80"></canvas></div>
         <div class="card"><div class="card-title">일별 매출 히트맵 (카페24)</div><div class="heatmap-wrap" id="hmC24"></div></div>
       </div>
       <div id="c24-weekly" class="tab-pane">
+        <div class="card" style="padding:16px 20px 8px"><canvas id="chartC24Weekly" height="80"></canvas></div>
         <div class="card"><div class="card-title">주간 매출 (카페24)</div>
           <div class="tbl-wrap tbl-auto"><table id="tblC24Weekly"></table></div>
         </div>
       </div>
       <div id="c24-monthly" class="tab-pane">
+        <div class="card" style="padding:16px 20px 8px"><canvas id="chartC24Monthly" height="80"></canvas></div>
         <div class="card"><div class="card-title">월간 상품별 매출 (카페24)</div><div class="tbl-wrap"><table id="tblC24Monthly"></table></div></div>
       </div>
     </div>
@@ -328,11 +334,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       <!-- 채널별 -->
       <div id="prod-channel" class="tab-pane active">
         <div class="ctrl-row">
-          <span class="ctrl-label">보기:</span>
-          <button class="tog-btn active" data-vm="both" data-vm-scope="products">수량+매출</button>
-          <button class="tog-btn" data-vm="rev" data-vm-scope="products">매출</button>
-          <button class="tog-btn" data-vm="qty" data-vm-scope="products">수량</button>
-          <span class="ctrl-label" style="margin-left:8px">기준:</span>
+          <span class="ctrl-label">기준:</span>
           <select class="sel-month" id="selProductsMonth"></select>
         </div>
         <div class="card"><div class="card-title">상품별 채널 매트릭스</div><div class="tbl-wrap"><table id="tblProducts"></table></div></div>
@@ -340,11 +342,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       <!-- 유통별 -->
       <div id="prod-dist" class="tab-pane">
         <div class="ctrl-row">
-          <span class="ctrl-label">보기:</span>
-          <button class="tog-btn active" data-vm="both" data-vm-scope="dist">수량+매출</button>
-          <button class="tog-btn" data-vm="rev" data-vm-scope="dist">매출</button>
-          <button class="tog-btn" data-vm="qty" data-vm-scope="dist">수량</button>
-          <span class="ctrl-label" style="margin-left:8px">기준:</span>
+          <span class="ctrl-label">기준:</span>
           <select class="sel-month" id="selDistMonth"></select>
         </div>
         <div class="card"><div class="card-title">유통별 상품 매트릭스</div><div class="tbl-wrap"><table id="tblDist"></table></div></div>
@@ -1226,8 +1224,42 @@ function renderHeatmap(channel, year, containerId) {
   document.getElementById(containerId).innerHTML = html;
 }
 
-function renderSSHeatmap()  { renderHeatmap('스마트스토어', ssHmYear,  'hmSS'); }
-function renderC24Heatmap() { renderHeatmap('카페24',       c24HmYear, 'hmC24'); }
+function renderSSHeatmap()  { renderMonthlyBarChart('스마트스토어','chartSSHeatmap'); renderHeatmap('스마트스토어', ssHmYear,  'hmSS'); }
+function renderC24Heatmap() { renderMonthlyBarChart('카페24','chartC24Heatmap'); renderHeatmap('카페24',       c24HmYear, 'hmC24'); }
+
+// ═══════════════════════════════════════════════════════
+//  MONTHLY BAR CHART (스마트스토어 / 카페24)
+// ═══════════════════════════════════════════════════════
+function renderMonthlyBarChart(channel, canvasId) {
+  const ctx = document.getElementById(canvasId)?.getContext('2d');
+  if (!ctx) return;
+  const n = getNow();
+  const cy = n.y, py = n.y - 1;
+  const rows = ROWS.filter(r => r.ch === channel && r.dist === '1.일반');
+  const months = Array.from({length: 12}, (_, i) => i + 1);
+  const labels = months.map(m => `${m}월`);
+  const data25 = months.map(m => +(rows.filter(r => r.year===py && r.month===m).reduce((s,r)=>s+r.rev,0)/1e8).toFixed(2));
+  const data26 = months.map(m => +(rows.filter(r => r.year===cy && r.month===m).reduce((s,r)=>s+r.rev,0)/1e8).toFixed(2));
+  if (CI[canvasId]) { CI[canvasId].destroy(); delete CI[canvasId]; }
+  CI[canvasId] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: `${py}`, data: data25, backgroundColor: '#cbd5e1', borderRadius: 3, barPercentage: 0.7 },
+        { label: `${cy}`, data: data26, backgroundColor: '#3b82f6', borderRadius: 3, barPercentage: 0.7 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10 } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { ticks: { callback: v => v + '억', font: { size: 11 } }, grid: { color: '#f1f5f9' } }
+      }
+    }
+  });
+}
 
 let _hmSelectedStart = null; // {containerId, date, rev, td}
 function hmSelectCell(td, containerId) {
@@ -1409,8 +1441,8 @@ function renderWeekly(channel, tableId) {
   document.getElementById(tableId).innerHTML = html;
   makeSortable(tableId, tableId==='tblSSWeekly'?renderSSWeekly:renderC24Weekly);
 }
-function renderSSWeekly()  { renderWeekly('스마트스토어','tblSSWeekly'); }
-function renderC24Weekly() { renderWeekly('카페24','tblC24Weekly'); }
+function renderSSWeekly()  { renderMonthlyBarChart('스마트스토어','chartSSWeekly');  renderWeekly('스마트스토어','tblSSWeekly'); }
+function renderC24Weekly() { renderMonthlyBarChart('카페24','chartC24Weekly'); renderWeekly('카페24','tblC24Weekly'); }
 
 // ═══════════════════════════════════════════════════════
 //  CHANNEL MONTHLY (product breakdown) — 2-row header
@@ -1493,15 +1525,14 @@ function renderChannelMonthly(channel, vm, tableId) {
   }
   html += '</tbody>';
   document.getElementById(tableId).innerHTML = html;
-  // inline sort via th data-sort-col (no full re-render needed for 2-row header)
   document.getElementById(tableId).querySelectorAll('th[data-sort-col]').forEach(th=>{
-    th.addEventListener('click',()=>_sortBy(tableId, parseInt(th.dataset.sortCol),
-      tableId==='tblSSMonthly'?renderSSMonthly:renderC24Monthly));
+    th.addEventListener('click',()=>_sortMonthly(th, parseInt(th.dataset.sortCol),
+      tableId, tableId==='tblSSMonthly'?renderSSMonthly:renderC24Monthly));
   });
 }
 
-function renderSSMonthly()  { renderChannelMonthly('스마트스토어', 'both', 'tblSSMonthly'); }
-function renderC24Monthly() { renderChannelMonthly('카페24',       'both', 'tblC24Monthly'); }
+function renderSSMonthly()  { renderMonthlyBarChart('스마트스토어','chartSSMonthly');  renderChannelMonthly('스마트스토어', 'both', 'tblSSMonthly'); }
+function renderC24Monthly() { renderMonthlyBarChart('카페24','chartC24Monthly'); renderChannelMonthly('카페24',       'both', 'tblC24Monthly'); }
 
 // ═══════════════════════════════════════════════════════
 //  MONTHLY TABLE SORT
@@ -1536,13 +1567,14 @@ function _sortMonthly(th, colIdx, tableId, rerenderFn) {
 
   const tbody = tbl.querySelector('tbody');
   if (!tbody) return;
-  const rows = [...tbody.rows];
-  rows.sort((a,b)=>{
+  const dataRows = [], totalRows = [];
+  [...tbody.rows].forEach(tr => tr.classList.contains('row-total') ? totalRows.push(tr) : dataRows.push(tr));
+  dataRows.sort((a,b)=>{
     const va=cellVal(a), vb=cellVal(b);
     if (typeof va==='number'&&typeof vb==='number') return next==='asc'?va-vb:vb-va;
     return next==='asc'?String(va).localeCompare(String(vb)):String(vb).localeCompare(String(va));
   });
-  rows.forEach(tr=>tbody.appendChild(tr));
+  [...dataRows,...totalRows].forEach(tr=>tbody.appendChild(tr));
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1938,7 +1970,7 @@ function renderOrderAlarm() {
   }
 
   const processed = alarmRows.map(r => {
-    const sellout = calcSelloutDate(r, GONGU_ROWS, today);
+    const sellout = parseInvDate(r['입고후소진예상일']);
     const dDay    = sellout ? Math.round((sellout.getTime() - today.getTime()) / 86400000) : null;
     return { r, sellout, dDay };
   }).sort((a, b) => (a.dDay ?? 9999) - (b.dDay ?? 9999));
@@ -2015,7 +2047,7 @@ function renderExpiry() {
     const exp        = parseInvDate(r['소비기한']);
     const daysLeft   = Math.round((exp.getTime() - today.getTime()) / MS_PER_DAY);
     const monthsLeft = Math.floor(daysLeft / 30);
-    const badgeCls   = monthsLeft <= 3 ? 'red' : monthsLeft <= 6 ? 'orange' : monthsLeft <= 12 ? 'yellow' : 'gray';
+    const badgeCls   = monthsLeft <= 3 ? 'red' : monthsLeft <= 6 ? 'orange' : monthsLeft <= 9 ? 'yellow' : monthsLeft <= 12 ? 'blue' : 'gray';
     const monthLabel = monthsLeft <= 0 ? '1개월 미만' : `${monthsLeft}개월 남음`;
 
     const sellout  = calcSelloutDate(r, GONGU_ROWS, today);
@@ -2026,7 +2058,7 @@ function renderExpiry() {
 
     // 잔여 기간 시각화 (최대 18개월 = 540일 기준)
     const pct      = Math.min(100, Math.max(2, (daysLeft / 540) * 100));
-    const barColor = badgeCls === 'red' ? '#dc2626' : badgeCls === 'orange' ? '#ea580c' : badgeCls === 'yellow' ? '#ca8a04' : '#94a3b8';
+    const barColor = badgeCls === 'red' ? '#dc2626' : badgeCls === 'orange' ? '#ea580c' : badgeCls === 'yellow' ? '#ca8a04' : badgeCls === 'blue' ? '#3b82f6' : '#94a3b8';
 
     html += `<tr>
       <td>
