@@ -205,14 +205,8 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       <div class="nav-child active" data-page="smartstore"><span>🛍</span> 스마트스토어</div>
       <div class="nav-child" data-page="cafe24"><span>🏪</span> 카페24</div>
     </div>
-    <!-- 상품매출 아코디언 -->
-    <li class="nav-parent" id="navParentProducts" onclick="toggleNavParent('navParentProducts')">
-      <span class="nav-icon">📦</span><span class="nav-label">상품매출</span><span class="nav-arrow">▶</span>
-    </li>
-    <div class="nav-children" id="navChildrenProducts">
-      <div class="nav-child" data-page="products" data-subtab="prod-channel"><span>📊</span> 채널별</div>
-      <div class="nav-child" data-page="products" data-subtab="prod-dist"><span>🚚</span> 유통별</div>
-    </div>
+    <!-- 상품매출 -->
+    <li class="nav-item" data-page="products"><span class="nav-icon">📦</span><span class="nav-label">상품매출</span></li>
     <!-- 재고관리 -->
     <li class="nav-item" data-page="inventory"><span class="nav-icon">📋</span><span class="nav-label">재고관리</span></li>
   </ul>
@@ -289,7 +283,16 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       </div>
       <div id="ss-monthly" class="tab-pane">
         <div class="card" style="padding:16px 20px 8px"><canvas id="chartSSMonthly" height="80"></canvas></div>
-        <div class="card"><div class="card-title">월간 상품별 매출 (스마트스토어)</div><div class="tbl-wrap"><table id="tblSSMonthly"></table></div></div>
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+            월간 상품별 매출 (스마트스토어)
+            <div style="display:flex;gap:6px">
+              <button class="tog-btn active" id="ssMonth2026" onclick="setSSMonthYear(2026)">2026</button>
+              <button class="tog-btn" id="ssMonth2025" onclick="setSSMonthYear(2025)">2025</button>
+            </div>
+          </div>
+          <div style="overflow:auto;max-height:620px"><table id="tblSSMonthly" style="min-width:600px"></table></div>
+        </div>
       </div>
     </div>
   </div>
@@ -319,7 +322,16 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       </div>
       <div id="c24-monthly" class="tab-pane">
         <div class="card" style="padding:16px 20px 8px"><canvas id="chartC24Monthly" height="80"></canvas></div>
-        <div class="card"><div class="card-title">월간 상품별 매출 (카페24)</div><div class="tbl-wrap"><table id="tblC24Monthly"></table></div></div>
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+            월간 상품별 매출 (카페24)
+            <div style="display:flex;gap:6px">
+              <button class="tog-btn active" id="c24Month2026" onclick="setC24MonthYear(2026)">2026</button>
+              <button class="tog-btn" id="c24Month2025" onclick="setC24MonthYear(2025)">2025</button>
+            </div>
+          </div>
+          <div style="overflow:auto;max-height:620px"><table id="tblC24Monthly" style="min-width:600px"></table></div>
+        </div>
       </div>
     </div>
   </div>
@@ -380,7 +392,8 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
             <span style="font-size:11px;font-weight:400;color:#94a3b8">
               <span class="inv-badge red">3개월↓</span>
               <span class="inv-badge orange">6개월↓</span>
-              <span class="inv-badge yellow">12개월↓</span>
+              <span class="inv-badge yellow">9개월↓</span>
+              <span class="inv-badge blue">12개월↓</span>
               <span class="inv-badge gray">18개월↓</span>
             </span>
           </div>
@@ -458,6 +471,8 @@ let vmDist     = 'both';
 let vmSS       = 'both';
 let vmC24      = 'both';
 let drillData  = null;
+let ssMonthYear  = 2026;
+let c24MonthYear = 2026;
 
 // 재고관리 상태
 let INV_ROWS   = [];
@@ -1224,41 +1239,76 @@ function renderHeatmap(channel, year, containerId) {
   document.getElementById(containerId).innerHTML = html;
 }
 
-function renderSSHeatmap()  { renderMonthlyBarChart('스마트스토어','chartSSHeatmap'); renderHeatmap('스마트스토어', ssHmYear,  'hmSS'); }
-function renderC24Heatmap() { renderMonthlyBarChart('카페24','chartC24Heatmap'); renderHeatmap('카페24',       c24HmYear, 'hmC24'); }
+function renderSSHeatmap()  { renderDailyBarChart('스마트스토어','chartSSHeatmap'); renderHeatmap('스마트스토어', ssHmYear,  'hmSS'); }
+function renderC24Heatmap() { renderDailyBarChart('카페24','chartC24Heatmap'); renderHeatmap('카페24',       c24HmYear, 'hmC24'); }
 
 // ═══════════════════════════════════════════════════════
 //  MONTHLY BAR CHART (스마트스토어 / 카페24)
 // ═══════════════════════════════════════════════════════
-function renderMonthlyBarChart(channel, canvasId) {
+function _makeBarChart(canvasId, labels, datasets, yFmt) {
   const ctx = document.getElementById(canvasId)?.getContext('2d');
   if (!ctx) return;
-  const n = getNow();
-  const cy = n.y, py = n.y - 1;
-  const rows = ROWS.filter(r => r.ch === channel && r.dist === '1.일반');
-  const months = Array.from({length: 12}, (_, i) => i + 1);
-  const labels = months.map(m => `${m}월`);
-  const data25 = months.map(m => +(rows.filter(r => r.year===py && r.month===m).reduce((s,r)=>s+r.rev,0)/1e8).toFixed(2));
-  const data26 = months.map(m => +(rows.filter(r => r.year===cy && r.month===m).reduce((s,r)=>s+r.rev,0)/1e8).toFixed(2));
   if (CI[canvasId]) { CI[canvasId].destroy(); delete CI[canvasId]; }
   CI[canvasId] = new Chart(ctx, {
     type: 'bar',
-    data: {
-      labels,
-      datasets: [
-        { label: `${py}`, data: data25, backgroundColor: '#cbd5e1', borderRadius: 3, barPercentage: 0.7 },
-        { label: `${cy}`, data: data26, backgroundColor: '#3b82f6', borderRadius: 3, barPercentage: 0.7 },
-      ]
-    },
+    data: { labels, datasets },
     options: {
       responsive: true, maintainAspectRatio: true,
       plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 10 } } },
       scales: {
-        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
-        y: { ticks: { callback: v => v + '억', font: { size: 11 } }, grid: { color: '#f1f5f9' } }
+        x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 0 } },
+        y: { ticks: { callback: yFmt, font: { size: 11 } }, grid: { color: '#f1f5f9' } }
       }
     }
   });
+}
+
+function renderDailyBarChart(channel, canvasId) {
+  const n = getNow();
+  const cy = n.y, py = n.y - 1;
+  const rows = ROWS.filter(r => r.ch === channel && r.dist === '1.일반');
+  const days = Array.from({length: 31}, (_, i) => i + 1);
+  const data25 = days.map(d => Math.round(rows.filter(r => r.year===py && r.month===n.m && r.day===d).reduce((s,r)=>s+r.rev,0)/1e4));
+  const data26 = days.map(d => Math.round(rows.filter(r => r.year===cy && r.month===n.m && r.day===d).reduce((s,r)=>s+r.rev,0)/1e4));
+  _makeBarChart(canvasId,
+    days.map(d => `${d}일`),
+    [
+      { label: `${py}년 ${n.m}월`, data: data25, backgroundColor: '#cbd5e1', borderRadius: 2, barPercentage: 0.85 },
+      { label: `${cy}년 ${n.m}월`, data: data26, backgroundColor: '#3b82f6', borderRadius: 2, barPercentage: 0.85 },
+    ],
+    v => v ? v.toLocaleString()+'만' : '0'
+  );
+}
+
+function renderWeeklyBarChart(channel, canvasId) {
+  const n = getNow();
+  const cy = n.y, py = n.y - 1;
+  const rows = ROWS.filter(r => r.ch === channel && r.dist === '1.일반');
+  const agg = sumBy(rows, 'year', 'week');
+  const weeks = [...new Set(rows.map(r=>r.week))].sort((a,b)=>a-b).filter(w=>w>0);
+  _makeBarChart(canvasId,
+    weeks.map(w => `${w}주`),
+    [
+      { label: `${py}`, data: weeks.map(w => +((agg[`${py}|${w}`]||{rev:0}).rev/1e8).toFixed(2)), backgroundColor: '#cbd5e1', borderRadius: 3, barPercentage: 0.7 },
+      { label: `${cy}`, data: weeks.map(w => +((agg[`${cy}|${w}`]||{rev:0}).rev/1e8).toFixed(2)), backgroundColor: '#3b82f6', borderRadius: 3, barPercentage: 0.7 },
+    ],
+    v => v + '억'
+  );
+}
+
+function renderMonthlyBarChart(channel, canvasId) {
+  const n = getNow();
+  const cy = n.y, py = n.y - 1;
+  const rows = ROWS.filter(r => r.ch === channel && r.dist === '1.일반');
+  const months = Array.from({length: 12}, (_, i) => i + 1);
+  _makeBarChart(canvasId,
+    months.map(m => `${m}월`),
+    [
+      { label: `${py}`, data: months.map(m => +(rows.filter(r=>r.year===py&&r.month===m).reduce((s,r)=>s+r.rev,0)/1e8).toFixed(2)), backgroundColor: '#cbd5e1', borderRadius: 3, barPercentage: 0.7 },
+      { label: `${cy}`, data: months.map(m => +(rows.filter(r=>r.year===cy&&r.month===m).reduce((s,r)=>s+r.rev,0)/1e8).toFixed(2)), backgroundColor: '#3b82f6', borderRadius: 3, barPercentage: 0.7 },
+    ],
+    v => v + '억'
+  );
 }
 
 let _hmSelectedStart = null; // {containerId, date, rev, td}
@@ -1441,8 +1491,8 @@ function renderWeekly(channel, tableId) {
   document.getElementById(tableId).innerHTML = html;
   makeSortable(tableId, tableId==='tblSSWeekly'?renderSSWeekly:renderC24Weekly);
 }
-function renderSSWeekly()  { renderMonthlyBarChart('스마트스토어','chartSSWeekly');  renderWeekly('스마트스토어','tblSSWeekly'); }
-function renderC24Weekly() { renderMonthlyBarChart('카페24','chartC24Weekly'); renderWeekly('카페24','tblC24Weekly'); }
+function renderSSWeekly()  { renderWeeklyBarChart('스마트스토어','chartSSWeekly');  renderWeekly('스마트스토어','tblSSWeekly'); }
+function renderC24Weekly() { renderWeeklyBarChart('카페24','chartC24Weekly'); renderWeekly('카페24','tblC24Weekly'); }
 
 // ═══════════════════════════════════════════════════════
 //  CHANNEL MONTHLY (product breakdown) — 2-row header
@@ -1450,75 +1500,80 @@ function renderC24Weekly() { renderMonthlyBarChart('카페24','chartC24Weekly');
 function renderChannelMonthly(channel, vm, tableId) {
   const n   = getNow();
   const py  = n.y-1, cy = n.y;
-  // 스마트스토어/카페24는 1.일반 필터
+  const selYear = tableId === 'tblSSMonthly' ? ssMonthYear : c24MonthYear;
+
   const rows = ROWS.filter(r=>r.ch===channel && r.dist==='1.일반');
   const agg  = sumBy(rows,'prod','year','month');
   const prods = [...new Set(rows.map(r=>r.prod))].filter(Boolean);
 
-  // 2025: 전체 12개월 + 2026: 1..n.m + 예상
-  const cols25 = Array.from({length:12},(_,i)=>i+1);
-  const cols26 = Array.from({length:n.m},(_,i)=>i+1);
-  const allCols = [
-    ...cols25.map(m=>({y:py,m,fcast:false})),
-    ...cols26.map(m=>({y:cy,m,fcast:false})),
-    {y:cy, m:n.m, fcast:true},
-  ];
+  // 선택 연도만 표시
+  const allCols = selYear === cy
+    ? [
+        ...Array.from({length:n.m},(_,i)=>i+1).map(m=>({y:cy,m,fcast:false})),
+        {y:cy, m:n.m, fcast:true}
+      ]
+    : Array.from({length:12},(_,i)=>i+1).map(m=>({y:py,m,fcast:false}));
+
   const mLabel = ({y,m,fcast}) => fcast
-    ? `${y}-${String(m).padStart(2,'0')} (예상)`
-    : `${y}-${String(m).padStart(2,'0')}`;
+    ? `${m}월 (예상)`
+    : `${m}월`;
 
   const maxDayM = maxDay(rows.filter(r=>r.year===cy),cy,n.m)||n.dy;
 
+  const stickyFirst = 'position:sticky;left:0;background:#fff;z-index:2';
+
   // Build header
-  let html = '<thead>';
+  let html = `<thead style="position:sticky;top:0;z-index:3">`;
   if(vm==='both'){
-    html += '<tr><th rowspan="2">상품</th>';
-    allCols.forEach(c=>{
-      const st = c.fcast?'color:#1d4ed8;font-style:italic':c.y===py?'color:#94a3b8':'';
-      html+=`<th colspan="2" class="r" style="${st};border-bottom:1px solid #e2e8f0">${mLabel(c)}</th>`;
+    html += `<tr><th rowspan="2" style="${stickyFirst};min-width:140px">상품</th>`;
+    allCols.forEach((c,ci)=>{
+      const colColor = c.fcast ? 'color:#1d4ed8;font-style:italic' : c.y===py ? 'color:#94a3b8' : '';
+      const sepStyle = `border-left:2px solid #e2e8f0;${colColor};border-bottom:1px solid #e2e8f0`;
+      html+=`<th colspan="2" class="r" style="${sepStyle}">${mLabel(c)}</th>`;
     });
     html += '<th rowspan="2" class="r">전월비</th></tr><tr>';
-    allCols.forEach((_,ci)=>{
-      // track column index for sorting: product=0, then pairs start at 1
+    allCols.forEach((c,ci)=>{
       const base = 1 + ci*2;
-      html+=`<th class="r" style="font-size:10px;font-weight:500;cursor:pointer" data-sort-col="${base}">수량</th>`;
+      html+=`<th class="r" style="font-size:10px;font-weight:500;cursor:pointer;border-left:2px solid #e2e8f0" data-sort-col="${base}">수량</th>`;
       html+=`<th class="r" style="font-size:10px;font-weight:500;cursor:pointer" data-sort-col="${base+1}">매출</th>`;
     });
     html += '</tr>';
   } else {
-    html += '<tr><th>상품</th>';
-    allCols.forEach(c=>{
-      const st = c.fcast?'color:#1d4ed8;font-style:italic':c.y===py?'color:#94a3b8':'';
+    html += `<tr><th style="${stickyFirst};min-width:140px">상품</th>`;
+    allCols.forEach((c,ci)=>{
+      const colColor = c.fcast ? 'color:#1d4ed8;font-style:italic' : c.y===py ? 'color:#94a3b8' : '';
       const lbl = vm==='rev'?'매출':'수량';
-      html+=`<th class="r" style="${st}">${mLabel(c)}<br><span style="font-size:10px;font-weight:400">${lbl}</span></th>`;
+      html+=`<th class="r" style="${colColor};border-left:2px solid #e2e8f0" data-sort-col="${ci+1}">${mLabel(c)}<br><span style="font-size:10px;font-weight:400">${lbl}</span></th>`;
     });
     html += '<th class="r">전월비</th></tr>';
   }
   html += '</thead><tbody>';
 
-  // Sort by 2026 YTD revenue
-  const sorted = prods.map(p=>({p, tot:cols26.reduce((s,m)=>s+(agg[`${p}|${cy}|${m}`]||{rev:0}).rev,0)}));
+  // 선택 연도 YTD 매출 기준 정렬
+  const ytdCols = allCols.filter(c=>!c.fcast);
+  const sorted = prods.map(p=>({p, tot:ytdCols.reduce((s,c)=>s+(agg[`${p}|${c.y}|${c.m}`]||{rev:0}).rev,0)}));
   sorted.sort((a,b)=>b.tot-a.tot);
 
   for(const {p} of sorted){
     const get = (y,m) => agg[`${p}|${y}|${m}`]||{rev:0,fqty:0};
-    const cur = get(cy,n.m);
+    const cur  = get(cy,n.m);
     const fRev = forecastM(cur.rev, maxDayM, n.dim);
     const fQty = forecastM(cur.fqty, maxDayM, n.dim);
     const prevM = n.m>1 ? get(cy,n.m-1) : get(py,12);
     const pEsc = p.replace(/'/g,"\\'");
 
-    html += `<tr><td class="link" onclick="openDrillProd('${pEsc}','${channel}')">${p}</td>`;
+    html += `<tr><td class="link" style="${stickyFirst}" onclick="openDrillProd('${pEsc}','${channel}')">${p}</td>`;
     for(const c of allCols){
       const d = c.fcast ? {rev:fRev,fqty:fQty} : get(c.y,c.m);
-      const st = c.fcast?'style="color:#1d4ed8"':c.y===py?'style="color:#94a3b8"':'';
+      const fc = c.fcast ? 'color:#1d4ed8' : c.y===py ? 'color:#94a3b8' : '';
+      const sepBorder = 'border-left:2px solid #e2e8f0';
       if(vm==='both'){
-        html+=`<td class="r" ${st}>${d.fqty?d.fqty.toLocaleString():'—'}</td>`;
-        html+=`<td class="r" ${st}>${d.rev?fmtM(d.rev):'—'}</td>`;
+        html+=`<td class="r" style="${fc};${sepBorder}">${d.fqty?d.fqty.toLocaleString():'—'}</td>`;
+        html+=`<td class="r" style="${fc}">${d.rev?fmtM(d.rev):'—'}</td>`;
       } else if(vm==='rev'){
-        html+=`<td class="r" ${st}>${d.rev?fmtM(d.rev):'—'}</td>`;
+        html+=`<td class="r" style="${fc};${sepBorder}">${d.rev?fmtM(d.rev):'—'}</td>`;
       } else {
-        html+=`<td class="r" ${st}>${d.fqty?d.fqty.toLocaleString():'—'}</td>`;
+        html+=`<td class="r" style="${fc};${sepBorder}">${d.fqty?d.fqty.toLocaleString():'—'}</td>`;
       }
     }
     html += `<td class="r">${pctHtml(fRev,prevM.rev)}</td></tr>`;
@@ -1529,6 +1584,19 @@ function renderChannelMonthly(channel, vm, tableId) {
     th.addEventListener('click',()=>_sortMonthly(th, parseInt(th.dataset.sortCol),
       tableId, tableId==='tblSSMonthly'?renderSSMonthly:renderC24Monthly));
   });
+}
+
+function setSSMonthYear(y) {
+  ssMonthYear = y;
+  document.getElementById('ssMonth2026').classList.toggle('active', y===2026);
+  document.getElementById('ssMonth2025').classList.toggle('active', y===2025);
+  renderSSMonthly();
+}
+function setC24MonthYear(y) {
+  c24MonthYear = y;
+  document.getElementById('c24Month2026').classList.toggle('active', y===2026);
+  document.getElementById('c24Month2025').classList.toggle('active', y===2025);
+  renderC24Monthly();
 }
 
 function renderSSMonthly()  { renderMonthlyBarChart('스마트스토어','chartSSMonthly');  renderChannelMonthly('스마트스토어', 'both', 'tblSSMonthly'); }
@@ -1589,7 +1657,14 @@ function _render2rowMatrix(rows, groupKeys, tableId, rerenderFn) {
   const [y,m] = sel.split('-').map(Number);
   const filtered = rows.filter(r=>r.year===y&&r.month===m);
   const agg = sumBy(filtered,'prod',gk);
-  const groups = [...new Set(filtered.map(r=>r[gk]))].filter(Boolean).sort();
+  const groups = [...new Set(filtered.map(r=>r[gk]))].filter(Boolean);
+  if (tableId === 'tblProducts') {
+    const groupRevs = {};
+    groups.forEach(g => { groupRevs[g] = filtered.filter(r=>r[gk]===g).reduce((s,r)=>s+r.rev,0); });
+    groups.sort((a,b) => groupRevs[b] - groupRevs[a]);
+  } else {
+    groups.sort();
+  }
   const prods  = [...new Set(filtered.map(r=>r.prod))].filter(Boolean);
   const sorted = prods.map(p=>({p, t:groups.reduce((s,g)=>(agg[`${p}|${g}`]||{rev:0}).rev+s,0)}));
   sorted.sort((a,b)=>b.t-a.t);
@@ -1922,27 +1997,30 @@ function renderInvKPI() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
   const rows  = INV_ROWS.filter(r => r['품목명']);
 
-  // 총 재고금액: 현재고금액 컬럼 직접 합산 (없으면 단가×수량)
+  // 총 재고금액: N열 (현재고금액+발주금액 합계 컬럼) — 여러 가능한 컬럼명 시도
   const totalVal = rows.reduce((s, r) => {
-    const direct = parseInvNum(r['현재고금액']);
+    const direct = parseInvNum(r['현재고금액']) || parseInvNum(r['재고금액']) ||
+                   parseInvNum(r['총재고금액']) || parseInvNum(r['재고금액합계']);
     if (direct > 0) return s + direct;
     return s + parseInvNum(r['제품단가(VAT-)']) * parseInvNum(r['재고수량']);
   }, 0);
 
   const alarmCount  = rows.filter(r => r['발주알람']?.trim() === '발주필요').length;
+  // 소비기한 12개월 이내
   const expCount    = rows.filter(r => {
     const exp = parseInvDate(r['소비기한']);
     if (!exp) return false;
-    return (exp - today) / (30 * 86400000) <= 18;
+    return (exp - today) / (30 * 86400000) <= 12;
   }).length;
-  const todayAlloc  = rows.reduce((s, r) => s + parseInvNum(r['오늘할당']), 0);
+  // 오늘 공구 중: T열에 '공구중' 값인 행 개수
+  const gonguCount  = rows.filter(r => r['오늘공구여부']?.trim() === '공구중').length;
 
   document.getElementById('invKpiCards').innerHTML =
     invKpiCard('총 재고금액', fmtM(totalVal), '', '') +
     invKpiCard('관리 SKU', rows.length.toLocaleString(), '개', '') +
     invKpiCard('즉시 발주 필요', alarmCount.toString(), '건', alarmCount > 0 ? '#dc2626' : '') +
-    invKpiCard('소비기한 18개월 이내', expCount.toString(), '개', expCount > 0 ? '#ea580c' : '') +
-    invKpiCard('오늘 공구 출고', todayAlloc.toLocaleString(), '개', '');
+    invKpiCard('소비기한 12개월 이내', expCount.toString(), '개', expCount > 0 ? '#ea580c' : '') +
+    invKpiCard('오늘 공구 중', gonguCount.toString(), '건', gonguCount > 0 ? '#7c3aed' : '');
 }
 
 function invKpiCard(label, val, unit, color) {
@@ -1965,7 +2043,7 @@ function renderOrderAlarm() {
 
   if (!alarmRows.length) {
     document.getElementById('tblOrderAlarm').innerHTML =
-      '<thead></thead><tbody><tr><td colspan="10" style="text-align:center;color:#94a3b8;padding:28px">✓ 발주 필요 상품이 없습니다</td></tr></tbody>';
+      '<thead></thead><tbody><tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:28px">✓ 발주 필요 상품이 없습니다</td></tr></tbody>';
     return;
   }
 
@@ -1977,8 +2055,8 @@ function renderOrderAlarm() {
 
   let html = `<thead><tr>
     <th>품목명</th><th>브랜드</th><th>담당</th><th>등급</th>
-    <th class="r">현재고</th><th>소진 예상일</th><th class="r">D-Day</th>
-    <th>입고예정 / 발주수량</th><th>발주확정</th><th>비고</th>
+    <th class="r">현재고</th><th>소진 예상일</th>
+    <th>입고예정 / 발주수량</th><th>구분</th><th>비고</th>
   </tr></thead><tbody>`;
 
   for (const { r, sellout, dDay } of processed) {
@@ -1986,12 +2064,11 @@ function renderOrderAlarm() {
                   : dDay !== null && dDay <= 60 ? 'alarm-orange'
                   : 'alarm-yellow';
     const grade   = r['관리등급']?.trim() || 'C';
-    const dDayTxt = dDay !== null ? `D-${dDay}` : '—';
-    const dDayCls = dDay !== null && dDay <= 30 ? 'red' : dDay !== null && dDay <= 60 ? 'orange' : 'yellow';
     const gradeCls = grade === 'A' ? 'red' : grade === 'B' ? 'orange' : 'blue';
     const delivTxt = r['입고예정일']?.trim()
       ? `${r['입고예정일'].trim()} · ${parseInvNum(r['발주수량']).toLocaleString()}개`
       : '—';
+    const gbn  = r['구분'] || '—';
     const note = (r['커머스이슈'] || r['비고'] || '').substring(0, 60);
 
     html += `<tr class="${rowCls}">
@@ -2001,9 +2078,8 @@ function renderOrderAlarm() {
       <td><span class="inv-badge ${gradeCls}">${grade}</span></td>
       <td class="r">${parseInvNum(r['재고수량']).toLocaleString()}</td>
       <td>${fmtDateInv(sellout)}</td>
-      <td class="r"><span class="inv-badge ${dDayCls}">${dDayTxt}</span></td>
       <td style="font-size:11px;white-space:nowrap">${delivTxt}</td>
-      <td style="font-size:11px">${r['발주요청'] || '—'}</td>
+      <td style="font-size:11px">${gbn}</td>
       <td style="font-size:11px;max-width:180px;white-space:normal;word-break:break-all">${note}</td>
     </tr>`;
   }
@@ -2043,20 +2119,29 @@ function renderExpiry() {
     <th>소진 예상일</th><th>소진 가능 여부</th>
   </tr></thead><tbody>`;
 
+  const GROUP_LABELS = ['3개월 이하', '4~6개월', '7~9개월', '10~12개월', '13~18개월'];
+  let prevGroup = '';
+
   for (const r of expRows) {
     const exp        = parseInvDate(r['소비기한']);
     const daysLeft   = Math.round((exp.getTime() - today.getTime()) / MS_PER_DAY);
     const monthsLeft = Math.floor(daysLeft / 30);
     const badgeCls   = monthsLeft <= 3 ? 'red' : monthsLeft <= 6 ? 'orange' : monthsLeft <= 9 ? 'yellow' : monthsLeft <= 12 ? 'blue' : 'gray';
+    const groupLabel = monthsLeft <= 3 ? GROUP_LABELS[0] : monthsLeft <= 6 ? GROUP_LABELS[1] : monthsLeft <= 9 ? GROUP_LABELS[2] : monthsLeft <= 12 ? GROUP_LABELS[3] : GROUP_LABELS[4];
     const monthLabel = monthsLeft <= 0 ? '1개월 미만' : `${monthsLeft}개월 남음`;
 
-    const sellout  = calcSelloutDate(r, GONGU_ROWS, today);
+    // 그룹 헤더 행
+    if (groupLabel !== prevGroup) {
+      html += `<tr><td colspan="5" style="background:#f8fafc;padding:5px 12px;font-size:11px;font-weight:600;color:#475569;border-top:2px solid #e2e8f0"><span class="inv-badge ${badgeCls}" style="margin-right:6px">${badgeCls==='red'?'🔴':badgeCls==='orange'?'🟠':badgeCls==='yellow'?'🟡':badgeCls==='blue'?'🔵':'⚪'}</span>${groupLabel}</td></tr>`;
+      prevGroup = groupLabel;
+    }
+
+    const sellout  = parseInvDate(r['입고후소진예상일']);
     const canSell  = sellout && sellout.getTime() <= exp.getTime();
     const statusBadge = canSell
       ? `<span class="inv-badge green">소진 가능</span>`
       : `<span class="inv-badge red">⚠ 소진 불가</span>`;
 
-    // 잔여 기간 시각화 (최대 18개월 = 540일 기준)
     const pct      = Math.min(100, Math.max(2, (daysLeft / 540) * 100));
     const barColor = badgeCls === 'red' ? '#dc2626' : badgeCls === 'orange' ? '#ea580c' : badgeCls === 'yellow' ? '#ca8a04' : badgeCls === 'blue' ? '#3b82f6' : '#94a3b8';
 
@@ -2085,20 +2170,16 @@ function renderExpiry() {
 function renderStockoutCheck() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
 
-  const candidates = INV_ROWS.filter(r => {
-    const dDate = parseInvDate(r['입고예정일']) || parseInvDate(r['1차입고예정일']);
-    if (!dDate) return false;
-    const days = (dDate - today) / 86400000;
-    return days > 0 && days <= 120;
-  });
-
-  const atRisk = candidates.map(r => {
-    const delivDate = parseInvDate(r['입고예정일']) || parseInvDate(r['1차입고예정일']);
-    const sellout = calcSelloutDate(r, GONGU_ROWS, today);
+  // G열(입고예정일)과 U열(소진예상일) 직접 비교 — 소진예상일 < 입고예정일이면 품절 위험
+  const atRisk = INV_ROWS.map(r => {
+    const delivDate = parseInvDate(r['입고예정일']); // G열만, 1차 fallback 없음
+    const sellout   = parseInvDate(r['소진예상일']); // U열 직접
+    if (!delivDate || !sellout) return null;
+    if (sellout >= delivDate) return null; // 소진예상일이 입고 후면 문제없음
+    const gapDays = Math.round((delivDate - sellout) / 86400000);
     const daysToDelivery = Math.round((delivDate - today) / 86400000);
-    const gapDays = (sellout && delivDate) ? Math.round((delivDate - sellout) / 86400000) : null;
     return { r, delivDate, sellout, gapDays, daysToDelivery };
-  }).filter(({ sellout, delivDate }) => sellout && sellout < delivDate)
+  }).filter(Boolean)
     .sort((a, b) => (b.gapDays ?? 0) - (a.gapDays ?? 0));
 
   document.getElementById('invStockoutCount').textContent = atRisk.length ? `${atRisk.length}건` : '';
