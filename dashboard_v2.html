@@ -1846,7 +1846,7 @@ function parseInvNum(v) {
   return isNaN(n) ? 0 : n;
 }
 
-// 날짜 파싱: ISO(2027-09-08), M/D( 6/9 ), 공구탭 포맷(26/6/9(화))
+// 날짜 파싱: ISO(2027-09-08), M/D( 6/9 ), 공구탭 포맷(26/6/9(화)), "8월 초/중/말"
 function parseInvDate(v) {
   if (!v || String(v).trim() === '' || String(v).trim() === '-') return null;
   v = String(v).trim();
@@ -1861,13 +1861,23 @@ function parseInvDate(v) {
     const d = new Date(2000 + parseInt(ymd[1]), parseInt(ymd[2]) - 1, parseInt(ymd[3]));
     return isNaN(d.getTime()) ? null : d;
   }
-  // M/D or MM/DD (당해연도): 6/9, 8/7
+  // M/D or MM/DD (당해연도): 6/9, 8/7 — 연도 올림 없이 그대로 사용
   const md = v.match(/^(\d{1,2})\/(\d{1,2})$/);
   if (md) {
     const thisYear = new Date().getFullYear();
     const d = new Date(thisYear, parseInt(md[1]) - 1, parseInt(md[2]));
-    // 이미 지난 날이면 내년으로
-    if (d < new Date()) d.setFullYear(d.getFullYear() + 1);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  // "8월 초" → 8/1, "8월 중" → 8/15, "8월 말" → 8월 말일
+  const krText = v.match(/^(\d{1,2})월\s*(초순?|중순?|하순|말)/);
+  if (krText) {
+    const thisYear = new Date().getFullYear();
+    const month = parseInt(krText[1]);
+    const pos = krText[2];
+    const day = (pos === '초' || pos === '초순') ? 1
+              : (pos === '중' || pos === '중순') ? 15
+              : new Date(thisYear, month, 0).getDate(); // 말/하순 = 말일
+    const d = new Date(thisYear, month - 1, day);
     return isNaN(d.getTime()) ? null : d;
   }
   return null;
@@ -2012,8 +2022,8 @@ function renderInvKPI() {
     if (!exp) return false;
     return (exp - today) / (30 * 86400000) <= 12;
   }).length;
-  // 오늘 공구 중: T열에 '공구중' 값인 행 개수
-  const gonguCount  = rows.filter(r => r['오늘공구여부']?.trim() === '공구중').length;
+  // 오늘 공구 중: T열 '오늘 공구여부' 컬럼이 비어있지 않고 '-'가 아닌 행
+  const gonguCount  = rows.filter(r => { const v = r['오늘 공구여부']?.trim(); return v && v !== '-'; }).length;
 
   document.getElementById('invKpiCards').innerHTML =
     invKpiCard('총 재고금액', fmtM(totalVal), '', '') +
@@ -2172,9 +2182,10 @@ function renderStockoutCheck() {
 
   // G열(입고예정일)과 U열(소진예상일) 직접 비교 — 소진예상일 < 입고예정일이면 품절 위험
   const atRisk = INV_ROWS.map(r => {
-    const delivDate = parseInvDate(r['입고예정일']); // G열만, 1차 fallback 없음
+    const delivDate = parseInvDate(r['입고예정일']); // G열
     const sellout   = parseInvDate(r['소진예상일']); // U열 직접
     if (!delivDate || !sellout) return null;
+    if (delivDate < today) return null; // 과거 입고예정일 = 이미 입고된 것, 제외
     if (sellout >= delivDate) return null; // 소진예상일이 입고 후면 문제없음
     const gapDays = Math.round((delivDate - sellout) / 86400000);
     const daysToDelivery = Math.round((delivDate - today) / 86400000);
@@ -2214,32 +2225,36 @@ function renderStockoutCheck() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  INVENTORY — 발주 일정표 (간트 바 타임라인)
+//  INVENTORY — 발주 일정표 (이미 발주된 상품 입고 타임라인)
 // ═══════════════════════════════════════════════════════
 function renderOrderTimeline() {
-  const today   = new Date(); today.setHours(0, 0, 0, 0);
-  const endDate = addDays(today, 90);
-  const TOTAL_DAYS = 90;
+  const today      = new Date(); today.setHours(0, 0, 0, 0);
+  const TOTAL_DAYS = 120;
+  const endDate    = addDays(today, TOTAL_DAYS);
   const GRADE_COLOR = { A: '#dc2626', B: '#ea580c', C: '#1d4ed8' };
 
+  // 0%=오늘, 100%=120일 후
   const dayPct = d => Math.max(0, Math.min(100, ((d - today) / 86400000 / TOTAL_DAYS) * 100));
 
+  // 발주된 상품: 입고예정일이 있는 상품 (향후 120일 이내 + 이미 지났지만 1주일 이내)
   const items = INV_ROWS.filter(r => {
-    const od = parseInvDate(r['발주예상일']);
-    return od && od <= endDate;
-  }).map(r => ({
-    r,
-    orderDate: parseInvDate(r['발주예상일']),
-    delivDate: parseInvDate(r['입고예정일']) || parseInvDate(r['1차입고예정일']),
-  })).sort((a, b) => (a.orderDate?.getTime() || 0) - (b.orderDate?.getTime() || 0));
+    const dd = parseInvDate(r['입고예정일']) || parseInvDate(r['1차입고예정일']);
+    if (!dd) return false;
+    const days = (dd - today) / 86400000;
+    return days > -7 && days <= TOTAL_DAYS;
+  }).map(r => {
+    const delivDate = parseInvDate(r['입고예정일']) || parseInvDate(r['1차입고예정일']);
+    const qty = parseInvNum(r['발주수량']) || parseInvNum(r['1차발주수량']);
+    return { r, delivDate, qty };
+  }).sort((a, b) => a.delivDate.getTime() - b.delivDate.getTime());
 
   if (!items.length) {
     document.getElementById('invTimeline').innerHTML =
-      '<div style="text-align:center;color:#94a3b8;padding:28px">향후 90일 내 발주 예정 상품이 없습니다</div>';
+      '<div style="text-align:center;color:#94a3b8;padding:28px">향후 120일 내 입고 예정 상품이 없습니다</div>';
     return;
   }
 
-  // 월 헤더 계산
+  // 월 눈금 헤더 계산
   const months = [];
   const cur = new Date(today); cur.setDate(1);
   while (cur <= endDate) { months.push(new Date(cur)); cur.setMonth(cur.getMonth() + 1); }
@@ -2258,49 +2273,44 @@ function renderOrderTimeline() {
 
   // 오늘 기준선 + 행 목록
   html += `<div style="position:relative">`;
-  // 오늘 선
   html += `<div style="position:absolute;left:calc(180px);top:0;bottom:0;width:0;border-left:2px solid #3b82f6;z-index:2;pointer-events:none"></div>`;
   html += `<div style="position:absolute;left:182px;top:-2px;font-size:9px;color:#3b82f6;font-weight:700;z-index:2">오늘</div>`;
 
-  for (const { r, orderDate, delivDate } of items) {
-    const grade    = (r['관리등급'] || 'C').trim();
-    const color    = GRADE_COLOR[grade] || '#64748b';
-    const isAlarm  = r['발주알람']?.trim() === '발주필요';
-    const isDone   = r['발주요청']?.trim();
-    const oPct     = dayPct(orderDate);
-    const dPct     = delivDate ? dayPct(delivDate) : null;
-    const oLabel   = `${orderDate.getMonth()+1}/${orderDate.getDate()}`;
-    const dLabel   = delivDate ? `${delivDate.getMonth()+1}/${delivDate.getDate()}` : '';
+  for (const { r, delivDate, qty } of items) {
+    const grade     = (r['관리등급'] || 'C').trim();
+    const color     = GRADE_COLOR[grade] || '#64748b';
+    const dPct      = dayPct(delivDate);
+    const daysLeft  = Math.round((delivDate - today) / 86400000);
+    const dLabel    = `${delivDate.getMonth()+1}/${delivDate.getDate()}`;
+    const isPast    = delivDate < today;
+    const barColor  = isPast ? '#94a3b8' : color;
+    const dDayLabel = isPast ? `D+${Math.abs(daysLeft)}` : `D-${daysLeft}`;
+    const qtyLabel  = qty > 0 ? `${qty.toLocaleString()}개` : '';
+    const reqText   = r['발주요청']?.trim();
+    const barW      = Math.max(0.5, dPct);
 
-    html += `<div style="display:flex;align-items:center;height:30px;margin-bottom:4px">
+    html += `<div style="display:flex;align-items:center;height:32px;margin-bottom:5px">
       <div style="width:180px;flex-shrink:0;padding-right:10px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${r['품목명']}">
-        ${isAlarm ? '<span style="color:#dc2626">⚡</span>' : ''}
         <b>${r['품목명']}</b>
         <span class="inv-badge ${grade==='A'?'red':grade==='B'?'orange':'blue'}" style="font-size:9px;padding:1px 5px">${grade}</span>
       </div>
-      <div style="flex:1;position:relative;height:18px;background:#f1f5f9;border-radius:4px;overflow:visible">`;
-
-    if (dPct !== null) {
-      const barW = Math.max(0.8, dPct - oPct);
-      html += `<div style="position:absolute;left:${oPct}%;width:${barW}%;height:100%;background:${color};opacity:${isDone?'0.45':'0.7'};border-radius:3px"></div>`;
-      if (isDone) {
-        html += `<div style="position:absolute;left:${oPct}%;top:1px;font-size:9px;color:${color};font-weight:700;padding:0 3px;white-space:nowrap">발주요청</div>`;
-      }
-      html += `<div style="position:absolute;left:${dPct}%;top:-1px;width:3px;height:20px;background:${color};border-radius:1px"></div>`;
-      if (dLabel) html += `<div style="position:absolute;left:${Math.min(dPct+0.5,88)}%;top:3px;font-size:9px;color:#64748b;white-space:nowrap">${dLabel}</div>`;
-    } else {
-      html += `<div style="position:absolute;left:${oPct}%;top:50%;transform:translate(-50%,-50%);width:10px;height:10px;background:${color};border-radius:50%"></div>`;
-    }
-    html += `<div style="position:absolute;left:${Math.max(0,oPct)}%;bottom:-12px;font-size:9px;color:#94a3b8;white-space:nowrap">${oLabel}</div>`;
-    html += `</div></div>`;
+      <div style="flex:1;position:relative;height:18px;background:#f1f5f9;border-radius:4px;overflow:visible">
+        <div style="position:absolute;left:0;width:${barW}%;height:100%;background:${barColor};opacity:0.6;border-radius:3px"></div>
+        <div style="position:absolute;left:${dPct}%;top:-1px;width:3px;height:20px;background:${barColor};border-radius:1px;transform:translateX(-50%)"></div>
+        <div style="position:absolute;left:${Math.min(dPct+1,82)}%;top:50%;transform:translateY(-50%);font-size:10px;color:${isPast?'#94a3b8':'#374151'};white-space:nowrap;font-weight:600">
+          ${dLabel} <span style="color:${isPast?'#94a3b8':'#6b7280'};font-weight:400">${dDayLabel}</span>${qtyLabel ? ` · ${qtyLabel}` : ''}${reqText ? ` <span style="color:#7c3aed;font-size:9px">[${reqText}]</span>` : ''}
+        </div>
+      </div>
+    </div>`;
   }
 
   html += `</div></div></div>`;
-  html += `<div style="margin-top:18px;display:flex;gap:14px;font-size:11px;color:#64748b;flex-wrap:wrap">
+  html += `<div style="margin-top:14px;display:flex;gap:14px;font-size:11px;color:#64748b;flex-wrap:wrap">
     <span><span style="display:inline-block;width:10px;height:10px;background:#dc2626;border-radius:2px;vertical-align:middle;margin-right:3px"></span>A등급</span>
     <span><span style="display:inline-block;width:10px;height:10px;background:#ea580c;border-radius:2px;vertical-align:middle;margin-right:3px"></span>B등급</span>
     <span><span style="display:inline-block;width:10px;height:10px;background:#1d4ed8;border-radius:2px;vertical-align:middle;margin-right:3px"></span>C등급</span>
-    <span>⚡ 발주필요 &nbsp; 막대=발주예상일→입고예정일</span>
+    <span style="color:#94a3b8">■ 회색=입고예정일 지남</span>
+    <span>막대 끝=입고예정일 · D-N=입고까지 남은 일수</span>
   </div>`;
 
   document.getElementById('invTimeline').innerHTML = html;
