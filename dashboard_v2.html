@@ -138,6 +138,14 @@ tr.row-hl td{background:#fefce8;font-weight:600}
 .nav-child{display:flex;align-items:center;gap:8px;padding:9px 14px 9px 32px;cursor:pointer;color:#7aa3c4;font-size:12px;transition:background .12s,color .12s}
 .nav-child:hover{background:#1a3a5c;color:#fff}
 .nav-child.active{background:#1d4ed8;color:#fff;font-weight:600}
+.nav-subparent{display:flex;align-items:center;gap:8px;padding:8px 14px 8px 32px;cursor:pointer;color:#7aa3c4;font-size:12px;transition:background .12s,color .12s}
+.nav-subparent:hover{background:#1a3a5c;color:#fff}
+.nav-subarrow{margin-left:auto;font-size:10px;color:#94a3b8}
+.nav-grandchildren{overflow:hidden;transition:max-height .2s}
+.nav-grandchildren.collapsed{display:none}
+.nav-grandchild{display:flex;align-items:center;gap:8px;padding:7px 14px 7px 48px;cursor:pointer;color:#5a8aaa;font-size:12px;transition:background .12s,color .12s}
+.nav-grandchild:hover{background:#1a3a5c;color:#fff}
+.nav-grandchild.active{background:#1d4ed8;color:#fff;font-weight:600}
 #sidebar.collapsed .nav-parent .nav-label{opacity:0;width:0}
 #sidebar.collapsed .nav-arrow{display:none}
 #sidebar.collapsed .nav-children{display:none}
@@ -191,22 +199,30 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 <!-- ═══ SIDEBAR ═══ -->
 <nav id="sidebar">
   <div class="sb-header">
-    <span class="sb-logo">📊 파마브로스</span>
+    <span class="sb-logo">🛒 커머스팀</span>
     <button id="sidebarToggle" title="사이드바 접기">◀</button>
   </div>
   <ul class="nav-list">
+    <!-- KPI -->
     <li class="nav-item active" data-page="kpi"><span class="nav-icon">📊</span><span class="nav-label">KPI</span></li>
-    <li class="nav-item" data-page="sales"><span class="nav-icon">📈</span><span class="nav-label">매출 현황</span></li>
-    <!-- 일반매출 아코디언 -->
-    <li class="nav-parent open" id="navParentGeneral" onclick="toggleNavParent('navParentGeneral')">
-      <span class="nav-icon">🛒</span><span class="nav-label">일반매출</span><span class="nav-arrow">▶</span>
+
+    <!-- 판매분석 accordion -->
+    <li class="nav-parent open" id="navParentSales" onclick="toggleNavParent('navParentSales')">
+      <span class="nav-icon">📈</span><span class="nav-label">판매분석</span><span class="nav-arrow">▾</span>
     </li>
-    <div class="nav-children open" id="navChildrenGeneral">
-      <div class="nav-child active" data-page="smartstore"><span>🛍</span> 스마트스토어</div>
-      <div class="nav-child" data-page="cafe24"><span>🏪</span> 카페24</div>
+    <div class="nav-children open" id="navChildrenSales">
+      <div class="nav-child" data-page="sales"><span>📊</span> 매출 현황</div>
+      <!-- 채널별 매출 (일반) sub-accordion -->
+      <div class="nav-subparent" id="navSubparentChannel" onclick="toggleNavGroup('navChildrenChannel')">
+        <span>🛒</span> <span class="nav-label">채널별 매출 (일반)</span><span id="navChildrenChannelArrow" class="nav-subarrow">▾</span>
+      </div>
+      <div class="nav-grandchildren open" id="navChildrenChannel">
+        <div class="nav-grandchild" data-page="smartstore"><span>🛍</span> 스마트스토어</div>
+        <div class="nav-grandchild" data-page="cafe24"><span>🏪</span> 카페24</div>
+      </div>
+      <div class="nav-child" data-page="products"><span>📦</span> 상품별 매출 (일반)</div>
     </div>
-    <!-- 상품매출 -->
-    <li class="nav-item" data-page="products"><span class="nav-icon">📦</span><span class="nav-label">상품매출</span></li>
+
     <!-- 재고관리 -->
     <li class="nav-item" data-page="inventory"><span class="nav-icon">📋</span><span class="nav-label">재고관리</span></li>
   </ul>
@@ -445,7 +461,10 @@ const SHEET_ID_2025 = '1R2r3mTrTf699JKXA9mBvTWs8Ro9JQarOh-ArrFd6uDQ';
 const GID = '1605737796';
 // 하위 호환용 (SHEET_ID 단독 참조 없음)
 const SHEET_ID = SHEET_ID_2026;
-const YEARLY_TARGET = 12_000_000_000;
+const YEARLY_TARGET   = 9_000_000_000;  // 90억 (공구 제외 일반 매출 기준)
+const MONTHLY_TARGETS = { 6: 887_037_099 }; // 월별 목표 (공구 제외)
+const ROCKET_GID      = '629942175';    // 매출 시트 2026 요약탭 (로켓그로스)
+let   ROCKET_REV      = {};             // { 월(1-12): 로켓그로스 매출액 }
 
 // ── 재고관리 시트 ──
 const INV_SHEET_ID  = '1hVQZOo3MYhksqhsE6B4TFYUr997HgiDzo27zKVBNx2I';
@@ -565,6 +584,22 @@ async function loadData() {
     .filter(r => r.year > 0 && r.month > 0 && r.ch !== '' && r.rev !== 0 && r.category === '건기식');
 
   if (ROWS.length === 0) throw new Error('데이터 0건 — 시트 공유 설정 또는 필터를 확인하세요.');
+
+  // 로켓그로스 로딩 (2026 요약탭 row25=헤더, row42=로켓그로스)
+  try {
+    const rocketUrl  = `https://docs.google.com/spreadsheets/d/${SHEET_ID_2026}/export?format=csv&gid=${ROCKET_GID}`;
+    const rocketText = await fetch(rocketUrl).then(r => r.ok ? r.text() : Promise.reject(r.status));
+    const rr = parseCSV(rocketText);
+    const hdrRow  = rr[24] || []; // row 25 (0-indexed 24)
+    const dataRow = rr[41] || []; // row 42 (0-indexed 41)
+    hdrRow.forEach((h, ci) => {
+      const m = MON_KR.indexOf(h.trim()) + 1; // 1-12
+      if (m > 0) {
+        const v = parseFloat(String(dataRow[ci] || '').replace(/[,\s₩]/g, ''));
+        if (!isNaN(v) && v > 0) ROCKET_REV[m] = v;
+      }
+    });
+  } catch(e) { console.warn('[로켓그로스 로딩 실패]', e); }
 }
 
 function parseCSV(text) {
@@ -683,6 +718,14 @@ function toggleNavParent(id) {
   children.classList.toggle('open');
 }
 
+function toggleNavGroup(childrenId) {
+  const el = document.getElementById(childrenId);
+  if (!el) return;
+  el.classList.toggle('collapsed');
+  const arrow = document.getElementById(childrenId+'Arrow');
+  if (arrow) arrow.textContent = el.classList.contains('collapsed') ? '▸' : '▾';
+}
+
 function bindNav() {
   // nav-item clicks (KPI, 매출현황)
   document.querySelectorAll('.nav-item').forEach(el => {
@@ -716,6 +759,24 @@ function bindNav() {
       } else {
         renderPage(pg);
       }
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('overlay').style.display='';
+    });
+  });
+
+  // nav-grandchild clicks (스마트스토어, 카페24)
+  document.querySelectorAll('.nav-grandchild').forEach(el => {
+    el.addEventListener('click', () => {
+      const pg = el.dataset.page;
+      document.querySelectorAll('.nav-grandchild').forEach(c=>c.classList.remove('active'));
+      document.querySelectorAll('.nav-child').forEach(c=>c.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(c=>c.classList.remove('active'));
+      el.classList.add('active');
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.getElementById('page-'+pg).classList.add('active');
+      document.getElementById('pageTitle').textContent = PAGE_TITLES[pg] || el.textContent.trim();
+      document.getElementById('pageMeta').textContent = updateMetaText();
+      renderPage(pg);
       document.getElementById('sidebar').classList.remove('open');
       document.getElementById('overlay').style.display='';
     });
@@ -790,6 +851,7 @@ function bindSidebar() {
 function switchPage(pg) {
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active', el.dataset.page===pg));
   document.querySelectorAll('.nav-child').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-grandchild').forEach(el=>el.classList.toggle('active', el.dataset.page===pg));
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+pg)?.classList.add('active');
   document.getElementById('pageTitle').textContent = PAGE_TITLES[pg] || pg;
@@ -853,31 +915,34 @@ function populateMonthSelects() {
 // ═══════════════════════════════════════════════════════
 function renderKPI() {
   const n = getNow();
-  const rows26 = ROWS.filter(r=>r.year===n.y);
-  const rows25 = ROWS.filter(r=>r.year===n.y-1);
+  // 일반 매출 기준 (공구=3.공동구매 제외)
+  const rows26 = ROWS.filter(r=>r.year===n.y   && r.dist!=='3.공동구매');
+  const rows25 = ROWS.filter(r=>r.year===n.y-1 && r.dist!=='3.공동구매');
 
-  // YTD
-  const ytd26 = rows26.reduce((s,r)=>s+r.rev,0);
-  // Same period last year
+  // YTD (로켓그로스 1~현재월 합산 포함)
+  let ytd26 = rows26.reduce((s,r)=>s+r.rev,0);
+  for(let m=1;m<=n.m;m++) ytd26 += (ROCKET_REV[m]||0);
+
+  // 전년동기
   const ytd25 = rows25.filter(r=>r.month<n.m||(r.month===n.m&&r.day<=n.dy)).reduce((s,r)=>s+r.rev,0);
 
-  // Forecast year: use days elapsed based on max day seen in data
   const elapsedDoy = n.doy;
   const forecastY  = forecastM(ytd26, elapsedDoy, n.diy);
   const achY       = ytd26/YEARLY_TARGET*100;
 
-  // Current month
-  const rowsM = rows26.filter(r=>r.month===n.m);
-  const revM  = rowsM.reduce((s,r)=>s+r.rev,0);
-  const maxDayM = maxDay(rows26, n.y, n.m) || n.dy;
+  // 당월: 일반 매출 + 로켓그로스
+  let revM      = rows26.filter(r=>r.month===n.m).reduce((s,r)=>s+r.rev,0) + (ROCKET_REV[n.m]||0);
+  const maxDayM = maxDay(ROWS.filter(r=>r.year===n.y), n.y, n.m) || n.dy;
   const fcastM  = forecastM(revM, maxDayM, n.dim);
 
-  // Last month for comparison
-  const prevM  = n.m>1 ? rows26.filter(r=>r.month===n.m-1).reduce((s,r)=>s+r.rev,0)
-                        : rows25.filter(r=>r.month===12).reduce((s,r)=>s+r.rev,0);
+  // 전월
+  const prevM = n.m>1
+    ? rows26.filter(r=>r.month===n.m-1).reduce((s,r)=>s+r.rev,0) + (ROCKET_REV[n.m-1]||0)
+    : rows25.filter(r=>r.month===12).reduce((s,r)=>s+r.rev,0);
 
   // Annual KPI cards
-  document.getElementById('kpiYearlyCards').innerHTML = kpiCard('연간 목표','primary',fmtWon(YEARLY_TARGET),'')
+  document.getElementById('kpiYearlyCards').innerHTML =
+    kpiCard('연간 목표 (일반)','primary',fmtWon(YEARLY_TARGET),'공구 제외')
     + kpiCard('현재 누적(YTD)','',fmtM(ytd26), pctHtml(ytd26,ytd25)+' (전년동기)')
     + kpiCard('예상 연 마감','',fmtM(forecastY), `일평균 ${fmtM(Math.round(ytd26/elapsedDoy))}`)
     + kpiCard('달성율',achY>=100?'primary':'', Math.round(achY)+'%', `잔여 ${fmtM(YEARLY_TARGET-ytd26)}`);
@@ -885,14 +950,22 @@ function renderKPI() {
   setProgress('kpiYearlyBar', achY);
   document.getElementById('kpiYearlyPctTxt').textContent = Math.round(achY)+'%';
 
-  // Monthly KPI cards
-  document.getElementById('kpiMonthlyCards').innerHTML = kpiCard(`${n.m}월 목표`,'gray-card','미정','')
-    + kpiCard(`${n.m}월 누적`,'',fmtM(revM), pctHtml(revM,prevM)+' (전월)')
-    + kpiCard(`예상 월 마감`,'',fmtM(fcastM), `일평균 ${fmtM(Math.round(revM/maxDayM))}`)
-    + kpiCard('달성율','','-','목표 미정 시 계산 불가');
+  // 월별 목표
+  const monTarget = MONTHLY_TARGETS[n.m] || null;
+  const monAch    = monTarget ? revM/monTarget*100 : null;
 
-  setProgress('kpiMonthlyBar', 0);
-  document.getElementById('kpiMonthlyPctTxt').textContent = '—';
+  document.getElementById('kpiMonthlyCards').innerHTML =
+    (monTarget
+      ? kpiCard(`${n.m}월 목표 (일반)`,'primary',fmtM(monTarget),'공구 제외')
+      : kpiCard(`${n.m}월 목표`,'gray-card','미정',''))
+    + kpiCard(`${n.m}월 누적`,'',fmtM(revM), pctHtml(revM,prevM)+' (전월)')
+    + kpiCard('예상 월 마감','',fmtM(fcastM), `일평균 ${fmtM(Math.round(revM/maxDayM))}`)
+    + (monAch!==null
+      ? kpiCard('달성율',monAch>=100?'primary':'', Math.round(monAch)+'%', `잔여 ${fmtM(monTarget-revM)}`)
+      : kpiCard('달성율','','-','목표 미정'));
+
+  setProgress('kpiMonthlyBar', monAch||0);
+  document.getElementById('kpiMonthlyPctTxt').textContent = monAch!==null ? Math.round(monAch)+'%' : '—';
   document.getElementById('kpiMonthProgressLabel').textContent = `${n.m}월 달성율`;
 }
 
@@ -952,16 +1025,19 @@ function renderSalesSummary() {
     coupang: getRevs(fCoupang),
     kakao:   getRevs(fKakao),
   };
-  REV.ilbanTotal = cols.map((_,i)=>REV.ilban[i]+REV.chinhan[i]+REV.saib[i]+REV.imjik[i]+REV.b2b[i]);
-  REV.pbTotal    = cols.map((_,i)=>REV.ilbanTotal[i]+REV.gongu[i]);
+  REV.ilbanTotal   = cols.map((_,i)=>REV.ilban[i]+REV.chinhan[i]+REV.saib[i]+REV.imjik[i]+REV.b2b[i]);
+  REV.pbTotal      = cols.map((_,i)=>REV.ilbanTotal[i]+REV.gongu[i]);
+  const rocketArr  = cols.map((_,i)=>ROCKET_REV[i+1]||0);
+  REV.coupangTotal = cols.map((_,i)=>REV.coupang[i]+rocketArr[i]);
 
   const PY = {
     ilban: getPyRevs(fIlban), chinhan: getPyRevs(fChinhan), saib: getPyRevs(fSaib),
     imjik: getPyRevs(fImjik), b2b: getPyRevs(fB2B), gongu: getPyRevs(fGongu),
     ss: getPyRevs(fSS), c24: getPyRevs(fC24), coupang: getPyRevs(fCoupang), kakao: getPyRevs(fKakao),
   };
-  PY.ilbanTotal = cols.map((_,i)=>PY.ilban[i]+PY.chinhan[i]+PY.saib[i]+PY.imjik[i]+PY.b2b[i]);
-  PY.pbTotal    = cols.map((_,i)=>PY.ilbanTotal[i]+PY.gongu[i]);
+  PY.ilbanTotal    = cols.map((_,i)=>PY.ilban[i]+PY.chinhan[i]+PY.saib[i]+PY.imjik[i]+PY.b2b[i]);
+  PY.pbTotal       = cols.map((_,i)=>PY.ilbanTotal[i]+PY.gongu[i]);
+  PY.coupangTotal  = PY.coupang;
 
   function tot(arr){ return arr.reduce((s,v)=>s+v,0); }
   function row(label, revArr, pyArr, cls='', indent=0, rowId='') {
@@ -973,7 +1049,7 @@ function renderSalesSummary() {
     r+=`<td class="r"><b>${fmtM(t26)}</b></td><td class="r">${pctHtml(t26,t25)}</td></tr>`;
     return r;
   }
-  function subRows(revArr, indent, chKey) {
+  function subRows(revArr, pyArr, indent, chKey) {
     const days26 = cols.map(m=>maxDay(ROWS.filter(r=>r.year===cy),cy,m)||new Date(cy,m,0).getDate());
     let r=`<tr class="row-sub ch-sub-row" data-chkey="${chKey}"><td style="padding-left:${8+indent*16}px">일 평균</td>`;
     cols.forEach((m,i)=>{ r+=`<td class="r">${days26[i]?fmtM(Math.round(revArr[i]/days26[i])):'—'}</td>`; });
@@ -982,8 +1058,18 @@ function renderSalesSummary() {
     for(let i=1;i<cols.length;i++) r+=`<td class="r">${pctHtml(revArr[i],revArr[i-1])}</td>`;
     r+='<td></td><td></td><td></td></tr>';
     r+=`<tr class="row-sub ch-sub-row" data-chkey="${chKey}"><td style="padding-left:${8+indent*16}px">YoY</td>`;
-    cols.forEach(m=>{ const a=PY.ilban[m-1]||0; r+=`<td class="r">${pctHtml(revArr[m-1],a)}</td>`; });
+    cols.forEach((m,i)=>{ const a=(pyArr&&pyArr[i])||0; r+=`<td class="r">${pctHtml(revArr[i],a)}</td>`; });
     r+='<td></td><td></td><td></td></tr>';
+    return r;
+  }
+  function chRow(label, revArr, pyArr, indent, chKey) {
+    const t26=tot(revArr), t25=tot(pyArr), fc=fcastRev(revArr);
+    let r=`<tr class="ch-main-row" data-chkey="${chKey}">
+      <td style="padding-left:${8+indent*16}px"><span class="sub-toggle" onclick="toggleSubRows('${chKey}')" style="cursor:pointer;margin-right:6px;font-size:10px;color:#94a3b8">▾</span>${label}</td>`;
+    for(const v of revArr) r+=`<td class="r">${v?fmtM(v):'—'}</td>`;
+    r+=`<td class="r" style="color:#1d4ed8"><b>${fmtM(fc)}</b></td>`;
+    r+=`<td class="r"><b>${fmtM(t26)}</b></td><td class="r">${pctHtml(t26,t25)}</td></tr>`;
+    r += subRows(revArr, pyArr, indent+1, chKey);
     return r;
   }
 
@@ -1001,12 +1087,12 @@ function renderSalesSummary() {
   for(const v of REV.ilban) html+=`<td class="r">${v?fmtM(v):'—'}</td>`;
   html+=`<td class="r" style="color:#1d4ed8"><b>${fmtM(fcastRev(REV.ilban))}</b></td>`;
   html+=`<td class="r"><b>${fmtM(tot(REV.ilban))}</b></td><td class="r">${pctHtml(tot(REV.ilban),tot(PY.ilban))}</td></tr>`;
-  html += subRows(REV.ilban,1,chKey_ilban);
+  html += subRows(REV.ilban,PY.ilban,1,chKey_ilban);
 
-  html += row('스마트스토어',REV.ss,PY.ss,'',2);
-  html += row('카페24',REV.c24,PY.c24,'',2);
-  html += row('쿠팡 합계',REV.coupang,PY.coupang,'',2);
-  html += row('카카오톡스토어',REV.kakao,PY.kakao,'',2);
+  html += chRow('스마트스토어',   REV.ss,          PY.ss,           2,'ch_ss');
+  html += chRow('카페24',        REV.c24,         PY.c24,          2,'ch_c24');
+  html += chRow('쿠팡',          REV.coupangTotal,PY.coupangTotal, 2,'ch_coupang');
+  html += chRow('카카오톡스토어',REV.kakao,        PY.kakao,        2,'ch_kakao');
   html += row('친한구매',REV.chinhan,PY.chinhan,'',1);
   html += row('사입',REV.saib,PY.saib,'',1);
   html += row('임직원',REV.imjik,PY.imjik,'',1);
