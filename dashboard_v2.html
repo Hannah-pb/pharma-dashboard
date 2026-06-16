@@ -404,13 +404,13 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
         <!-- 섹션 3: 소비기한 임박 -->
         <div class="card">
           <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-            <span>⚠️ 소비기한 임박 (18개월 이내) <span id="invExpiryCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
+            <span>⚠️ 소비기한 임박 (14개월 이내) <span id="invExpiryCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
             <span style="font-size:11px;font-weight:400;color:#94a3b8">
               <span class="inv-badge red">3개월↓</span>
               <span class="inv-badge orange">6개월↓</span>
               <span class="inv-badge yellow">9개월↓</span>
               <span class="inv-badge blue">12개월↓</span>
-              <span class="inv-badge gray">18개월↓</span>
+              <span class="inv-badge gray">14개월↓</span>
             </span>
           </div>
           <div class="tbl-wrap"><table id="tblExpiry"></table></div>
@@ -2140,7 +2140,13 @@ function invKpiCard(label, val, unit, color) {
 function renderOrderAlarm() {
   const today     = new Date(); today.setHours(0, 0, 0, 0);
   const GRADE_D   = { A: 150, B: 120, C: 100 };
-  const alarmRows = INV_ROWS.filter(r => r['발주알람']?.trim() === '발주필요');
+  const ALARM_EXCLUDE = new Set([
+    '테라큐민 슈퍼플러스100','테라큐민 맥스60','네이처셋 빌베리 엘더베리',
+    '네이처셋 빌베리 엘더베리 츄어블','테라큐민 부스터 100','테라큐민 프라임 70','테라큐민 주걱',
+  ]);
+  const alarmRows = INV_ROWS.filter(r =>
+    r['발주알람']?.trim() === '발주필요' && !ALARM_EXCLUDE.has(r['품목명']?.trim())
+  );
 
   document.getElementById('invAlarmCount').textContent = alarmRows.length ? `${alarmRows.length}건` : '';
 
@@ -2208,7 +2214,7 @@ function renderExpiry() {
     const exp = parseInvDate(r['소비기한']);
     if (!exp) return false;
     const ms = exp.getTime() - today.getTime();
-    return ms > 0 && ms <= 18 * MS_PER_MONTH;
+    return ms > 0 && ms <= 14 * MS_PER_MONTH;
   }).sort((a, b) => {
     const da = parseInvDate(a['소비기한']);
     const db = parseInvDate(b['소비기한']);
@@ -2228,7 +2234,7 @@ function renderExpiry() {
     <th>소진 예상일</th><th>소진 가능 여부</th>
   </tr></thead><tbody>`;
 
-  const GROUP_LABELS = ['3개월 이하', '4~6개월', '7~9개월', '10~12개월', '13~18개월'];
+  const GROUP_LABELS = ['3개월 이하', '4~6개월', '7~9개월', '10~12개월', '13~14개월'];
   let prevGroup = '';
 
   for (const r of expRows) {
