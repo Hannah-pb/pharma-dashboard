@@ -588,7 +588,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('loading').classList.add('hidden');
     document.getElementById('pageHeader').style.display = '';
     populateMonthSelects();
-    switchPage('kpi');
+    const initHash = window.location.hash.slice(1);
+    switchPage(PAGE_TITLES[initHash] ? initHash : 'kpi');
   }).catch(err => {
     document.getElementById('loadingText').innerHTML =
       `<span style="color:#dc2626">로드 실패: ${err.message}</span><br>
@@ -819,6 +820,7 @@ function bindNav() {
   document.querySelectorAll('.nav-child').forEach(el => {
     el.addEventListener('click', () => {
       const pg = el.dataset.page;
+      history.replaceState(null, '', '#' + pg);
       const subtab = el.dataset.subtab;
       document.querySelectorAll('.nav-child').forEach(c=>c.classList.remove('active'));
       el.classList.add('active');
@@ -847,6 +849,7 @@ function bindNav() {
   document.querySelectorAll('.nav-grandchild').forEach(el => {
     el.addEventListener('click', () => {
       const pg = el.dataset.page;
+      history.replaceState(null, '', '#' + pg);
       document.querySelectorAll('.nav-grandchild').forEach(c=>c.classList.remove('active'));
       document.querySelectorAll('.nav-child').forEach(c=>c.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(c=>c.classList.remove('active'));
@@ -928,6 +931,7 @@ function bindSidebar() {
 }
 
 function switchPage(pg) {
+  history.replaceState(null, '', '#' + pg);
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active', el.dataset.page===pg));
   document.querySelectorAll('.nav-child').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-grandchild').forEach(el=>el.classList.toggle('active', el.dataset.page===pg));
