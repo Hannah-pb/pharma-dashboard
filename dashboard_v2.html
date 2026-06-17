@@ -497,9 +497,9 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 
         <!-- 섹션 4: 입고 예정일 점검 -->
         <div class="card">
-          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-            <span>📦 입고 예정일 점검 <span id="invStockoutCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
-            <span style="font-size:11px;font-weight:400;color:#94a3b8">입고 전 품절 가능성 상품 확인</span>
+          <div class="card-title">
+            📦 입고 예정일 점검 <span id="invStockoutCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span>
+            <div style="font-size:11px;font-weight:400;color:#64748b;margin-top:4px">입고 전 품절 가능성 상품 확인</div>
           </div>
           <div class="tbl-wrap"><table id="tblStockoutCheck"></table></div>
         </div>
@@ -2356,7 +2356,7 @@ function renderOrderAlarm() {
       <td style="font-size:11px">${r['상기담당'] || ''}</td>
       <td><span class="inv-badge ${gradeCls}">${grade}</span></td>
       <td class="r">${parseInvNum(r['재고수량']).toLocaleString()}</td>
-      <td>${fmtDateInv(sellout)}</td>
+      <td>${fmtDateInv(sellout)}${dDay !== null ? ` <span class="inv-badge ${dDay <= 30 ? 'red' : dDay <= 60 ? 'orange' : 'yellow'}">D-${dDay}</span>` : ''}</td>
       <td style="font-size:11px;white-space:nowrap">${delivTxt}</td>
       <td style="font-size:11px">${gbn}</td>
       <td style="font-size:11px;max-width:180px;white-space:normal;word-break:break-all">${note}</td>
@@ -2389,13 +2389,16 @@ function renderExpiry() {
 
   if (!expRows.length) {
     document.getElementById('tblExpiry').innerHTML =
-      '<thead></thead><tbody><tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:28px">✓ 소비기한 임박 상품이 없습니다</td></tr></tbody>';
+      '<thead></thead><tbody><tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:28px">✓ 소비기한 임박 상품이 없습니다</td></tr></tbody>';
     return;
   }
 
   let html = `<thead><tr>
     <th>품목명</th><th>소비기한</th><th class="r">현재고</th>
-    <th>소진 예상일</th><th>소진 가능 여부</th>
+    <th>구분</th>
+    <th>소진예상일<br><small style="font-weight:400;color:#94a3b8;font-size:10px">입고 전 (U열)</small></th>
+    <th>입고후소진예상일<br><small style="font-weight:400;color:#94a3b8;font-size:10px">입고 후 (V열)</small></th>
+    <th>입고예정 / 발주수량</th><th>비고</th><th>소진 가능 여부</th>
   </tr></thead><tbody>`;
 
   const GROUP_LABELS = ['3개월 이하', '4~6개월', '7~9개월', '10~12개월', '13~14개월'];
@@ -2411,20 +2414,38 @@ function renderExpiry() {
 
     // 그룹 헤더 행
     if (groupLabel !== prevGroup) {
-      html += `<tr><td colspan="5" style="background:#f8fafc;padding:5px 12px;font-size:11px;font-weight:600;color:#475569;border-top:2px solid #e2e8f0"><span class="inv-badge ${badgeCls}" style="margin-right:6px">${badgeCls==='red'?'🔴':badgeCls==='orange'?'🟠':badgeCls==='yellow'?'🟡':badgeCls==='blue'?'🔵':'⚪'}</span>${groupLabel}</td></tr>`;
+      html += `<tr><td colspan="9" style="background:#f8fafc;padding:5px 12px;font-size:11px;font-weight:600;color:#475569;border-top:2px solid #e2e8f0"><span class="inv-badge ${badgeCls}" style="margin-right:6px">${badgeCls==='red'?'🔴':badgeCls==='orange'?'🟠':badgeCls==='yellow'?'🟡':badgeCls==='blue'?'🔵':'⚪'}</span>${groupLabel}</td></tr>`;
       prevGroup = groupLabel;
     }
 
-    const sellout  = parseInvDate(r['입고후소진예상일']);
-    const canSell  = sellout && sellout.getTime() <= exp.getTime();
+    const isRenewal   = (r['구분'] || '').includes('리뉴얼');
+    const selloutPre  = parseInvDate(r['소진예상일']);       // U열: 입고 전
+    const selloutPost = parseInvDate(r['입고후소진예상일']); // V열: 입고 후
+
+    // 소진가능여부: 리뉴얼=U열 기준, 일반=V열 기준
+    const checkDate = isRenewal ? selloutPre : selloutPost;
+    const canSell   = checkDate && checkDate.getTime() <= exp.getTime();
     const statusBadge = canSell
       ? `<span class="inv-badge green">소진 가능</span>`
       : `<span class="inv-badge red">⚠ 소진 불가</span>`;
 
+    // 볼드 스타일: 리뉴얼=U열 오렌지 강조, 일반=V열 강조
+    const uStyle = isRenewal ? 'font-weight:700;color:#ea580c' : 'color:#94a3b8;font-size:11px';
+    const vStyle = isRenewal ? 'color:#94a3b8;font-size:11px' : 'font-weight:700;color:#0f172a';
+
+    const gbnBadge  = isRenewal
+      ? `<span class="inv-badge orange">리뉴얼</span>`
+      : (r['구분'] ? `<span style="font-size:11px;color:#64748b">${r['구분']}</span>` : '—');
+    const delivTxt  = r['입고예정일']?.trim()
+      ? `${r['입고예정일'].trim()}<br><small style="color:#64748b">${parseInvNum(r['발주수량']).toLocaleString()}개</small>`
+      : '—';
+    const note      = (r['커머스이슈'] || r['비고'] || '').substring(0, 40);
+
     const pct      = Math.min(100, Math.max(2, (daysLeft / 540) * 100));
     const barColor = badgeCls === 'red' ? '#dc2626' : badgeCls === 'orange' ? '#ea580c' : badgeCls === 'yellow' ? '#ca8a04' : badgeCls === 'blue' ? '#3b82f6' : '#94a3b8';
+    const trClass  = isRenewal ? ' class="alarm-orange"' : '';
 
-    html += `<tr>
+    html += `<tr${trClass}>
       <td>
         <b>${r['품목명']}</b>
         <div style="font-size:11px;color:#94a3b8;margin-top:2px">${r['브랜드'] || ''} · ${r['상기담당'] || ''}</div>
@@ -2435,7 +2456,11 @@ function renderExpiry() {
         <div class="expiry-bar"><div class="expiry-bar-fill" style="width:${pct.toFixed(1)}%;background:${barColor}"></div></div>
       </td>
       <td class="r">${parseInvNum(r['재고수량']).toLocaleString()}</td>
-      <td>${fmtDateInv(sellout)}</td>
+      <td>${gbnBadge}</td>
+      <td style="${uStyle}">${fmtDateInv(selloutPre) || '—'}</td>
+      <td style="${vStyle}">${fmtDateInv(selloutPost) || '—'}</td>
+      <td style="font-size:11px;white-space:nowrap">${delivTxt}</td>
+      <td style="font-size:11px;max-width:140px;white-space:normal;word-break:break-all">${note || '—'}</td>
       <td>${statusBadge}</td>
     </tr>`;
   }
@@ -2458,27 +2483,61 @@ function renderStockoutCheck() {
     if (sellout >= delivDate) return null; // 소진예상일이 입고 후면 문제없음
     const gapDays = Math.round((delivDate - sellout) / 86400000);
     const daysToDelivery = Math.round((delivDate - today) / 86400000);
-    return { r, delivDate, sellout, gapDays, daysToDelivery };
+
+    // 입고 전 공구 이벤트 체크
+    const prodName    = (r['품목명'] || '').trim();
+    const gonguBefore = GONGU_ROWS.filter(g => {
+      const gName   = (g['제품명'] || '').trim();
+      const gStart  = parseInvDate(g['시작일']);
+      const gStatus = (g['진행여부'] || '').trim();
+      return gStatus !== '종료'
+        && gStart && gStart >= today
+        && gStart < delivDate
+        && (gName.includes(prodName) || prodName.includes(gName));
+    });
+
+    return { r, delivDate, sellout, gapDays, daysToDelivery, gonguBefore };
   }).filter(Boolean)
-    .sort((a, b) => (b.gapDays ?? 0) - (a.gapDays ?? 0));
+    .sort((a, b) => {
+      // 입고 전 공구 있는 것 먼저, 그 다음 gapDays 내림차순
+      if ((b.gonguBefore.length > 0) !== (a.gonguBefore.length > 0))
+        return b.gonguBefore.length > 0 ? 1 : -1;
+      return (b.gapDays ?? 0) - (a.gapDays ?? 0);
+    });
 
   document.getElementById('invStockoutCount').textContent = atRisk.length ? `${atRisk.length}건` : '';
 
   if (!atRisk.length) {
     document.getElementById('tblStockoutCheck').innerHTML =
-      '<thead></thead><tbody><tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:28px">✓ 입고 전 품절 위험 상품이 없습니다</td></tr></tbody>';
+      '<thead></thead><tbody><tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:28px">✓ 입고 전 품절 위험 상품이 없습니다</td></tr></tbody>';
     return;
   }
 
   let html = `<thead><tr>
     <th>품목명</th><th class="r">현재고</th><th>예상 소진일</th>
-    <th>입고예정일</th><th class="r">품절 공백</th><th>발주수량</th><th>위험도</th>
+    <th>입고예정일</th><th class="r">품절 공백</th><th>발주수량</th><th>위험도</th><th>입고 전 공구</th>
   </tr></thead><tbody>`;
 
-  for (const { r, delivDate, sellout, gapDays, daysToDelivery } of atRisk) {
+  for (const { r, delivDate, sellout, gapDays, daysToDelivery, gonguBefore } of atRisk) {
     const riskCls   = gapDays >= 7 ? 'red' : gapDays >= 1 ? 'orange' : 'yellow';
     const riskLabel = gapDays >= 7 ? '품절 위험' : gapDays >= 1 ? '주의' : '확인 필요';
     const delivQty  = parseInvNum(r['발주수량']) || parseInvNum(r['1차발주수량']);
+
+    const gonguCell = gonguBefore.length === 0
+      ? '<span style="color:#94a3b8;font-size:11px">—</span>'
+      : gonguBefore.map(g => {
+          const s      = parseInvDate(g['시작일']);
+          const nick   = g['닉네임']     || '';
+          const prd    = g['품목명']     || '';
+          const qty    = g['예상판매량'] || '';
+          const qtyNum = parseInt(qty.replace(/,/g, ''), 10);
+          return `<div style="border-left:3px solid #ef4444;padding:3px 8px;margin-bottom:4px;background:#fef2f2;border-radius:3px">
+            <div style="font-size:12px;font-weight:700;color:#dc2626">⚡ ${s ? `${s.getMonth()+1}/${s.getDate()}` : '?'} 입고 전 공구</div>
+            ${nick || prd ? `<div style="font-size:11px;color:#374151;margin-top:1px">${[nick, prd].filter(Boolean).join(' · ')}</div>` : ''}
+            ${qty ? `<div style="font-size:11px;color:#6b7280">예상 ${isNaN(qtyNum) ? qty : qtyNum.toLocaleString()}개</div>` : ''}
+          </div>`;
+        }).join('');
+
     html += `<tr>
       <td><b>${r['품목명']}</b><div style="font-size:11px;color:#94a3b8">${r['브랜드']||''}</div></td>
       <td class="r">${parseInvNum(r['재고수량']).toLocaleString()}</td>
@@ -2487,6 +2546,7 @@ function renderStockoutCheck() {
       <td class="r"><span class="inv-badge ${riskCls}">${gapDays}일</span></td>
       <td style="font-size:11px">${delivQty > 0 ? delivQty.toLocaleString()+'개' : '—'}</td>
       <td><span class="inv-badge ${riskCls}">${riskLabel}</span></td>
+      <td style="min-width:160px">${gonguCell}</td>
     </tr>`;
   }
   html += '</tbody>';
