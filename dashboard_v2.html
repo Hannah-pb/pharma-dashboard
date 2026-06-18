@@ -250,32 +250,32 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 <!-- ═══ SIDEBAR ═══ -->
 <nav id="sidebar">
   <div class="sb-header">
-    <span class="sb-logo">🛒 커머스팀</span>
+    <span class="sb-logo">💸 커머스팀</span>
     <button id="sidebarToggle" title="사이드바 접기">◀</button>
   </div>
   <ul class="nav-list">
     <!-- KPI -->
-    <li class="nav-item active" data-page="kpi"><span class="nav-icon">📊</span><span class="nav-label">KPI</span></li>
+    <li class="nav-item active" data-page="kpi"><span class="nav-label">KPI</span></li>
 
     <!-- 판매분석 accordion -->
     <li class="nav-parent open" id="navParentSales" onclick="toggleNavParent('navParentSales')">
-      <span class="nav-icon">📈</span><span class="nav-label">판매분석</span><span class="nav-arrow">▾</span>
+      <span class="nav-label">판매분석</span><span class="nav-arrow">▾</span>
     </li>
     <div class="nav-children open" id="navChildrenSales">
-      <div class="nav-child" data-page="sales"><span>📊</span> 매출 현황</div>
+      <div class="nav-child" data-page="sales">매출 현황</div>
       <!-- 채널별 매출 (일반) sub-accordion -->
       <div class="nav-subparent" id="navSubparentChannel" onclick="toggleNavGroup('navChildrenChannel')">
-        <span>🛒</span> <span class="nav-label">채널별 매출 (일반)</span><span id="navChildrenChannelArrow" class="nav-subarrow">▾</span>
+        <span class="nav-label">채널별 매출 (일반)</span><span id="navChildrenChannelArrow" class="nav-subarrow">▾</span>
       </div>
       <div class="nav-grandchildren open" id="navChildrenChannel">
-        <div class="nav-grandchild" data-page="smartstore"><span>🛍</span> 스마트스토어</div>
-        <div class="nav-grandchild" data-page="cafe24"><span>🏪</span> 카페24</div>
+        <div class="nav-grandchild" data-page="smartstore">스마트스토어</div>
+        <div class="nav-grandchild" data-page="cafe24">카페24</div>
       </div>
-      <div class="nav-child" data-page="products"><span>📦</span> 상품별 매출 (일반)</div>
+      <div class="nav-child" data-page="products">상품별 매출 (일반)</div>
     </div>
 
     <!-- 재고관리 -->
-    <li class="nav-item" data-page="inventory"><span class="nav-icon">📋</span><span class="nav-label">재고관리</span></li>
+    <li class="nav-item" data-page="inventory"><span class="nav-label">재고관리</span></li>
   </ul>
   <div class="sb-footer">
     <button id="refreshBtn" onclick="location.reload()">🔄 <span class="btn-label">새로고침</span></button>
@@ -437,6 +437,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       <div class="tab-bar" style="margin-bottom:12px">
         <button class="tab-btn active" data-tab="prod-channel">채널별</button>
         <button class="tab-btn" data-tab="prod-dist">유통별</button>
+        <button class="tab-btn" data-tab="prod-monthly">월별 추이</button>
       </div>
       <!-- 채널별 -->
       <div id="prod-channel" class="tab-pane active">
@@ -453,6 +454,13 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
           <select class="sel-month" id="selDistMonth"></select>
         </div>
         <div class="card"><div class="card-title">유통별 상품 매트릭스</div><div class="tbl-wrap"><table id="tblDist"></table></div></div>
+      </div>
+      <!-- 월별 추이 -->
+      <div id="prod-monthly" class="tab-pane">
+        <div class="card">
+          <div class="card-title">상품별 월별 매출 <small style="font-size:11px;font-weight:400;color:#94a3b8">전체 채널 합산 · 필터 없음</small></div>
+          <div class="tbl-wrap"><table id="tblProductsMonthly"></table></div>
+        </div>
       </div>
     </div>
   </div>
@@ -960,7 +968,7 @@ function renderPage(pg) {
   else if (pg==='sales')   { renderSalesSummary(); }
   else if (pg==='smartstore') { renderSSHeatmap(); }
   else if (pg==='cafe24')  { renderC24Heatmap(); }
-  else if (pg==='products') { renderProducts(); }  // 채널별 기본 탭
+  else if (pg==='products') { renderProducts(); renderProductsMonthly(); }  // 채널별 기본 탭
   else if (pg==='inventory') { renderInventory(); }
 }
 
@@ -973,6 +981,7 @@ function onTabActivated(tabId) {
   else if (tabId==='c24-monthly')  renderC24Monthly();
   else if (tabId==='prod-channel') renderProducts();
   else if (tabId==='prod-dist')    renderDist();
+  else if (tabId==='prod-monthly') renderProductsMonthly();
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1217,13 +1226,13 @@ function renderSalesSummary() {
     const days26 = cols.map(m=>maxDay(ROWS.filter(r=>r.year===cy),cy,m)||new Date(cy,m,0).getDate());
     let r=`<tr class="row-sub ch-sub-row" data-chkey="${chKey}"><td style="padding-left:${8+indent*16}px">일 평균</td>`;
     cols.forEach((m,i)=>{ r+=`<td class="r">${days26[i]?fmtM(Math.round(revArr[i]/days26[i])):'—'}</td>`; });
-    r+='<td></td><td></td><td></td></tr>';
+    r+=`<td class="r" style="color:#1d4ed8;font-style:italic">${n.dim?fmtM(Math.round(fcastRev(revArr)/n.dim)):'—'}</td><td></td><td></td></tr>`;
     r+=`<tr class="row-sub ch-sub-row" data-chkey="${chKey}"><td style="padding-left:${8+indent*16}px">MoM</td><td class="r gray">—</td>`;
     for(let i=1;i<cols.length;i++) r+=`<td class="r">${pctHtml(revArr[i],revArr[i-1])}</td>`;
-    r+='<td></td><td></td><td></td></tr>';
+    r+=`<td class="r" style="color:#1d4ed8;font-style:italic">${n.m>=2?pctHtml(fcastRev(revArr),revArr[n.m-2]):'—'}</td><td></td><td></td></tr>`;
     r+=`<tr class="row-sub ch-sub-row" data-chkey="${chKey}"><td style="padding-left:${8+indent*16}px">YoY</td>`;
     cols.forEach((m,i)=>{ const a=(pyArr&&pyArr[i])||0; r+=`<td class="r">${pctHtml(revArr[i],a)}</td>`; });
-    r+='<td></td><td></td><td></td></tr>';
+    r+=`<td class="r" style="color:#1d4ed8;font-style:italic">${pctHtml(fcastRev(revArr),(pyArr&&pyArr[n.m-1])||0)}</td><td></td><td></td></tr>`;
     return r;
   }
   function chRow(label, revArr, pyArr, indent, chKey) {
@@ -1268,6 +1277,38 @@ function renderSalesSummary() {
     const el = document.getElementById(id);
     if(el) { el.style.background='#fefce8'; el.querySelectorAll('td').forEach(td=>td.style.fontWeight='700'); }
   });
+
+  const mTarget = MONTHLY_TARGETS[n.m];
+  if (mTarget) {
+    const curRev = REV.ilbanTotal[n.m-1];
+    const fc     = fcastRev(REV.ilbanTotal);
+    const achPct = Math.round((curRev / mTarget) * 100);
+    const fcPct  = Math.round((fc / mTarget) * 100);
+    const achCls = achPct >= 90 ? '#16a34a' : achPct >= 70 ? '#f59e0b' : '#dc2626';
+    const targetHtml = `<div style="display:flex;gap:12px;margin-bottom:10px;flex-wrap:wrap">
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:10px 16px;min-width:160px">
+        <div style="font-size:10px;color:#16a34a;font-weight:600;letter-spacing:.05em">${n.m}월 목표</div>
+        <div style="font-size:18px;font-weight:800;color:#0f172a;margin-top:2px">${fmtM(mTarget)}</div>
+      </div>
+      <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:10px 16px;min-width:160px">
+        <div style="font-size:10px;color:#1d4ed8;font-weight:600">현재 달성</div>
+        <div style="font-size:18px;font-weight:800;color:#0f172a;margin-top:2px">${fmtM(curRev)}</div>
+        <div style="font-size:11px;font-weight:700;color:${achCls};margin-top:1px">${achPct}%</div>
+      </div>
+      <div style="background:#fefce8;border:1px solid #fef08a;border-radius:8px;padding:10px 16px;min-width:160px">
+        <div style="font-size:10px;color:#ca8a04;font-weight:600">월말 예상</div>
+        <div style="font-size:18px;font-weight:800;color:#0f172a;margin-top:2px">${fmtM(fc)}</div>
+        <div style="font-size:11px;font-weight:700;color:${fcPct>=100?'#16a34a':'#f59e0b'};margin-top:1px">${fcPct}%</div>
+      </div>
+    </div>`;
+    const cardEl = document.getElementById('tblSalesSummary').closest('.card');
+    const existing = cardEl.querySelector('#salesTargetRow');
+    if (!existing) {
+      cardEl.insertAdjacentHTML('afterbegin', `<div id="salesTargetRow">${targetHtml}</div>`);
+    } else {
+      existing.innerHTML = targetHtml;
+    }
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1433,7 +1474,7 @@ function renderHeatmap(channel, year, containerId) {
 
   function hmBg(rev) {
     if (!rev) return '';
-    const t = Math.pow(rev/maxRev, 0.6); // power scale for better spread
+    const t = Math.pow(rev/maxRev, 0.6);
     const r2= Math.round(255 - t*190);
     const g2= Math.round(255 - t*120);
     const b2= Math.round(255 - t*5);
@@ -1446,45 +1487,55 @@ function renderHeatmap(channel, year, containerId) {
 
   const months = year===getNow().y ? getNow().m : 12;
 
-  // 총계 per day
-  const dayTotals = {};
-  for(let d=1;d<=31;d++) dayTotals[d] = 0;
-  for(let m=1;m<=months;m++) {
-    for(let d=1;d<=31;d++) {
-      dayTotals[d] += (dayMap[`${m}-${d}`]||{rev:0}).rev;
-    }
+  // 월 합계 계산
+  const monthTotals = {};
+  for(let m=1; m<=months; m++) {
+    monthTotals[m] = 0;
+    for(let d=1; d<=31; d++) monthTotals[m] += (dayMap[`${m}-${d}`]||{rev:0}).rev;
   }
+  const grandTotal = Object.values(monthTotals).reduce((s,v)=>s+v, 0);
 
-  let html = '<table class="heatmap"><thead><tr><th style="min-width:42px"></th>';
-  for(let d=1;d<=31;d++) html+=`<th style="min-width:58px;text-align:center">${d}일</th>`;
+  // 선택 정보 UI — 테이블 위에 배치
+  let html = `<div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:8px;padding:8px 14px;margin-bottom:8px;min-height:36px;display:flex;align-items:center;gap:8px">
+    <span style="font-size:11px;color:#7c3aed;font-weight:600">📌 선택</span>
+    <span id="hm-sel-text-${containerId}" style="font-size:12px;color:#7c3aed">날짜 셀을 클릭하면 해당 일자 매출을 확인할 수 있습니다</span>
+  </div>`;
+
+  // 행=일, 열=월
+  html += '<table class="heatmap"><thead>';
+  html += '<tr><th style="min-width:42px"></th>';
+  for(let m=1; m<=months; m++) html += `<th style="min-width:70px;text-align:center">${m}월</th>`;
+  html += '<th style="min-width:70px;text-align:center">합계</th></tr>';
+
+  // 월 합계행 — thead 내 상단 고정
+  html += '<tr style="border-bottom:2px solid #3b82f6">';
+  html += '<td class="hm-label" style="font-weight:700;color:#1d4ed8">월 합계</td>';
+  for(let m=1; m<=months; m++) {
+    const v = monthTotals[m];
+    html += `<td style="text-align:center;font-size:11px;font-weight:700;color:${v?'#1d4ed8':'#cbd5e1'};padding:6px 4px">${v?fmtM(v):'—'}</td>`;
+  }
+  html += `<td style="text-align:center;font-size:11px;font-weight:700;color:#0f172a;padding:6px 4px">${grandTotal?fmtM(grandTotal):'—'}</td>`;
   html += '</tr></thead><tbody>';
 
-  for(let m=1;m<=months;m++){
-    const dim = new Date(year,m,0).getDate();
-    html += `<tr><td class="hm-label">${m}월</td>`;
-    for(let d=1;d<=31;d++){
-      if(d>dim){ html+='<td style="background:#f8fafc"></td>'; continue; }
-      const v = dayMap[`${m}-${d}`];
+  // 일 행: 1일~31일
+  for(let d=1; d<=31; d++) {
+    let dayTotal = 0;
+    html += `<tr><td class="hm-label">${d}일</td>`;
+    for(let m=1; m<=months; m++) {
+      const dim = new Date(year, m, 0).getDate();
+      if(d > dim) { html += '<td style="background:#f8fafc"></td>'; continue; }
+      const v   = dayMap[`${m}-${d}`];
       const rev = v?.rev||0;
+      dayTotal += rev;
       const bg  = hmBg(rev);
       const tc  = hmText(rev);
       const dateStr = `${year}.${String(m).padStart(2,'0')}.${String(d).padStart(2,'0')}`;
-      html+=`<td class="hm-cell" style="${bg?`background:${bg};`:''}color:${tc}" data-date="${dateStr}" data-rev="${rev}" onclick="hmSelectCell(this,'${containerId}')">${rev?rev.toLocaleString():'—'}</td>`;
+      html += `<td class="hm-cell" style="${bg?`background:${bg};`:''}color:${tc}" data-date="${dateStr}" data-rev="${rev}" onclick="hmSelectCell(this,'${containerId}')">${rev?rev.toLocaleString():'—'}</td>`;
     }
+    html += `<td style="text-align:center;font-size:11px;font-weight:600;color:${dayTotal?'#475569':'#cbd5e1'};padding:4px 6px">${dayTotal?fmtM(dayTotal):'—'}</td>`;
     html += '</tr>';
   }
 
-  // 총계 row
-  html += '<tr style="border-top:2px solid #3b82f6"><td class="hm-label" style="font-weight:700;color:#1d4ed8">총계</td>';
-  for(let d=1;d<=31;d++){
-    const v = dayTotals[d];
-    html += `<td style="text-align:center;font-size:11px;font-weight:600;color:${v?'#1d4ed8':'#cbd5e1'};padding:6px 4px">${v?fmtM(v):'—'}</td>`;
-  }
-  html += '</tr>';
-  // 선택 날짜 표시 행
-  html += `<tr id="hm-sel-${containerId}"><td class="hm-label" style="color:#7c3aed;font-size:11px">선택</td>
-    <td colspan="31" id="hm-sel-text-${containerId}" style="padding:6px 10px;font-size:12px;color:#7c3aed">날짜 셀을 클릭하면 해당 일자 매출을 확인할 수 있습니다</td>
-  </tr>`;
   html += '</tbody></table>';
   document.getElementById(containerId).innerHTML = html;
 }
@@ -1965,6 +2016,48 @@ function _render2rowMatrix(rows, groupKeys, tableId, rerenderFn) {
 
 function renderProducts() { _render2rowMatrix(ROWS, ['ch'], 'tblProducts', renderProducts); }
 function renderDist()     { _render2rowMatrix(ROWS, ['dist'], 'tblDist', renderDist); }
+
+function renderProductsMonthly() {
+  const n = getNow();
+  const cy = n.y;
+  const cols = Array.from({length: n.m}, (_, i) => i + 1);
+  const mStr = m => `${cy}.${String(m).padStart(2,'0')}`;
+
+  const cyRows = ROWS.filter(r => r.year === cy);
+  const agg = {};
+  for(const r of cyRows) {
+    const key = `${r.prod}|${r.month}`;
+    agg[key] = (agg[key] || 0) + r.rev;
+  }
+
+  const prods = [...new Set(cyRows.map(r => r.prod))].filter(Boolean);
+  const prodTotals = prods.map(p => ({
+    p, total: cols.reduce((s, m) => s + (agg[`${p}|${m}`] || 0), 0)
+  })).filter(x => x.total > 0).sort((a, b) => b.total - a.total);
+
+  const monthSums = cols.map(m => prodTotals.reduce((s, {p}) => s + (agg[`${p}|${m}`] || 0), 0));
+  const grandTotal = monthSums.reduce((s, v) => s + v, 0);
+
+  let html = `<thead style="position:sticky;top:0;z-index:3"><tr>
+    <th style="min-width:160px">상품</th>`;
+  for(const m of cols) html += `<th class="r" style="min-width:70px">${mStr(m)}</th>`;
+  html += `<th class="r" style="min-width:80px">합계</th></tr></thead><tbody>`;
+
+  html += '<tr class="row-total" style="border-bottom:2px solid #e2e8f0"><td>합계</td>';
+  for(const v of monthSums) html += `<td class="r">${v ? fmtM(v) : '—'}</td>`;
+  html += `<td class="r"><b>${fmtM(grandTotal)}</b></td></tr>`;
+
+  for(const {p, total} of prodTotals) {
+    html += `<tr><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis" title="${p}">${p}</td>`;
+    for(const m of cols) {
+      const v = agg[`${p}|${m}`] || 0;
+      html += `<td class="r">${v ? fmtM(v) : '—'}</td>`;
+    }
+    html += `<td class="r"><b>${fmtM(total)}</b></td></tr>`;
+  }
+  html += '</tbody>';
+  document.getElementById('tblProductsMonthly').innerHTML = html;
+}
 
 // ═══════════════════════════════════════════════════════
 //  DRILLDOWN
@@ -2490,8 +2583,8 @@ function renderStockoutCheck() {
       const gName   = (g['제품명'] || '').trim();
       const gStart  = parseInvDate(g['시작일']);
       const gStatus = (g['진행여부'] || '').trim();
-      return gStatus !== '종료'
-        && gStart && gStart >= today
+      return gStatus === 'O'
+        && gStart
         && gStart < delivDate
         && (gName.includes(prodName) || prodName.includes(gName));
     });
@@ -2528,7 +2621,7 @@ function renderStockoutCheck() {
       : gonguBefore.map(g => {
           const s      = parseInvDate(g['시작일']);
           const nick   = g['닉네임']     || '';
-          const prd    = g['품목명']     || '';
+          const prd    = g['품목명'] || g['제품명'] || '';
           const qty    = g['예상판매량'] || '';
           const qtyNum = parseInt(qty.replace(/,/g, ''), 10);
           return `<div style="border-left:3px solid #ef4444;padding:3px 8px;margin-bottom:4px;background:#fef2f2;border-radius:3px">
