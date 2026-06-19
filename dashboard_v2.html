@@ -110,9 +110,9 @@ tr.row-hl td{background:#fefce8;font-weight:600}
 /* ── Heatmap ── */
 .heatmap-wrap{overflow-x:auto;padding-bottom:4px}
 .heatmap{border-collapse:collapse;font-size:11px}
-.heatmap th{padding:6px 4px;background:#f8fafc;color:#64748b;font-weight:600;text-align:center;border:1px solid #e2e8f0;position:sticky;top:0;z-index:2;min-width:90px}
-.hm-label{padding:7px 12px;background:#f8fafc;font-weight:600;color:#1e293b;text-align:right;border:1px solid #e2e8f0;font-size:12px;position:sticky;left:0;z-index:3;min-width:42px}
-.hm-cell{min-width:90px;height:34px;border:1px solid rgba(0,0,0,.06);cursor:default;position:relative;text-align:center;vertical-align:middle;font-size:10px;padding:2px 3px;font-variant-numeric:tabular-nums}
+.heatmap th{padding:6px 4px;background:#f8fafc;color:#64748b;font-weight:600;text-align:center;border:1px solid #e2e8f0;position:sticky;top:0;z-index:2;min-width:64px}
+.hm-label{padding:7px 10px;background:#f8fafc;font-weight:600;color:#1e293b;text-align:right;border:1px solid #e2e8f0;font-size:12px;position:sticky;left:0;z-index:3;min-width:38px}
+.hm-cell{min-width:64px;height:34px;border:1px solid rgba(0,0,0,.06);cursor:default;position:relative;text-align:center;vertical-align:middle;font-size:10px;padding:2px 3px;font-variant-numeric:tabular-nums}
 .hm-cell:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100%+4px);left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;font-size:10px;padding:4px 8px;border-radius:4px;white-space:nowrap;z-index:99;pointer-events:none}
 
 /* ── Drilldown ── */
@@ -134,7 +134,7 @@ tr.row-hl td{background:#fefce8;font-weight:600}
 .nav-arrow{font-size:10px;margin-left:auto;transition:transform .2s;flex-shrink:0}
 .nav-parent.open .nav-arrow{transform:rotate(90deg)}
 .nav-children{overflow:hidden;max-height:0;transition:max-height .2s ease}
-.nav-children.open{max-height:200px}
+.nav-children.open{max-height:400px}
 .nav-child{display:flex;align-items:center;gap:8px;padding:9px 14px 9px 32px;cursor:pointer;color:#7aa3c4;font-size:12px;transition:background .12s,color .12s}
 .nav-child:hover{background:#1a3a5c;color:#fff}
 .nav-child.active{background:#1d4ed8;color:#fff;font-weight:600}
@@ -146,6 +146,13 @@ tr.row-hl td{background:#fefce8;font-weight:600}
 .nav-grandchild{display:flex;align-items:center;gap:8px;padding:7px 14px 7px 48px;cursor:pointer;color:#5a8aaa;font-size:12px;transition:background .12s,color .12s}
 .nav-grandchild:hover{background:#1a3a5c;color:#fff}
 .nav-grandchild.active{background:#1d4ed8;color:#fff;font-weight:600}
+.nav-subparent-2{display:flex;align-items:center;gap:8px;padding:7px 14px 7px 48px;cursor:pointer;color:#5a8aaa;font-size:12px;transition:background .12s,color .12s;user-select:none}
+.nav-subparent-2:hover{background:#1a3a5c;color:#fff}
+.nav-great-grandchildren{overflow:hidden;transition:max-height .2s}
+.nav-great-grandchildren.collapsed{display:none}
+.nav-great-grandchild{display:flex;align-items:center;gap:8px;padding:6px 14px 6px 64px;cursor:pointer;color:#4a7a9a;font-size:12px;transition:background .12s,color .12s}
+.nav-great-grandchild:hover{background:#1a3a5c;color:#fff}
+.nav-great-grandchild.active{background:#1d4ed8;color:#fff;font-weight:600}
 #sidebar.collapsed .nav-parent .nav-label{opacity:0;width:0}
 #sidebar.collapsed .nav-arrow{display:none}
 #sidebar.collapsed .nav-children{display:none}
@@ -263,15 +270,21 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
     </li>
     <div class="nav-children open" id="navChildrenSales">
       <div class="nav-child" data-page="sales">매출 현황</div>
-      <!-- 채널별 매출 (일반) sub-accordion -->
-      <div class="nav-subparent" id="navSubparentChannel" onclick="toggleNavGroup('navChildrenChannel')">
-        <span class="nav-label">채널별 매출 (일반)</span><span id="navChildrenChannelArrow" class="nav-subarrow">▾</span>
+      <!-- 일반 커머스 sub-accordion -->
+      <div class="nav-subparent" id="navSubparentIlban" onclick="toggleNavGroup('navChildrenIlban')">
+        <span class="nav-label">일반 커머스</span><span id="navChildrenIlbanArrow" class="nav-subarrow">▾</span>
       </div>
-      <div class="nav-grandchildren open" id="navChildrenChannel">
-        <div class="nav-grandchild" data-page="smartstore">스마트스토어</div>
-        <div class="nav-grandchild" data-page="cafe24">카페24</div>
+      <div class="nav-grandchildren open" id="navChildrenIlban">
+        <div class="nav-grandchild" data-page="products">상품 매출</div>
+        <!-- 채널 상세 sub-sub-accordion -->
+        <div class="nav-subparent-2" id="navSubparentChannel2" onclick="toggleNavGroup('navChildrenChannel2')">
+          <span class="nav-label">채널 상세</span><span id="navChildrenChannel2Arrow" class="nav-subarrow">▾</span>
+        </div>
+        <div class="nav-great-grandchildren open" id="navChildrenChannel2">
+          <div class="nav-great-grandchild" data-page="smartstore">스마트스토어</div>
+          <div class="nav-great-grandchild" data-page="cafe24">카페24</div>
+        </div>
       </div>
-      <div class="nav-child" data-page="products">상품별 매출 (일반)</div>
     </div>
 
     <!-- 재고관리 -->
@@ -349,7 +362,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
         <button id="btnToggleAllSubs" onclick="toggleAllSubRows(this)" style="padding:7px 12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;color:#64748b;cursor:pointer">통계 접기</button>
       </div>
-      <div class="card"><div class="card-title">매출 현황</div><div class="tbl-wrap"><table id="tblSalesSummary"></table></div></div>
+      <div class="card"><div class="card-title">매출 현황</div><div class="tbl-wrap tbl-auto"><table id="tblSalesSummary"></table></div></div>
     </div>
   </div>
 
@@ -824,7 +837,7 @@ function bindNav() {
     });
   });
 
-  // nav-child clicks (스마트스토어, 카페24, 채널별, 유통별)
+  // nav-child clicks
   document.querySelectorAll('.nav-child').forEach(el => {
     el.addEventListener('click', () => {
       const pg = el.dataset.page;
@@ -832,6 +845,7 @@ function bindNav() {
       const subtab = el.dataset.subtab;
       document.querySelectorAll('.nav-child').forEach(c=>c.classList.remove('active'));
       document.querySelectorAll('.nav-grandchild').forEach(c=>c.classList.remove('active'));
+      document.querySelectorAll('.nav-great-grandchild').forEach(c=>c.classList.remove('active'));
       el.classList.add('active');
       document.querySelectorAll('.nav-item').forEach(c=>c.classList.remove('active'));
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -854,11 +868,32 @@ function bindNav() {
     });
   });
 
-  // nav-grandchild clicks (스마트스토어, 카페24)
+  // nav-grandchild clicks (상품 매출 등)
   document.querySelectorAll('.nav-grandchild').forEach(el => {
     el.addEventListener('click', () => {
       const pg = el.dataset.page;
       history.replaceState(null, '', '#' + pg);
+      document.querySelectorAll('.nav-grandchild').forEach(c=>c.classList.remove('active'));
+      document.querySelectorAll('.nav-great-grandchild').forEach(c=>c.classList.remove('active'));
+      document.querySelectorAll('.nav-child').forEach(c=>c.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(c=>c.classList.remove('active'));
+      el.classList.add('active');
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      document.getElementById('page-'+pg).classList.add('active');
+      document.getElementById('pageTitle').textContent = PAGE_TITLES[pg] || el.textContent.trim();
+      document.getElementById('pageMeta').textContent = updateMetaText();
+      renderPage(pg);
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('overlay').style.display='';
+    });
+  });
+
+  // nav-great-grandchild clicks (스마트스토어, 카페24)
+  document.querySelectorAll('.nav-great-grandchild').forEach(el => {
+    el.addEventListener('click', () => {
+      const pg = el.dataset.page;
+      history.replaceState(null, '', '#' + pg);
+      document.querySelectorAll('.nav-great-grandchild').forEach(c=>c.classList.remove('active'));
       document.querySelectorAll('.nav-grandchild').forEach(c=>c.classList.remove('active'));
       document.querySelectorAll('.nav-child').forEach(c=>c.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(c=>c.classList.remove('active'));
@@ -944,6 +979,7 @@ function switchPage(pg) {
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active', el.dataset.page===pg));
   document.querySelectorAll('.nav-child').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-grandchild').forEach(el=>el.classList.toggle('active', el.dataset.page===pg));
+  document.querySelectorAll('.nav-great-grandchild').forEach(el=>el.classList.toggle('active', el.dataset.page===pg));
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+pg)?.classList.add('active');
   document.getElementById('pageTitle').textContent = PAGE_TITLES[pg] || pg;
@@ -1247,10 +1283,10 @@ function renderSalesSummary() {
     return r;
   }
 
-  let html='<thead><tr><th style="min-width:160px">항목</th>';
-  for(const m of cols) html+=`<th class="r" style="min-width:70px">${mStr(m)}</th>`;
-  html+=`<th class="r" style="color:#1d4ed8;font-style:italic;min-width:80px">${mStr(n.m)} (예상)</th>`;
-  html+='<th class="r" style="min-width:80px">합계</th><th class="r" style="min-width:60px">YoY</th></tr></thead><tbody>';
+  let html='<thead><tr><th style="min-width:130px">항목</th>';
+  for(const m of cols) html+=`<th class="r" style="min-width:58px">${mStr(m)}</th>`;
+  html+=`<th class="r" style="color:#1d4ed8;font-style:italic;min-width:66px">${mStr(n.m)} (예상)</th>`;
+  html+='<th class="r" style="min-width:66px">합계</th><th class="r" style="min-width:48px">YoY</th></tr></thead><tbody>';
 
   const chKey_ilban='ilban_커머스';
   html += row('PB 최종',REV.pbTotal,PY.pbTotal,'row-hl',0,'row-pb');
@@ -1504,9 +1540,9 @@ function renderHeatmap(channel, year, containerId) {
 
   // 행=일, 열=월
   html += '<table class="heatmap"><thead>';
-  html += '<tr><th style="min-width:42px"></th>';
-  for(let m=1; m<=months; m++) html += `<th style="min-width:70px;text-align:center">${m}월</th>`;
-  html += '<th style="min-width:70px;text-align:center">합계</th></tr>';
+  html += '<tr><th style="min-width:38px"></th>';
+  for(let m=1; m<=months; m++) html += `<th style="min-width:64px;text-align:center">${m}월</th>`;
+  html += '</tr>';
 
   // 월 합계행 — thead 내 상단 고정
   html += '<tr style="border-bottom:2px solid #3b82f6">';
@@ -1515,25 +1551,21 @@ function renderHeatmap(channel, year, containerId) {
     const v = monthTotals[m];
     html += `<td style="text-align:center;font-size:11px;font-weight:700;color:${v?'#1d4ed8':'#cbd5e1'};padding:6px 4px">${v?fmtM(v):'—'}</td>`;
   }
-  html += `<td style="text-align:center;font-size:11px;font-weight:700;color:#0f172a;padding:6px 4px">${grandTotal?fmtM(grandTotal):'—'}</td>`;
   html += '</tr></thead><tbody>';
 
   // 일 행: 1일~31일
   for(let d=1; d<=31; d++) {
-    let dayTotal = 0;
     html += `<tr><td class="hm-label">${d}일</td>`;
     for(let m=1; m<=months; m++) {
       const dim = new Date(year, m, 0).getDate();
       if(d > dim) { html += '<td style="background:#f8fafc"></td>'; continue; }
       const v   = dayMap[`${m}-${d}`];
       const rev = v?.rev||0;
-      dayTotal += rev;
       const bg  = hmBg(rev);
       const tc  = hmText(rev);
       const dateStr = `${year}.${String(m).padStart(2,'0')}.${String(d).padStart(2,'0')}`;
       html += `<td class="hm-cell" style="${bg?`background:${bg};`:''}color:${tc}" data-date="${dateStr}" data-rev="${rev}" onclick="hmSelectCell(this,'${containerId}')">${rev?rev.toLocaleString():'—'}</td>`;
     }
-    html += `<td style="text-align:center;font-size:11px;font-weight:600;color:${dayTotal?'#475569':'#cbd5e1'};padding:4px 6px">${dayTotal?fmtM(dayTotal):'—'}</td>`;
     html += '</tr>';
   }
 
@@ -1568,7 +1600,7 @@ function _makeBarChart(canvasId, labels, datasets, yFmt) {
 function renderDailyBarChart(channel, canvasId) {
   const n = getNow();
   const cy = n.y, py = n.y - 1;
-  const rows = ROWS.filter(r => r.ch === channel && r.dist === '1.일반');
+  const rows = ROWS.filter(r => r.ch === channel);
   const days = Array.from({length: 31}, (_, i) => i + 1);
   const data25 = days.map(d => Math.round(rows.filter(r => r.year===py && r.month===n.m && r.day===d).reduce((s,r)=>s+r.rev,0)/1e4));
   const data26 = days.map(d => Math.round(rows.filter(r => r.year===cy && r.month===n.m && r.day===d).reduce((s,r)=>s+r.rev,0)/1e4));
@@ -2031,6 +2063,8 @@ function renderProductsMonthly() {
     agg[key] = (agg[key] || 0) + r.rev;
   }
 
+  const elapsedDay = maxDay(cyRows, cy, n.m) || n.dy;
+
   const prods = [...new Set(cyRows.map(r => r.prod))].filter(Boolean);
   const prodTotals = prods.map(p => ({
     p, total: cols.reduce((s, m) => s + (agg[`${p}|${m}`] || 0), 0)
@@ -2038,14 +2072,17 @@ function renderProductsMonthly() {
 
   const monthSums = cols.map(m => prodTotals.reduce((s, {p}) => s + (agg[`${p}|${m}`] || 0), 0));
   const grandTotal = monthSums.reduce((s, v) => s + v, 0);
+  const fcTotal = prodTotals.reduce((s, {p}) => s + forecastM(agg[`${p}|${n.m}`]||0, elapsedDay, n.dim), 0);
 
   let html = `<thead style="position:sticky;top:0;z-index:3"><tr>
     <th data-sort-col="0" style="min-width:160px;cursor:pointer">상품</th>`;
-  for(let i=0;i<cols.length;i++) html += `<th class="r" data-sort-col="${i+1}" style="min-width:70px;cursor:pointer">${mStr(cols[i])}</th>`;
-  html += `<th class="r" data-sort-col="${cols.length+1}" style="min-width:80px;cursor:pointer">합계</th></tr></thead><tbody>`;
+  for(let i=0;i<cols.length;i++) html += `<th class="r" data-sort-col="${i+1}" style="min-width:66px;cursor:pointer">${mStr(cols[i])}</th>`;
+  html += `<th class="r" data-sort-col="${cols.length+1}" style="min-width:72px;cursor:pointer;color:#1d4ed8;font-style:italic">${mStr(n.m)} (예상)</th>`;
+  html += `<th class="r" data-sort-col="${cols.length+2}" style="min-width:72px;cursor:pointer">합계</th></tr></thead><tbody>`;
 
   html += '<tr class="row-total" style="border-bottom:2px solid #e2e8f0"><td>합계</td>';
   for(const v of monthSums) html += `<td class="r">${v ? fmtM(v) : '—'}</td>`;
+  html += `<td class="r" style="color:#1d4ed8;font-style:italic">${fcTotal ? fmtM(fcTotal) : '—'}</td>`;
   html += `<td class="r"><b>${fmtM(grandTotal)}</b></td></tr>`;
 
   for(const {p, total} of prodTotals) {
@@ -2054,6 +2091,8 @@ function renderProductsMonthly() {
       const v = agg[`${p}|${m}`] || 0;
       html += `<td class="r">${v ? fmtM(v) : '—'}</td>`;
     }
+    const fc = forecastM(agg[`${p}|${n.m}`]||0, elapsedDay, n.dim);
+    html += `<td class="r" style="color:#1d4ed8;font-style:italic">${fc ? fmtM(fc) : '—'}</td>`;
     html += `<td class="r"><b>${fmtM(total)}</b></td></tr>`;
   }
   html += '</tbody>';
