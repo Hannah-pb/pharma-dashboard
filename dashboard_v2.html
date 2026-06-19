@@ -357,9 +357,9 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
   <div id="page-smartstore" class="page">
     <div class="page-body">
       <div class="tab-bar">
-        <button class="tab-btn active" data-tab="ss-heatmap">일간 히트맵</button>
+        <button class="tab-btn active" data-tab="ss-heatmap">일간</button>
         <button class="tab-btn" data-tab="ss-weekly">주간</button>
-        <button class="tab-btn" data-tab="ss-monthly">월간 (상품별)</button>
+        <button class="tab-btn" data-tab="ss-monthly">월간</button>
       </div>
       <div id="ss-heatmap" class="tab-pane active">
         <div class="ctrl-row">
@@ -396,9 +396,9 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
   <div id="page-cafe24" class="page">
     <div class="page-body">
       <div class="tab-bar">
-        <button class="tab-btn active" data-tab="c24-heatmap">일간 히트맵</button>
+        <button class="tab-btn active" data-tab="c24-heatmap">일간</button>
         <button class="tab-btn" data-tab="c24-weekly">주간</button>
-        <button class="tab-btn" data-tab="c24-monthly">월간 (상품별)</button>
+        <button class="tab-btn" data-tab="c24-monthly">월간</button>
       </div>
       <div id="c24-heatmap" class="tab-pane active">
         <div class="ctrl-row">
@@ -435,17 +435,17 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
   <div id="page-products" class="page">
     <div class="page-body">
       <div class="tab-bar" style="margin-bottom:12px">
-        <button class="tab-btn active" data-tab="prod-channel">채널별</button>
+        <button class="tab-btn active" data-tab="prod-monthly">월별</button>
+        <button class="tab-btn" data-tab="prod-channel">채널별</button>
         <button class="tab-btn" data-tab="prod-dist">유통별</button>
-        <button class="tab-btn" data-tab="prod-monthly">월별 추이</button>
       </div>
       <!-- 채널별 -->
-      <div id="prod-channel" class="tab-pane active">
+      <div id="prod-channel" class="tab-pane">
         <div class="ctrl-row">
           <span class="ctrl-label">기준:</span>
           <select class="sel-month" id="selProductsMonth"></select>
         </div>
-        <div class="card"><div class="card-title">상품별 채널 매트릭스</div><div class="tbl-wrap"><table id="tblProducts"></table></div></div>
+        <div class="card"><div class="card-title">채널별 매출</div><div class="tbl-wrap"><table id="tblProducts"></table></div></div>
       </div>
       <!-- 유통별 -->
       <div id="prod-dist" class="tab-pane">
@@ -453,12 +453,12 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
           <span class="ctrl-label">기준:</span>
           <select class="sel-month" id="selDistMonth"></select>
         </div>
-        <div class="card"><div class="card-title">유통별 상품 매트릭스</div><div class="tbl-wrap"><table id="tblDist"></table></div></div>
+        <div class="card"><div class="card-title">유통별 매출</div><div class="tbl-wrap"><table id="tblDist"></table></div></div>
       </div>
-      <!-- 월별 추이 -->
-      <div id="prod-monthly" class="tab-pane">
+      <!-- 월별 -->
+      <div id="prod-monthly" class="tab-pane active">
         <div class="card">
-          <div class="card-title">상품별 월별 매출 <small style="font-size:11px;font-weight:400;color:#94a3b8">전체 채널 합산 · 필터 없음</small></div>
+          <div class="card-title">월별 매출</div>
           <div class="tbl-wrap"><table id="tblProductsMonthly"></table></div>
         </div>
       </div>
@@ -831,6 +831,7 @@ function bindNav() {
       history.replaceState(null, '', '#' + pg);
       const subtab = el.dataset.subtab;
       document.querySelectorAll('.nav-child').forEach(c=>c.classList.remove('active'));
+      document.querySelectorAll('.nav-grandchild').forEach(c=>c.classList.remove('active'));
       el.classList.add('active');
       document.querySelectorAll('.nav-item').forEach(c=>c.classList.remove('active'));
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -2039,9 +2040,9 @@ function renderProductsMonthly() {
   const grandTotal = monthSums.reduce((s, v) => s + v, 0);
 
   let html = `<thead style="position:sticky;top:0;z-index:3"><tr>
-    <th style="min-width:160px">상품</th>`;
-  for(const m of cols) html += `<th class="r" style="min-width:70px">${mStr(m)}</th>`;
-  html += `<th class="r" style="min-width:80px">합계</th></tr></thead><tbody>`;
+    <th data-sort-col="0" style="min-width:160px;cursor:pointer">상품</th>`;
+  for(let i=0;i<cols.length;i++) html += `<th class="r" data-sort-col="${i+1}" style="min-width:70px;cursor:pointer">${mStr(cols[i])}</th>`;
+  html += `<th class="r" data-sort-col="${cols.length+1}" style="min-width:80px;cursor:pointer">합계</th></tr></thead><tbody>`;
 
   html += '<tr class="row-total" style="border-bottom:2px solid #e2e8f0"><td>합계</td>';
   for(const v of monthSums) html += `<td class="r">${v ? fmtM(v) : '—'}</td>`;
@@ -2057,6 +2058,9 @@ function renderProductsMonthly() {
   }
   html += '</tbody>';
   document.getElementById('tblProductsMonthly').innerHTML = html;
+  document.getElementById('tblProductsMonthly').querySelectorAll('th[data-sort-col]').forEach(th=>{
+    th.addEventListener('click',()=>_sortMonthly(th, parseInt(th.dataset.sortCol), 'tblProductsMonthly', renderProductsMonthly));
+  });
 }
 
 // ═══════════════════════════════════════════════════════
