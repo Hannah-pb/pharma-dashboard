@@ -527,7 +527,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 
         <!-- 섹션 5: 발주 일정표 -->
         <div class="card">
-          <div class="card-title">📅 발주 일정표 <span style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px">향후 90일</span></div>
+          <div class="card-title">📅 입고 일정표 <span style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px">향후 90일</span></div>
           <div id="invTimeline" style="padding:4px 0"></div>
         </div>
       </div>
@@ -2218,7 +2218,7 @@ async function loadInventoryData() {
     if (gonguHdrIdx >= 0) {
       const gonguHdr = gonguRows[gonguHdrIdx].map(c => c.trim());
       GONGU_ROWS = gonguRows.slice(gonguHdrIdx + 1)
-        .filter(r => r.length > 5 && r[gonguHdr.indexOf('제품명')]?.trim())
+        .filter(r => r.length > 5 && (r[gonguHdr.indexOf('제품명')]?.trim() || r[gonguHdr.indexOf('품목명')]?.trim()))
         .map(r => {
           const obj = {};
           gonguHdr.forEach((h, i) => { obj[h] = (r[i] ?? '').trim(); });
@@ -2253,6 +2253,12 @@ function parseInvDate(v) {
   const ymd = v.match(/^(\d{2})\/(\d{1,2})\/(\d{1,2})/);
   if (ymd) {
     const d = new Date(2000 + parseInt(ymd[1]), parseInt(ymd[2]) - 1, parseInt(ymd[3]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  // M/D/YYYY: 6/29/2026
+  const mdyyyy = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (mdyyyy) {
+    const d = new Date(parseInt(mdyyyy[3]), parseInt(mdyyyy[1])-1, parseInt(mdyyyy[2]));
     return isNaN(d.getTime()) ? null : d;
   }
   // M/D or MM/DD (당해연도): 6/9, 8/7 — 연도 올림 없이 그대로 사용
@@ -2470,33 +2476,47 @@ function renderOrderAlarm() {
   }).sort((a, b) => (a.dDay ?? 9999) - (b.dDay ?? 9999));
 
   let html = `<thead><tr>
-    <th>품목명</th><th>브랜드</th><th>담당</th><th>등급</th>
-    <th class="r">현재고</th><th>소진 예상일</th>
-    <th>입고예정 / 발주수량</th><th>구분</th><th>비고</th>
+    <th>품목명</th><th>등급</th>
+    <th>소진 예상일</th><th class="r">현재고</th>
+    <th>입고예정 / 발주수량</th><th>발주요청</th><th>구분</th><th>비고</th>
   </tr></thead><tbody>`;
 
   for (const { r, sellout, dDay } of processed) {
-    const rowCls  = dDay !== null && dDay <= 30 ? 'alarm-red'
-                  : dDay !== null && dDay <= 60 ? 'alarm-orange'
-                  : 'alarm-yellow';
-    const grade   = r['관리등급']?.trim() || 'C';
+    const rowCls   = dDay !== null && dDay >= 0 && dDay <= 30 ? 'alarm-red'
+                   : dDay !== null && dDay >= 0 && dDay <= 60 ? 'alarm-orange'
+                   : 'alarm-yellow';
+    const grade    = r['관리등급']?.trim() || 'C';
     const gradeCls = grade === 'A' ? 'red' : grade === 'B' ? 'orange' : 'blue';
-    const delivTxt = r['입고예정일']?.trim()
-      ? `${r['입고예정일'].trim()} · ${parseInvNum(r['발주수량']).toLocaleString()}개`
+    const delivDate = r['입고예정일']?.trim() || '';
+    const delivQty  = parseInvNum(r['발주수량']);
+    const delivTxt  = delivDate
+      ? `<div style="font-weight:600">${delivDate}</div><div style="font-size:11px;color:#64748b;margin-top:1px">${delivQty.toLocaleString()}개</div>`
       : '—';
-    const gbn  = r['구분'] || '—';
-    const note = (r['커머스이슈'] || r['비고'] || '').substring(0, 60);
+    const gbn      = r['구분'] || '—';
+    const note     = (r['커머스이슈'] || r['비고'] || '').substring(0, 60);
+    const orderReq = (r['발주요청'] || '').trim();
 
-    html += `<tr class="${rowCls}">
-      <td><b>${r['품목명']}</b></td>
-      <td style="font-size:11px">${r['브랜드'] || ''}</td>
-      <td style="font-size:11px">${r['상기담당'] || ''}</td>
-      <td><span class="inv-badge ${gradeCls}">${grade}</span></td>
-      <td class="r">${parseInvNum(r['재고수량']).toLocaleString()}</td>
-      <td>${fmtDateInv(sellout)}${dDay !== null ? ` <span class="inv-badge ${dDay <= 30 ? 'red' : dDay <= 60 ? 'orange' : 'yellow'}">D-${dDay}</span>` : ''}</td>
-      <td style="font-size:11px;white-space:nowrap">${delivTxt}</td>
-      <td style="font-size:11px">${gbn}</td>
-      <td style="font-size:11px;max-width:180px;white-space:normal;word-break:break-all">${note}</td>
+    // D-day 배지: 양수 → D-N, 음수 → D+N(과거)
+    let ddayBadge = '';
+    if (dDay !== null) {
+      const ddayAbs = Math.abs(dDay);
+      const ddayStr = dDay >= 0 ? `D-${dDay}` : `D+${ddayAbs}`;
+      const ddayCls = dDay < 0 ? 'gray' : dDay <= 30 ? 'red' : dDay <= 60 ? 'orange' : 'yellow';
+      ddayBadge = ` <span class="inv-badge ${ddayCls}">${ddayStr}</span>`;
+    }
+
+    html += `<tr class="${rowCls}" style="border-top:2px solid #f1f5f9">
+      <td style="padding:8px 10px">
+        <b>${r['품목명']}</b>
+        <div style="font-size:11px;color:#94a3b8;margin-top:2px">${[r['브랜드'],r['상기담당']].filter(Boolean).join(' · ')}</div>
+      </td>
+      <td style="padding:8px 10px"><span class="inv-badge ${gradeCls}">${grade}</span></td>
+      <td style="padding:8px 10px">${fmtDateInv(sellout)}${ddayBadge}</td>
+      <td class="r" style="padding:8px 10px">${parseInvNum(r['재고수량']).toLocaleString()}</td>
+      <td style="padding:8px 10px;min-width:110px">${delivTxt}</td>
+      <td style="padding:8px 10px;font-size:11px;max-width:160px;white-space:normal;word-break:break-word;color:#374151">${orderReq || '—'}</td>
+      <td style="padding:8px 10px;font-size:11px">${gbn}</td>
+      <td style="padding:8px 10px;font-size:11px;max-width:180px;white-space:normal;word-break:break-all">${note}</td>
     </tr>`;
   }
   html += '</tbody>';
@@ -2623,14 +2643,14 @@ function renderStockoutCheck() {
 
     // 입고 전 공구 이벤트 체크
     const prodName    = (r['품목명'] || '').trim();
+    const normalize   = s => s.replace(/\s+/g, '').toLowerCase();
+    const pNorm       = normalize(prodName);
     const gonguBefore = GONGU_ROWS.filter(g => {
-      const gName   = (g['제품명'] || '').trim();
+      const gNames  = [g['제품명'], g['품목명']].filter(Boolean).map(s => s.trim());
       const gStart  = parseInvDate(g['시작일']);
       const gStatus = (g['진행여부'] || '').trim();
-      return gStatus === 'O'
-        && gStart
-        && gStart < delivDate
-        && (gName.includes(prodName) || prodName.includes(gName));
+      const matches = gNames.some(gn => { const n = normalize(gn); return n.includes(pNorm) || pNorm.includes(n); });
+      return gStatus === 'O' && gStart && gStart < delivDate && matches;
     });
 
     return { r, delivDate, sellout, gapDays, daysToDelivery, gonguBefore };
