@@ -2214,7 +2214,7 @@ async function loadInventoryData() {
   // 공구탭 파싱: "제품명" 셀이 있는 행을 헤더로 사용
   if (gonguText) {
     const gonguRows = parseCSV(gonguText);
-    const gonguHdrIdx = gonguRows.findIndex(r => r.some(c => c.trim() === '제품명'));
+    const gonguHdrIdx = gonguRows.findIndex(r => r.some(c => c.trim() === '품목명' || c.trim() === '제품명'));
     if (gonguHdrIdx >= 0) {
       const gonguHdr = gonguRows[gonguHdrIdx].map(c => c.trim());
       GONGU_ROWS = gonguRows.slice(gonguHdrIdx + 1)
@@ -2224,6 +2224,11 @@ async function loadInventoryData() {
           gonguHdr.forEach((h, i) => { obj[h] = (r[i] ?? '').trim(); });
           return obj;
         });
+      console.log('[공구탭] 헤더:', gonguHdr);
+      console.log('[공구탭] 적재:', GONGU_ROWS.length, '건');
+      GONGU_ROWS.forEach((g, i) => console.log(`  [${i}] 진행여부="${g['진행여부']}" | 제품명="${g['제품명']}" | 품목명="${g['품목명']}" | 시작일="${g['시작일']}" | 닉네임="${g['닉네임']}"`));
+    } else {
+      console.warn('[공구탭] ⚠️ 헤더 "제품명" 셀을 찾지 못함 → GONGU_ROWS 비어있음');
     }
   }
 
@@ -2247,6 +2252,18 @@ function parseInvDate(v) {
   // ISO: 2027-09-08
   if (/^\d{4}-\d{2}-\d{2}/.test(v)) {
     const d = new Date(v.substring(0, 10));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  // 점 구분 YYYY.MM.DD: 2026.06.29
+  const dotISO = v.match(/^(\d{4})\.(\d{1,2})\.(\d{1,2})/);
+  if (dotISO) {
+    const d = new Date(parseInt(dotISO[1]), parseInt(dotISO[2])-1, parseInt(dotISO[3]));
+    return isNaN(d.getTime()) ? null : d;
+  }
+  // 점 구분 YY.M.D: 26.6.29
+  const dotYMD = v.match(/^(\d{2})\.(\d{1,2})\.(\d{1,2})/);
+  if (dotYMD) {
+    const d = new Date(2000+parseInt(dotYMD[1]), parseInt(dotYMD[2])-1, parseInt(dotYMD[3]));
     return isNaN(d.getTime()) ? null : d;
   }
   // 공구탭: 26/6/9(화) 또는 25/11/17(월)
@@ -2652,6 +2669,15 @@ function renderStockoutCheck() {
       const matches = gNames.some(gn => { const n = normalize(gn); return n.includes(pNorm) || pNorm.includes(n); });
       return gStatus === 'O' && gStart && gStart < delivDate && matches;
     });
+
+    // 진단: 이름 매칭됐지만 탈락한 공구 행 출력
+    if (!gonguBefore.length && GONGU_ROWS.length) {
+      GONGU_ROWS.forEach(g => {
+        const gns = [g['제품명'], g['품목명']].filter(Boolean);
+        const nm = gns.some(gn => { const n = normalize(gn); return n.includes(pNorm) || pNorm.includes(n); });
+        if (nm) console.warn(`[공구매칭 탈락] 상품="${prodName}" | 공구명="${gns}" | 진행여부="${(g['진행여부']||'').trim()}" | 시작일="${g['시작일']}"→${parseInvDate(g['시작일'])?.toISOString()?.slice(0,10)} | delivDate=${delivDate?.toISOString()?.slice(0,10)}`);
+      });
+    }
 
     return { r, delivDate, sellout, gapDays, daysToDelivery, gonguBefore };
   }).filter(Boolean)
