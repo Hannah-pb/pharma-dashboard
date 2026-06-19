@@ -1496,7 +1496,7 @@ function renderSalesDist() {
 //  HEATMAP
 // ═══════════════════════════════════════════════════════
 function renderHeatmap(channel, year, containerId) {
-  const rows = ROWS.filter(r=>r.ch===channel && r.year===year);
+  const rows = ROWS.filter(r=>r.ch===channel && r.year===year && r.dist==='1.일반');
   if (!rows.length) { document.getElementById(containerId).innerHTML='<p style="color:#94a3b8;padding:16px">데이터 없음</p>'; return; }
 
   // Build month×day revenue map
@@ -1600,7 +1600,7 @@ function _makeBarChart(canvasId, labels, datasets, yFmt) {
 function renderDailyBarChart(channel, canvasId) {
   const n = getNow();
   const cy = n.y, py = n.y - 1;
-  const rows = ROWS.filter(r => r.ch === channel);
+  const rows = ROWS.filter(r => r.ch === channel && r.dist === '1.일반');
   const days = Array.from({length: 31}, (_, i) => i + 1);
   const data25 = days.map(d => Math.round(rows.filter(r => r.year===py && r.month===n.m && r.day===d).reduce((s,r)=>s+r.rev,0)/1e4));
   const data26 = days.map(d => Math.round(rows.filter(r => r.year===cy && r.month===n.m && r.day===d).reduce((s,r)=>s+r.rev,0)/1e4));
@@ -2047,8 +2047,9 @@ function _render2rowMatrix(rows, groupKeys, tableId, rerenderFn) {
   });
 }
 
-function renderProducts() { _render2rowMatrix(ROWS, ['ch'], 'tblProducts', renderProducts); }
-function renderDist()     { _render2rowMatrix(ROWS, ['dist'], 'tblDist', renderDist); }
+const ILBAN = () => ROWS.filter(r=>r.dist==='1.일반');
+function renderProducts() { _render2rowMatrix(ILBAN(), ['ch'], 'tblProducts', renderProducts); }
+function renderDist()     { _render2rowMatrix(ILBAN(), ['dist'], 'tblDist', renderDist); }
 
 function renderProductsMonthly() {
   const n = getNow();
@@ -2056,7 +2057,7 @@ function renderProductsMonthly() {
   const cols = Array.from({length: n.m}, (_, i) => i + 1);
   const mStr = m => `${cy}.${String(m).padStart(2,'0')}`;
 
-  const cyRows = ROWS.filter(r => r.year === cy);
+  const cyRows = ROWS.filter(r => r.year === cy && r.dist === '1.일반');
   const agg = {};
   for(const r of cyRows) {
     const key = `${r.prod}|${r.month}`;
