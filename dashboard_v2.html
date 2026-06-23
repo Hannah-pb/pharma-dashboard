@@ -108,7 +108,7 @@ tr.row-hl td{background:#fefce8;font-weight:600}
 .link:hover{text-decoration:underline}
 
 /* ── Heatmap ── */
-.heatmap-wrap{overflow-x:auto;padding-bottom:4px}
+.heatmap-wrap{overflow-x:auto;padding-bottom:4px;width:fit-content;max-width:100%}
 .heatmap{border-collapse:collapse;font-size:11px}
 .heatmap th{padding:6px 4px;background:#f8fafc;color:#64748b;font-weight:600;text-align:center;border:1px solid #e2e8f0;position:sticky;top:0;z-index:2;min-width:64px}
 .hm-label{padding:7px 10px;background:#f8fafc;font-weight:600;color:#1e293b;text-align:right;border:1px solid #e2e8f0;font-size:12px;position:sticky;left:0;z-index:3;min-width:38px}
@@ -361,8 +361,12 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
     <div class="page-body">
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
         <button id="btnToggleAllSubs" onclick="toggleAllSubRows(this)" style="padding:7px 12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;color:#64748b;cursor:pointer">통계 접기</button>
+        <button id="btnToggleProdDetail" onclick="toggleProdDetail(this)" style="padding:7px 12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;color:#64748b;cursor:pointer">상품별 상세 ▾</button>
       </div>
       <div class="card"><div class="card-title">매출 현황</div><div class="tbl-wrap tbl-auto"><table id="tblSalesSummary"></table></div></div>
+      <div id="prodDetailCard" style="display:none;margin-top:12px">
+        <div class="card"><div class="card-title">상품별 매출 상세</div><div class="tbl-wrap"><table id="tblSalesByProduct" class="tbl-auto"></table></div></div>
+      </div>
     </div>
   </div>
 
@@ -450,7 +454,6 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       <div class="tab-bar" style="margin-bottom:12px">
         <button class="tab-btn active" data-tab="prod-monthly">월별</button>
         <button class="tab-btn" data-tab="prod-channel">채널별</button>
-        <button class="tab-btn" data-tab="prod-dist">유통별</button>
       </div>
       <!-- 채널별 -->
       <div id="prod-channel" class="tab-pane">
@@ -459,14 +462,6 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
           <select class="sel-month" id="selProductsMonth"></select>
         </div>
         <div class="card"><div class="card-title">채널별 매출</div><div class="tbl-wrap"><table id="tblProducts"></table></div></div>
-      </div>
-      <!-- 유통별 -->
-      <div id="prod-dist" class="tab-pane">
-        <div class="ctrl-row">
-          <span class="ctrl-label">기준:</span>
-          <select class="sel-month" id="selDistMonth"></select>
-        </div>
-        <div class="card"><div class="card-title">유통별 매출</div><div class="tbl-wrap"><table id="tblDist"></table></div></div>
       </div>
       <!-- 월별 -->
       <div id="prod-monthly" class="tab-pane active">
@@ -953,7 +948,6 @@ function bindNav() {
 
   // Month selects
   document.getElementById('selProductsMonth').addEventListener('change', renderProducts);
-  document.getElementById('selDistMonth').addEventListener('change', renderDist);
 
   // Drilldown close
   document.getElementById('drillClose').addEventListener('click', closeDrilldown);
@@ -1017,7 +1011,6 @@ function onTabActivated(tabId) {
   else if (tabId==='c24-weekly')   renderC24Weekly();
   else if (tabId==='c24-monthly')  renderC24Monthly();
   else if (tabId==='prod-channel') renderProducts();
-  else if (tabId==='prod-dist')    renderDist();
   else if (tabId==='prod-monthly') renderProductsMonthly();
 }
 
@@ -1036,7 +1029,6 @@ function populateMonthSelects() {
     }
   }
   document.getElementById('selProductsMonth').innerHTML = opts;
-  document.getElementById('selDistMonth').innerHTML = opts;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1432,6 +1424,42 @@ function toggleAllSubRows(btn) {
   btn.textContent = isExpanding ? '통계 접기' : '통계 펴기';
 }
 
+function toggleProdDetail(btn) {
+  const card   = document.getElementById('prodDetailCard');
+  const hidden = card.style.display === 'none';
+  card.style.display = hidden ? '' : 'none';
+  btn.textContent    = hidden ? '상품별 상세 ▴' : '상품별 상세 ▾';
+  if (hidden) renderSalesByProduct();
+}
+
+function renderSalesByProduct() {
+  const curYear  = new Date().getFullYear();
+  const curMonth = new Date().getMonth() + 1;
+  const months   = Array.from({length: curMonth}, (_, i) => i + 1);
+
+  const map = {};
+  ROWS.forEach(r => {
+    const d = new Date(r.date);
+    if (d.getFullYear() !== curYear) return;
+    const m = d.getMonth() + 1;
+    if (!map[r.prd]) map[r.prd] = {};
+    map[r.prd][m] = (map[r.prd][m] || 0) + (r.rev || 0);
+  });
+
+  const prds = Object.keys(map).sort((a, b) =>
+    Object.values(map[b]).reduce((s, v) => s + v, 0) -
+    Object.values(map[a]).reduce((s, v) => s + v, 0)
+  );
+
+  let html = `<thead><tr><th>상품명</th>${months.map(m => `<th class="r">${m}월</th>`).join('')}<th class="r">합계</th></tr></thead><tbody>`;
+  for (const prd of prds) {
+    const total = Object.values(map[prd]).reduce((s, v) => s + v, 0);
+    html += `<tr><td>${prd}</td>${months.map(m => `<td class="r">${map[prd][m] ? map[prd][m].toLocaleString() : '—'}</td>`).join('')}<td class="r"><b>${total.toLocaleString()}</b></td></tr>`;
+  }
+  html += '</tbody>';
+  document.getElementById('tblSalesByProduct').innerHTML = html;
+}
+
 // ═══════════════════════════════════════════════════════
 //  SALES — DIST
 // ═══════════════════════════════════════════════════════
@@ -1507,15 +1535,15 @@ function renderHeatmap(channel, year, containerId) {
     dayMap[k].rev += r.rev;
     dayMap[k].qty += r.fqty||r.qty;
   }
-  const maxRev = Math.max(...Object.values(dayMap).map(v=>v.rev), 1);
+  const _allRevs = Object.values(dayMap).map(v=>v.rev).filter(v=>v>0).sort((a,b)=>a-b);
+  const maxRev = _allRevs[Math.floor(_allRevs.length * 0.9)] || _allRevs[_allRevs.length-1] || 1;
 
   function hmBg(rev) {
     if (!rev) return '';
-    const t = Math.pow(rev/maxRev, 0.6);
-    const r2= Math.round(255 - t*190);
-    const g2= Math.round(255 - t*120);
-    const b2= Math.round(255 - t*5);
-    return `rgb(${r2},${g2},${b2})`;
+    const t = Math.min(1, Math.pow(rev / maxRev, 0.5));
+    const g2 = Math.round(255 - t * 200);
+    const b2 = Math.round(255 - t * 220);
+    return `rgb(255,${g2},${b2})`;
   }
   function hmText(rev) {
     if (!rev) return '#cbd5e1';
@@ -1984,9 +2012,7 @@ function _sortMonthly(th, colIdx, tableId, rerenderFn) {
 // ═══════════════════════════════════════════════════════
 function _render2rowMatrix(rows, groupKeys, tableId, rerenderFn) {
   const gk = groupKeys[0];
-  const sel = tableId==='tblProducts'
-    ? document.getElementById('selProductsMonth').value
-    : document.getElementById('selDistMonth').value;
+  const sel = document.getElementById('selProductsMonth').value;
   if(!sel) return;
   const [y,m] = sel.split('-').map(Number);
   const filtered = rows.filter(r=>r.year===y&&r.month===m);
@@ -2049,7 +2075,6 @@ function _render2rowMatrix(rows, groupKeys, tableId, rerenderFn) {
 
 const ILBAN = () => ROWS.filter(r=>r.dist==='1.일반');
 function renderProducts() { _render2rowMatrix(ILBAN(), ['ch'], 'tblProducts', renderProducts); }
-function renderDist()     { _render2rowMatrix(ILBAN(), ['dist'], 'tblDist', renderDist); }
 
 function renderProductsMonthly() {
   const n = getNow();
