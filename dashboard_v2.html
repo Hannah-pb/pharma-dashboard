@@ -197,61 +197,111 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
   .drill-kpi-row{grid-template-columns:1fr 1fr}
 }
 
-/* ── KPI Redesign ── */
-.kpi-section-sep{display:flex;align-items:center;gap:10px;margin:16px 0 12px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
-.kpi-section-sep::after{content:'';flex:1;height:1px;background:#e2e8f0}
-.kpi-section-sep.monthly{color:#1d4ed8}
-.kpi-section-sep.annual{color:#6366f1}
-.kpi-section-sep.channels{color:#64748b}
-.kpi-hero-row{display:grid;grid-template-columns:200px 1fr;gap:16px;background:#fff;border-radius:12px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.07);margin-bottom:16px;align-items:center;border-top:3px solid #3b82f6}
-.kpi-hero-gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
-.kpi-arc{width:100%;max-width:200px}
-.kpi-arc-sm{max-width:150px}
-.kpi-arc-bg  {fill:none;stroke:#e2e8f0;stroke-width:14;stroke-linecap:round}
-.kpi-arc-fill{fill:none;stroke:#3b82f6;stroke-width:14;stroke-linecap:round;transition:stroke-dasharray .8s ease,stroke .4s}
-.kpi-arc-pct {font-size:28px;font-weight:800;fill:#1e293b}
-.kpi-arc-label{font-size:11px;fill:#94a3b8}
-.kpi-status-badge{padding:3px 14px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap}
-.kpi-status-badge.ok  {background:#dcfce7;color:#16a34a}
-.kpi-status-badge.warn{background:#fef9c3;color:#ca8a04}
-.kpi-status-badge.bad {background:#fee2e2;color:#dc2626}
-.kpi-hero-metrics{display:flex;flex-direction:column;gap:12px}
-.kpi-metric-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.kpi-metric{background:#f8fafc;border-radius:8px;padding:10px 14px}
-.kpi-metric.primary{background:linear-gradient(135deg,#1d4ed8,#3b82f6);color:#fff}
-.kpi-metric .lbl{font-size:10px;color:#94a3b8;margin-bottom:4px}
-.kpi-metric.primary .lbl{color:rgba(255,255,255,.75)}
-.kpi-metric .val{font-size:17px;font-weight:700;color:#1e293b}
-.kpi-metric.primary .val{color:#fff}
-.kpi-metric .sub{font-size:10px;color:#94a3b8;margin-top:3px}
-.kpi-pace-row{padding-top:4px}
-.kpi-pace-label{display:flex;justify-content:space-between;font-size:11px;color:#64748b;margin-bottom:5px}
-.kpi-pace-bg{background:#e2e8f0;border-radius:99px;height:10px;position:relative;overflow:visible}
-.kpi-pace-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,#1d4ed8,#3b82f6);transition:width .6s}
-.kpi-pace-marker{position:absolute;top:-3px;width:3px;height:16px;background:#ef4444;border-radius:2px}
-.kpi-zone2{display:grid;grid-template-columns:260px 1fr;gap:16px;margin-bottom:16px}
-.kpi-annual-wrap{background:#fff;border-radius:12px;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,.07);display:flex;flex-direction:column;align-items:center;border-top:3px solid #6366f1}
-.kpi-annual-metrics{width:100%;margin-top:10px;display:flex;flex-direction:column;gap:0}
-.kpi-arm{display:flex;justify-content:space-between;font-size:12px;padding:6px 0;border-bottom:1px solid #f1f5f9}
-.kpi-arm .k{color:#64748b}
-.kpi-arm .v{font-weight:600;color:#1e293b}
-.kpi-trend-wrap{background:#fff;border-radius:12px;padding:16px 20px;box-shadow:0 1px 4px rgba(0,0,0,.07);min-width:0;overflow:hidden}
-.kpi-ch-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:16px}
-.kpi-ch-card{background:#fff;border-radius:10px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-top:3px solid transparent}
-.kpi-ch-card[data-ch="ss"]  {border-top-color:#3b82f6}
-.kpi-ch-card[data-ch="c24"] {border-top-color:#8b5cf6}
-.kpi-ch-card[data-ch="coup"]{border-top-color:#f59e0b}
-.kpi-ch-card[data-ch="kko"] {border-top-color:#eab308}
-.kpi-ch-card[data-ch="rkt"] {border-top-color:#ef4444}
-.kpi-ch-card .ch-name{font-size:10px;color:#64748b;margin-bottom:4px}
-.kpi-ch-card .ch-val {font-size:16px;font-weight:700;color:#1e293b}
-.kpi-ch-card .ch-sub {font-size:10px;color:#94a3b8;margin-top:3px}
-@media(max-width:900px){
-  .kpi-hero-row{grid-template-columns:1fr}
-  .kpi-zone2{grid-template-columns:1fr}
-  .kpi-ch-grid{grid-template-columns:repeat(3,1fr)}
-  .kpi-metric-row{grid-template-columns:repeat(2,1fr)}
-}
+/* ── KPI Dashboard v2 ── */
+.kpi-page{max-width:1400px}
+.kpi-dash-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px}
+.kpi-dash-title{font-size:18px;font-weight:800;color:#1e293b}
+.kpi-dash-sub{font-size:11px;color:#64748b;margin-top:3px}
+.kpi-dash-legend{display:flex;align-items:center;gap:10px;font-size:11px;color:#64748b}
+.leg-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:3px;vertical-align:middle}
+.kpi-section-hdr{font-size:12px;font-weight:700;color:#fff;padding:7px 14px;border-radius:7px;margin:20px 0 10px;display:flex;align-items:center;gap:8px}
+.kpi-section-hdr.annual {background:linear-gradient(90deg,#4f46e5,#6366f1)}
+.kpi-section-hdr.monthly{background:linear-gradient(90deg,#1d4ed8,#3b82f6)}
+.kpi-section-hdr.channel{background:linear-gradient(90deg,#0891b2,#06b6d4)}
+.kpi-section-hdr.gongu  {background:linear-gradient(90deg,#7c3aed,#8b5cf6)}
+.kpi-section-badge{background:rgba(255,255,255,.25);padding:2px 8px;border-radius:10px;font-size:10px}
+/* Executive Summary */
+.kpi-exec-card{background:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 1px 6px rgba(0,0,0,.08);margin-bottom:6px;border-left:4px solid #3b82f6}
+.kpi-exec-title{font-size:11px;font-weight:700;color:#1d4ed8;margin-bottom:8px;letter-spacing:.04em}
+.kpi-exec-list{display:flex;flex-direction:column;gap:4px}
+.kpi-exec-item{font-size:12px;color:#334155;display:flex;gap:6px}
+.kpi-exec-item.danger{color:#dc2626}
+.kpi-exec-item.warn  {color:#b45309}
+.kpi-exec-item.ok    {color:#15803d}
+/* 3-col big card */
+.kpi3-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px}
+.kpi-big-card{background:#fff;border-radius:12px;padding:18px 16px;box-shadow:0 1px 6px rgba(0,0,0,.08)}
+.kpi-big-card.total   {border-top:4px solid #3b82f6}
+.kpi-big-card.gongu   {border-top:4px solid #8b5cf6}
+.kpi-big-card.nonGongu{border-top:4px solid #10b981}
+.kpi-big-label{font-size:10px;font-weight:700;letter-spacing:.06em;color:#64748b;text-transform:uppercase;margin-bottom:10px}
+.kpi-big-ach{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1;margin-bottom:4px}
+.kpi-big-ach.ok  {color:#10b981}
+.kpi-big-ach.warn{color:#f59e0b}
+.kpi-big-ach.bad {color:#dc2626}
+.kpi-big-ach.gray{color:#94a3b8}
+/* 3-point progress bar */
+.kpi-tri-wrap{position:relative;height:8px;background:#e2e8f0;border-radius:99px;margin:10px 0 8px}
+.kpi-tri-fill{height:100%;border-radius:99px}
+.kpi-tri-fill.ok  {background:linear-gradient(90deg,#10b981,#34d399)}
+.kpi-tri-fill.warn{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
+.kpi-tri-fill.bad {background:linear-gradient(90deg,#dc2626,#ef4444)}
+.kpi-tri-marker{position:absolute;top:-5px;width:2px;height:18px;border-radius:1px}
+.kpi-tri-marker.fcast {background:#6366f1}
+.kpi-tri-marker.target{background:#1e293b}
+.kpi-bar-labels{display:flex;justify-content:space-between;font-size:9px;color:#94a3b8;margin-bottom:6px}
+/* detail rows */
+.kpi-big-rows{display:flex;flex-direction:column}
+.kpi-big-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f8fafc;font-size:12px}
+.kpi-big-row:last-child{border-bottom:none}
+.kpi-big-row .kbr-k{color:#64748b}
+.kpi-big-row .kbr-v{font-weight:600;color:#1e293b}
+.kpi-big-row .kbr-v.red   {color:#dc2626}
+.kpi-big-row .kbr-v.green {color:#10b981}
+.kpi-big-row .kbr-v.purple{color:#8b5cf6}
+.kpi-status-pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
+.kpi-status-pill.ok  {background:#dcfce7;color:#16a34a}
+.kpi-status-pill.warn{background:#fef9c3;color:#ca8a04}
+.kpi-status-pill.bad {background:#fee2e2;color:#dc2626}
+/* charts */
+.kpi2-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px}
+.kpi-chart-card{background:#fff;border-radius:12px;padding:16px 18px;box-shadow:0 1px 6px rgba(0,0,0,.08);min-width:0;overflow:hidden}
+.kpi-chart-title{font-size:12px;font-weight:700;color:#1e293b;margin-bottom:12px}
+/* channel KPI v2 */
+.kpi-ch-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:8px}
+.kpi-ch-v2{background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.kpi-ch-v2[data-ch="ss"]  {border-top:3px solid #3b82f6}
+.kpi-ch-v2[data-ch="c24"] {border-top:3px solid #8b5cf6}
+.kpi-ch-v2[data-ch="coup"]{border-top:3px solid #f59e0b}
+.kpi-ch-v2[data-ch="kko"] {border-top:3px solid #eab308}
+.kpi-ch-v2 .ch-name2{font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
+.kpi-ch-v2 .ch-ach  {font-size:22px;font-weight:800;line-height:1;margin-bottom:4px}
+.kpi-ch-v2 .ch-bar  {height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-bottom:8px}
+.kpi-ch-v2 .ch-bar-fill{height:100%;border-radius:99px}
+.kpi-ch-v2 .ch-rows {display:flex;flex-direction:column;gap:3px}
+.kpi-ch-v2 .ch-row  {display:flex;justify-content:space-between;font-size:11px}
+.kpi-ch-v2 .ch-row .k{color:#94a3b8}
+.kpi-ch-v2 .ch-row .v{font-weight:600;color:#334155}
+.kpi-ch-v2 .ch-row .v.red  {color:#dc2626}
+.kpi-ch-v2 .ch-row .v.green{color:#16a34a}
+/* Gongu */
+.kpi-gongu-wrap{background:#fff;border-radius:12px;padding:16px 18px;box-shadow:0 1px 6px rgba(0,0,0,.08);margin-bottom:8px}
+.kpi-gongu-top{display:flex;align-items:stretch;margin-bottom:14px}
+.kpi-gongu-counts{display:flex;gap:20px;padding-right:20px;border-right:1px solid #f1f5f9}
+.kpi-gongu-count{text-align:center}
+.kpi-gongu-count .gcn{font-size:26px;font-weight:800;color:#7c3aed}
+.kpi-gongu-count .gcl{font-size:10px;color:#94a3b8;margin-top:1px}
+.kpi-gongu-metrics{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-left:20px}
+.kpi-gongu-metric .gm-k{font-size:10px;color:#94a3b8;margin-bottom:2px}
+.kpi-gongu-metric .gm-v{font-size:15px;font-weight:700;color:#1e293b}
+.kpi-gongu-metric .gm-v.red{color:#dc2626}
+.kpi-gongu-tbl{width:100%;border-collapse:collapse;font-size:11px}
+.kpi-gongu-tbl th{background:#f8fafc;color:#64748b;font-weight:600;padding:6px 8px;text-align:left;border-bottom:1px solid #e2e8f0}
+.kpi-gongu-tbl td{padding:6px 8px;border-bottom:1px solid #f8fafc;color:#334155}
+.kpi-gongu-tbl tr:last-child td{border-bottom:none}
+/* Alert / Action */
+.kpi-alert-card,.kpi-action-card{background:#fff;border-radius:12px;padding:16px 18px;box-shadow:0 1px 6px rgba(0,0,0,.08)}
+.kpi-panel-title{font-size:12px;font-weight:700;color:#1e293b;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.kpi-alert-item{display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:8px;margin-bottom:5px;font-size:12px;line-height:1.4}
+.kpi-alert-item.danger {background:#fff5f5;color:#dc2626}
+.kpi-alert-item.warning{background:#fffbeb;color:#b45309}
+.kpi-alert-item.info   {background:#eff6ff;color:#2563eb}
+.kpi-action-item{padding:7px 0;border-bottom:1px solid #f8fafc;font-size:12px;color:#334155;display:flex;gap:8px;line-height:1.4}
+.kpi-action-item:last-child{border-bottom:none}
+.kpi-action-num{font-weight:700;color:#3b82f6;flex-shrink:0}
+@media(max-width:1100px){.kpi-ch-kpi-grid{grid-template-columns:repeat(2,1fr)}.kpi-gongu-metrics{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:900px) {.kpi3-grid{grid-template-columns:1fr 1fr}.kpi2-grid{grid-template-columns:1fr}}
+@media(max-width:600px) {.kpi3-grid{grid-template-columns:1fr}.kpi-ch-kpi-grid{grid-template-columns:1fr 1fr}.kpi-gongu-top{flex-direction:column}.kpi-gongu-counts{border-right:none;border-bottom:1px solid #f1f5f9;padding-right:0;padding-bottom:12px;margin-bottom:12px}}
 </style>
 </head>
 <body>
@@ -317,48 +367,57 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 
   <!-- ── KPI ── -->
   <div id="page-kpi" class="page">
-    <div class="page-body">
+    <div class="page-body kpi-page">
 
-      <!-- ZONE 1: 당월 Hero -->
-      <div class="kpi-section-sep monthly">이번 달 현황</div>
-      <div class="kpi-hero-row">
-        <div class="kpi-hero-gauge-wrap">
-          <svg class="kpi-arc" viewBox="0 0 200 120">
-            <path class="kpi-arc-bg"   d="M 20 100 A 80 80 0 0 1 180 100"/>
-            <path class="kpi-arc-fill" d="M 20 100 A 80 80 0 0 1 180 100" id="kpiMonArcFill" stroke-dasharray="0 251"/>
-            <text x="100" y="85" text-anchor="middle" class="kpi-arc-pct" id="kpiMonPct">—</text>
-            <text x="100" y="105" text-anchor="middle" class="kpi-arc-label">당월 달성율</text>
-          </svg>
-          <div class="kpi-status-badge" id="kpiMonStatus"></div>
+      <!-- ① 대시보드 헤더 -->
+      <div class="kpi-dash-header">
+        <div>
+          <div class="kpi-dash-title">KPI Dashboard</div>
+          <div class="kpi-dash-sub" id="kpiDateBadge"></div>
         </div>
-        <div class="kpi-hero-metrics">
-          <div class="kpi-metric-row" id="kpiMonMetrics"></div>
-          <div class="kpi-pace-row"   id="kpiMonPace"></div>
+        <div class="kpi-dash-legend">
+          <span class="leg-dot" style="background:#3b82f6"></span>전체&nbsp;
+          <span class="leg-dot" style="background:#8b5cf6"></span>공구&nbsp;
+          <span class="leg-dot" style="background:#10b981"></span>공구 외
         </div>
       </div>
 
-      <!-- ZONE 2: 연간 + 추이 -->
-      <div class="kpi-section-sep annual">연간 현황</div>
-      <div class="kpi-zone2">
-        <div class="kpi-annual-wrap">
-          <div class="section-label" style="align-self:flex-start;margin-bottom:4px">연간 달성</div>
-          <svg class="kpi-arc kpi-arc-sm" viewBox="0 0 200 120">
-            <path class="kpi-arc-bg"   d="M 20 100 A 80 80 0 0 1 180 100"/>
-            <path class="kpi-arc-fill" d="M 20 100 A 80 80 0 0 1 180 100" id="kpiYrArcFill" stroke-dasharray="0 251"/>
-            <text x="100" y="85" text-anchor="middle" class="kpi-arc-pct" id="kpiYrPct">—</text>
-            <text x="100" y="105" text-anchor="middle" class="kpi-arc-label">연간 달성율</text>
-          </svg>
-          <div class="kpi-annual-metrics" id="kpiAnnualMetrics"></div>
+      <!-- ② Executive Summary -->
+      <div class="kpi-exec-card" id="kpiExecSummary"></div>
+
+      <!-- ③ 연간 KPI -->
+      <div class="kpi-section-hdr annual">연간 KPI <span class="kpi-section-badge">YTD</span></div>
+      <div class="kpi3-grid" id="kpiAnnualCards"></div>
+
+      <!-- ④ 월간 KPI -->
+      <div class="kpi-section-hdr monthly">월간 KPI <span class="kpi-section-badge" id="kpiMonthBadge"></span></div>
+      <div class="kpi3-grid" id="kpiMonthlyCards"></div>
+
+      <!-- ⑤ 추이 차트 -->
+      <div class="kpi2-grid">
+        <div class="kpi-chart-card">
+          <div class="kpi-chart-title">연간 누적 매출 추이</div>
+          <div style="height:220px;position:relative"><canvas id="kpiCumulChart"></canvas></div>
         </div>
-        <div class="kpi-trend-wrap">
-          <div class="section-label" style="margin-bottom:10px">월별 매출 추이</div>
-          <div style="height:210px;position:relative;overflow:hidden"><canvas id="kpiTrendChart"></canvas></div>
+        <div class="kpi-chart-card">
+          <div class="kpi-chart-title">월간 주차별 매출 추이</div>
+          <div style="height:220px;position:relative"><canvas id="kpiWeekChart"></canvas></div>
         </div>
       </div>
 
-      <!-- ZONE 3: 채널별 당월 -->
-      <div class="kpi-section-sep channels">채널별 당월 현황</div>
-      <div class="kpi-ch-grid" id="kpiChannelCards"></div>
+      <!-- ⑥ 채널별 KPI -->
+      <div class="kpi-section-hdr channel">채널별 KPI</div>
+      <div class="kpi-ch-kpi-grid" id="kpiChKpiCards"></div>
+
+      <!-- ⑦ 공구 KPI -->
+      <div class="kpi-section-hdr gongu">공구 KPI</div>
+      <div class="kpi-gongu-wrap" id="kpiGonguWrap"></div>
+
+      <!-- ⑧ KPI Alert & Action -->
+      <div class="kpi2-grid" style="margin-bottom:24px">
+        <div class="kpi-alert-card" id="kpiAlertCard"></div>
+        <div class="kpi-action-card" id="kpiActionCard"></div>
+      </div>
 
     </div>
   </div>
@@ -564,8 +623,11 @@ const GID = '1605737796';
 // 하위 호환용 (SHEET_ID 단독 참조 없음)
 const SHEET_ID = SHEET_ID_2026;
 const YEARLY_TARGET   = 9_000_000_000;  // 90억 (공구 제외 일반 매출 기준)
-const MONTHLY_TARGETS = {};             // 월별 목표 — 시트 row 52에서 로드 (공구 제외)
+const MONTHLY_TARGETS = {};             // 월별 목표 — 시트 row 52에서 로드 (공구 외 기준)
 const DAILY_TARGETS   = {};             // 일평균 목표 — 시트 row 58에서 로드
+const SS_TARGETS      = {};             // 스마트스토어 월 목표 — 시트 row 56
+const C24_TARGETS     = {};             // 카페24 월 목표 — 시트 row 62
+const COUP_TARGETS    = {};             // 쿠팡 월 목표 — 시트 row 67
 const ROCKET_GID      = '629942175';    // 매출 시트 2026 요약탭 (로켓그로스)
 let   ROCKET_REV      = {};             // { 월(1-12): 로켓그로스 매출액 }
 
@@ -707,6 +769,9 @@ async function loadData() {
     const targHdrRow  = rr[50] || [];
     const targDataRow = rr[51] || [];
     const dailyRow    = rr[57] || [];
+    const ssTargRow   = rr[55] || [];
+    const c24TargRow  = rr[61] || [];
+    const coupTargRow = rr[66] || [];
     targHdrRow.forEach((h, ci) => {
       const m = parseInt(h.trim());
       if (m >= 1 && m <= 12) {
@@ -714,6 +779,12 @@ async function loadData() {
         if (!isNaN(t) && t > 0) MONTHLY_TARGETS[m] = t;
         const d = parseFloat(String(dailyRow[ci]    || '').replace(/[,\s₩]/g, ''));
         if (!isNaN(d) && d > 0) DAILY_TARGETS[m]   = d;
+        const ss   = parseFloat(String(ssTargRow[ci]   || '').replace(/[,\s₩]/g, ''));
+        if (!isNaN(ss)   && ss   > 0) SS_TARGETS[m]   = ss;
+        const c24  = parseFloat(String(c24TargRow[ci]  || '').replace(/[,\s₩]/g, ''));
+        if (!isNaN(c24)  && c24  > 0) C24_TARGETS[m]  = c24;
+        const coup = parseFloat(String(coupTargRow[ci] || '').replace(/[,\s₩]/g, ''));
+        if (!isNaN(coup) && coup > 0) COUP_TARGETS[m] = coup;
       }
     });
   } catch(e) { console.warn('[로켓그로스 로딩 실패]', e); }
@@ -1053,151 +1124,460 @@ function populateMonthSelects() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  KPI
+//  KPI v2
 // ═══════════════════════════════════════════════════════
 function renderKPI() {
-  const n = getNow();
-  const rows26 = ROWS.filter(r=>r.year===n.y   && r.dist!=='3.공동구매');
-  const rows25 = ROWS.filter(r=>r.year===n.y-1 && r.dist!=='3.공동구매');
+  const n  = getNow();
+  const kd = buildKpiData(n);
 
-  // YTD + 로켓그로스
-  let ytd26 = rows26.reduce((s,r)=>s+r.rev,0);
-  for(let m=1;m<=n.m;m++) ytd26 += (ROCKET_REV[m]||0);
-  const ytd25      = rows25.filter(r=>r.month<n.m||(r.month===n.m&&r.day<=n.dy)).reduce((s,r)=>s+r.rev,0);
-  const elapsedDoy = n.doy;
-  const forecastY  = forecastM(ytd26, elapsedDoy, n.diy);
-  const achY       = ytd26/YEARLY_TARGET*100;
-
-  // 당월
-  const revM    = rows26.filter(r=>r.month===n.m).reduce((s,r)=>s+r.rev,0) + (ROCKET_REV[n.m]||0);
   const maxDayM = maxDay(ROWS.filter(r=>r.year===n.y), n.y, n.m) || n.dy;
-  const fcastM  = forecastM(revM, maxDayM, n.dim);
-  const prevM   = n.m>1
-    ? rows26.filter(r=>r.month===n.m-1).reduce((s,r)=>s+r.rev,0) + (ROCKET_REV[n.m-1]||0)
-    : rows25.filter(r=>r.month===12).reduce((s,r)=>s+r.rev,0);
-  const monTarget  = MONTHLY_TARGETS[n.m] || null;
-  const monAch     = monTarget ? revM/monTarget*100 : null;
+  document.getElementById('kpiDateBadge').textContent =
+    `데이터 기준: ${n.y}.${String(n.m).padStart(2,'0')}.${String(n.dy).padStart(2,'0')} (${n.m}월 ${maxDayM}일까지 반영)`;
+  document.getElementById('kpiMonthBadge').textContent = `${n.m}월`;
 
-  // 채널별 당월
-  const chRows  = rows26.filter(r=>r.month===n.m);
-  const prevCh  = rows26.filter(r=>r.month===n.m-1);
-  const chSS    = chRows.filter(r=>r.ch==='스마트스토어').reduce((s,r)=>s+r.rev,0);
-  const chC24   = chRows.filter(r=>r.ch==='카페24').reduce((s,r)=>s+r.rev,0);
-  const chCoup  = chRows.filter(r=>r.ch==='쿠팡').reduce((s,r)=>s+r.rev,0) + (ROCKET_REV[n.m]||0);
-  const chKko   = chRows.filter(r=>r.ch==='카카오톡스토어').reduce((s,r)=>s+r.rev,0);
-  const chRkt   = ROCKET_REV[n.m] || 0;
-  const pSSp    = prevCh.filter(r=>r.ch==='스마트스토어').reduce((s,r)=>s+r.rev,0);
-  const pC24p   = prevCh.filter(r=>r.ch==='카페24').reduce((s,r)=>s+r.rev,0);
-  const pCoup   = prevCh.filter(r=>r.ch==='쿠팡').reduce((s,r)=>s+r.rev,0) + (ROCKET_REV[n.m-1]||0);
-  const pKkop   = prevCh.filter(r=>r.ch==='카카오톡스토어').reduce((s,r)=>s+r.rev,0);
+  renderKpiExec(kd, n);
+  renderKpiAnnual(kd, n);
+  renderKpiMonthly(kd, n);
+  renderKpiTrendCharts(kd, n);
+  renderKpiChannels(kd, n);
+  renderKpiGongu(kd, n);
+  renderKpiAlerts(kd, n);
+}
 
-  // 페이스
-  const curPace    = maxDayM>0 ? Math.round(revM/maxDayM) : 0;
+// ── buildKpiData ──────────────────────────────────────
+function buildKpiData(n) {
+  const yr26 = ROWS.filter(r=>r.year===n.y);
+  const yr25 = ROWS.filter(r=>r.year===n.y-1);
+  const fG   = r=>r.dist==='3.공동구매';
+  const fNG  = r=>r.dist!=='3.공동구매';
+
+  // YTD
+  let ytdAll=0;
+  yr26.forEach(r=>{ ytdAll+=r.rev; });
+  for(let m=1;m<=n.m;m++) ytdAll+=(ROCKET_REV[m]||0);
+  const ytdGongu    = yr26.filter(fG).reduce((s,r)=>s+r.rev,0);
+  const ytdNonGongu = ytdAll - ytdGongu;
+  const ytd25       = yr25.filter(r=>r.month<n.m||(r.month===n.m&&r.day<=n.dy)).reduce((s,r)=>s+r.rev,0);
+
+  const elDoy = n.doy;
+  const fcastYAll     = forecastM(ytdAll,     elDoy, n.diy);
+  const fcastYGongu   = forecastM(ytdGongu,   elDoy, n.diy);
+  const fcastYNonGongu= forecastM(ytdNonGongu,elDoy, n.diy);
+
+  // 월간
+  const monRows  = yr26.filter(r=>r.month===n.m);
+  const prevRows = n.m>1 ? yr26.filter(r=>r.month===n.m-1) : yr25.filter(r=>r.month===12);
+  const prevRkt  = ROCKET_REV[n.m>1?n.m-1:12]||0;
+
+  const revM_gongu    = monRows.filter(fG).reduce((s,r)=>s+r.rev,0);
+  const revM_nonGongu = monRows.filter(fNG).reduce((s,r)=>s+r.rev,0) + (ROCKET_REV[n.m]||0);
+  const revM_all      = revM_gongu + revM_nonGongu;
+
+  const prevM_gongu    = prevRows.filter(fG).reduce((s,r)=>s+r.rev,0);
+  const prevM_nonGongu = prevRows.filter(fNG).reduce((s,r)=>s+r.rev,0) + prevRkt;
+  const prevM_all      = prevM_gongu + prevM_nonGongu;
+
+  const maxDayM  = maxDay(yr26, n.y, n.m) || n.dy;
+  const monTarget = MONTHLY_TARGETS[n.m] || null;
   const remainDays = n.dim - maxDayM;
-  const reqPace    = (monTarget && remainDays>0) ? Math.round((monTarget-revM)/remainDays) : 0;
 
-  // 월별 추이 데이터
-  const mLabels = Array.from({length:n.m},(_,i)=>`${i+1}월`);
+  const fcastM_nonGongu = forecastM(revM_nonGongu, maxDayM, n.dim);
+  const fcastM_gongu    = forecastM(revM_gongu,    maxDayM, n.dim);
+  const fcastM_all      = fcastM_nonGongu + fcastM_gongu;
+
+  const curPace_ng = maxDayM>0 ? Math.round(revM_nonGongu/maxDayM) : 0;
+  const reqPace    = (monTarget && remainDays>0) ? Math.round((monTarget-revM_nonGongu)/remainDays) : 0;
+
+  // 채널 (공구 외만)
+  const ch = (key, chName) => ({
+    key,
+    name: chName,
+    rev:  monRows.filter(r=>fNG(r)&&r.ch===chName).reduce((s,r)=>s+r.rev,0) + (key==='coup'?ROCKET_REV[n.m]||0:0),
+    prev: prevRows.filter(r=>fNG(r)&&r.ch===chName).reduce((s,r)=>s+r.rev,0) + (key==='coup'?prevRkt:0),
+    target: key==='ss'?SS_TARGETS[n.m]||null : key==='c24'?C24_TARGETS[n.m]||null : key==='coup'?COUP_TARGETS[n.m]||null : null,
+  });
+  const channels = [
+    ch('ss',   '스마트스토어'),
+    ch('c24',  '카페24'),
+    ch('coup', '쿠팡'),
+    ch('kko',  '카카오톡스토어'),
+  ].map(c=>({...c, name: c.key==='coup'?'쿠팡(로켓포함)':c.key==='kko'?'카카오':c.name}));
+
+  // 주차별
+  const weekData = [1,2,3,4,5].map(w=>{
+    const wr = monRows.filter(r=>r.week===w);
+    return { g:wr.filter(fG).reduce((s,r)=>s+r.rev,0), ng:wr.filter(fNG).reduce((s,r)=>s+r.rev,0) };
+  });
+
+  // 누적 추이
+  const cumul = arr => arr.reduce((acc,v)=>[...acc,(acc[acc.length-1]||0)+v],[]);
   const mRevs26 = Array.from({length:n.m},(_,i)=>
-    rows26.filter(r=>r.month===i+1).reduce((s,r)=>s+r.rev,0) + (ROCKET_REV[i+1]||0));
+    yr26.filter(r=>r.month===i+1).reduce((s,r)=>s+r.rev,0)+(ROCKET_REV[i+1]||0));
   const mRevs25 = Array.from({length:n.m},(_,i)=>
-    rows25.filter(r=>r.month===i+1).reduce((s,r)=>s+r.rev,0));
+    yr25.filter(r=>r.month===i+1).reduce((s,r)=>s+r.rev,0));
+  const mTargs  = Array.from({length:n.m},(_,i)=>MONTHLY_TARGETS[i+1]||0);
 
-  // ── Zone 1: 당월 게이지 ──
-  const monColor = monAch!==null ? kpiGaugeColor(monAch) : '#94a3b8';
-  setArcGauge('kpiMonArcFill','kpiMonPct', monAch||0, monColor);
-  const [badgeCls, badgeTxt] = kpiStatusBadge(monAch||0);
-  const statusEl = document.getElementById('kpiMonStatus');
-  if (statusEl) { statusEl.className = `kpi-status-badge ${badgeCls}`; statusEl.textContent = badgeTxt; }
+  // 공구 품목별
+  const gonguProd = Object.values(sumBy(monRows.filter(fG),'prod'))
+    .sort((a,b)=>b.rev-a.rev);
 
-  document.getElementById('kpiMonMetrics').innerHTML =
-    kpiMetric(`${n.m}월 목표`, monTarget?fmtM(monTarget):'미정', '공구 제외 일반 매출', true)
-    + kpiMetric(`${n.m}월 누적`, fmtM(revM), pctHtml(revM,prevM)+' (전월)')
-    + kpiMetric('예상 월 마감', fmtM(fcastM), `일평균 ${fmtM(curPace)}`)
-    + kpiMetric('잔여', monTarget ? fmtM(Math.max(monTarget-revM,0)) : '—', monAch ? Math.round(monAch)+'% 달성' : '목표 미정');
+  return {
+    n, maxDayM,
+    yearly: {
+      all:      {rev:ytdAll,     target:null,        forecast:fcastYAll,      prev:ytd25},
+      gongu:    {rev:ytdGongu,   target:null,        forecast:fcastYGongu},
+      nonGongu: {rev:ytdNonGongu,target:YEARLY_TARGET,forecast:fcastYNonGongu,prev:ytd25},
+    },
+    monthly: {
+      all:      {rev:revM_all,      target:null,      prev:prevM_all,      forecast:fcastM_all,      maxDay:maxDayM},
+      gongu:    {rev:revM_gongu,    target:null,      prev:prevM_gongu,    forecast:fcastM_gongu,    maxDay:maxDayM},
+      nonGongu: {rev:revM_nonGongu, target:monTarget, prev:prevM_nonGongu, forecast:fcastM_nonGongu, maxDay:maxDayM,
+                 curPace:curPace_ng, reqPace, remainDays},
+    },
+    channels,
+    trends: {
+      labels:      Array.from({length:n.m},(_,i)=>`${i+1}월`),
+      cumulAll:    cumul(mRevs26),
+      cumulPrev:   cumul(mRevs25),
+      cumulTarget: cumul(mTargs),
+      weekNonG: weekData.map(w=>w.ng),
+      weekGongu:weekData.map(w=>w.g),
+    },
+    gonguProd,
+    gonguRevM: revM_gongu,
+  };
+}
 
-  const planPace = DAILY_TARGETS[n.m] || null;
-  const paceMax  = Math.max(curPace, reqPace, planPace||0)*1.3 || 1;
-  const curPct   = Math.round(curPace/paceMax*100);
-  const reqPct   = reqPace>0 ? Math.round(reqPace/paceMax*100) : 0;
-  const planPct  = planPace ? Math.round(planPace/paceMax*100) : 0;
-  document.getElementById('kpiMonPace').innerHTML = `
-    <div class="kpi-pace-label">
-      <span>현재 일평균: ${fmtM(curPace)}</span>
-      ${planPace ? `<span style="color:#6366f1">계획: ${fmtM(planPace)}</span>` : ''}
-      <span style="color:#ef4444">${reqPace>0 ? '필요: '+fmtM(reqPace) : '✓ 목표 달성 페이스'}</span>
+// ── helpers ──────────────────────────────────────────
+function kpiStatusCls(pct) {
+  return pct>=90?'ok':pct>=70?'warn':'bad';
+}
+function kpiPill(pct) {
+  const c=kpiStatusCls(pct), t=pct>=90?'정상':pct>=70?'주의':'위험';
+  return `<span class="kpi-status-pill ${c}">${t}</span>`;
+}
+function kpiTriBar(rev, fcast, target) {
+  if (!target) return '';
+  const rp  = Math.min(rev/target*100,   100);
+  const fp  = Math.min(fcast/target*100, 100);
+  const cls = kpiStatusCls(rp);
+  return `
+    <div class="kpi-tri-wrap">
+      <div class="kpi-tri-fill ${cls}" style="width:${rp.toFixed(1)}%"></div>
+      <div class="kpi-tri-marker fcast"  style="left:${fp.toFixed(1)}%"></div>
+      <div class="kpi-tri-marker target" style="left:100%"></div>
     </div>
-    <div class="kpi-pace-bg">
-      <div class="kpi-pace-fill" style="width:${curPct}%"></div>
-      ${reqPct>0 ? `<div class="kpi-pace-marker" style="left:${reqPct}%"></div>` : ''}
-      ${planPct>0 ? `<div class="kpi-pace-marker" style="left:${planPct}%;background:#6366f1"></div>` : ''}
+    <div class="kpi-bar-labels">
+      <span>실적 ${fmtM(rev)}</span><span>예상 ${fmtM(fcast)}</span><span>목표 ${fmtM(target)}</span>
     </div>`;
+}
+function kpiRow(k,v,vcls='') {
+  return `<div class="kpi-big-row"><span class="kbr-k">${k}</span><span class="kbr-v ${vcls}">${v}</span></div>`;
+}
 
-  // ── Zone 2A: 연간 게이지 ──
-  setArcGauge('kpiYrArcFill','kpiYrPct', achY, kpiGaugeColor(achY));
-  document.getElementById('kpiAnnualMetrics').innerHTML =
-    `<div class="kpi-arm"><span class="k">연간 목표</span><span class="v">${fmtWon(YEARLY_TARGET)}</span></div>`
-   +`<div class="kpi-arm"><span class="k">현재 누적</span><span class="v">${fmtM(ytd26)} <small style="font-weight:400">${pctHtml(ytd26,ytd25)}</small></span></div>`
-   +`<div class="kpi-arm"><span class="k">예상 연 마감</span><span class="v">${fmtM(forecastY)}</span></div>`
-   +`<div class="kpi-arm" style="border-bottom:none"><span class="k">잔여</span><span class="v" style="color:#ef4444">${fmtM(Math.max(YEARLY_TARGET-ytd26,0))}</span></div>`;
+// ── Executive Summary ─────────────────────────────────
+function renderKpiExec(kd, n) {
+  const {monthly:{nonGongu:ng}, yearly:{nonGongu:yng}} = kd;
+  const items = [];
+  const add = (icon, txt, cls='') => items.push(`<div class="kpi-exec-item ${cls}">${icon} ${txt}</div>`);
 
-  // ── Zone 2B: 추이 차트 ──
-  mkChart('kpiTrendChart', {
-    type:'bar',
+  // 연간
+  const achY = yng.target ? Math.round(yng.rev/yng.target*100) : null;
+  const planPaceY = yng.target ? Math.round(yng.target*n.doy/n.diy) : null;
+  const vsY = (planPaceY && yng.rev) ? ((yng.rev-planPaceY)/planPaceY*100).toFixed(1) : null;
+  if (achY!==null) {
+    const vsStr = vsY!==null ? ` (계획 대비 ${+vsY>=0?'+':''}${vsY}%)` : '';
+    add(achY>=90?'✅':'📊', `연간 목표 달성률 <strong>${achY}%</strong>${vsStr}`, achY<70?'danger':achY<90?'warn':'ok');
+  }
+
+  // 월간
+  const achM = ng.target ? Math.round(ng.rev/ng.target*100) : null;
+  const fachM = ng.target ? Math.round(ng.forecast/ng.target*100) : null;
+  const gapM  = ng.target ? ng.target - ng.rev : null;
+  if (achM!==null) {
+    add(achM>=90?'✅':'📌', `${n.m}월 공구 외 달성률 <strong>${achM}%</strong>, 목표 대비 ${gapM>0?fmtM(gapM)+' 부족':'달성'}`, achM<70?'danger':achM<90?'warn':'ok');
+  }
+  if (fachM!==null) {
+    add(fachM>=90?'📈':'⚠️', `현재 추세 기준 월말 예상 달성률 <strong>${fachM}%</strong>`, fachM<90?'danger':'ok');
+  }
+  if (ng.reqPace>0) {
+    const flag = ng.reqPace>ng.curPace*1.3?'🚨':ng.reqPace>ng.curPace?'⚠️':'✅';
+    add(flag, `목표 달성을 위해 남은 ${ng.remainDays}일간 일평균 <strong>${fmtM(ng.reqPace)}</strong> 필요 (현재 ${fmtM(ng.curPace)})`,
+      ng.reqPace>ng.curPace*1.3?'danger':ng.reqPace>ng.curPace?'warn':'ok');
+  }
+  // 공구 비교
+  const {monthly:{gongu:g}} = kd;
+  if (g.rev>0||ng.rev>0) {
+    const gPct = g.rev+ng.rev>0?Math.round(g.rev/(g.rev+ng.rev)*100):0;
+    add('📦', `이번 달 공구 매출 ${fmtM(g.rev)} (전체의 ${gPct}%), 공구 외 ${fmtM(ng.rev)}`);
+  }
+
+  document.getElementById('kpiExecSummary').innerHTML =
+    `<div class="kpi-exec-title">📌 Executive Summary</div><div class="kpi-exec-list">${items.join('')}</div>`;
+}
+
+// ── Annual Cards ──────────────────────────────────────
+function renderKpiAnnual(kd, n) {
+  const {yearly:{all,gongu,nonGongu}} = kd;
+  const card = (d, cls, label, extra=[]) => {
+    const ach = d.target ? Math.round(d.rev/d.target*100) : null;
+    const sc  = ach!==null ? kpiStatusCls(ach) : 'gray';
+    const rows = [
+      kpiRow('연간 목표',   d.target?fmtM(d.target):'미정'),
+      kpiRow('현재 누적',   fmtM(d.rev)),
+      kpiRow('목표 대비 GAP', d.target?fmtM(d.target-d.rev): '—', d.target&&d.target>d.rev?'red':'green'),
+      kpiRow('예상 연말',   fmtM(d.forecast)),
+      ...extra,
+    ].join('');
+    return `<div class="kpi-big-card ${cls}">
+      <div class="kpi-big-label">${label}</div>
+      <div class="kpi-big-ach ${sc}">${ach!==null?ach+'%':'—'}</div>
+      ${kpiTriBar(d.rev, d.forecast, d.target)}
+      <div class="kpi-big-rows">${rows}</div>
+    </div>`;
+  };
+  const vsY25 = kd.yearly.nonGongu.prev ? ((kd.yearly.all.rev-(kd.yearly.all.prev||0))/(kd.yearly.all.prev||1)*100).toFixed(1) : null;
+  document.getElementById('kpiAnnualCards').innerHTML =
+    card(all,      'total',    '전 체', vsY25!==null?[kpiRow('전년 대비', (vsY25>=0?'▲':'▼')+Math.abs(vsY25)+'%', vsY25>=0?'green':'red')]:[])
+   +card(gongu,    'gongu',    '공  구')
+   +card(nonGongu, 'nonGongu', '공 구 외');
+}
+
+// ── Monthly Cards ─────────────────────────────────────
+function renderKpiMonthly(kd, n) {
+  const {monthly:{all,gongu,nonGongu:ng}} = kd;
+  const cardM = (d, cls, label, extra=[]) => {
+    const ach = d.target ? Math.round(d.rev/d.target*100) : null;
+    const sc  = ach!==null ? kpiStatusCls(ach) : 'gray';
+    const rows = [
+      kpiRow(`${n.m}월 목표`, d.target?fmtM(d.target):'미정'),
+      kpiRow('현재 실적',     fmtM(d.rev)),
+      kpiRow('목표 대비 GAP', d.target?fmtM(d.target-d.rev):'—', d.target&&d.target>d.rev?'red':'green'),
+      kpiRow('예상 마감',     fmtM(d.forecast)),
+      kpiRow('전월 대비',     pctHtml(d.rev, d.prev)),
+      ...extra,
+    ].join('');
+    return `<div class="kpi-big-card ${cls}">
+      <div class="kpi-big-label">${label}</div>
+      <div class="kpi-big-ach ${sc}">${ach!==null?ach+'%':'—'}</div>
+      ${kpiTriBar(d.rev, d.forecast, d.target)}
+      <div class="kpi-big-rows">${rows}</div>
+    </div>`;
+  };
+  const ngExtra = [
+    kpiRow('현재 일평균', fmtM(ng.curPace)),
+    kpiRow('필요 일평균', ng.reqPace>0?fmtM(ng.reqPace):'✓ 달성 페이스', ng.reqPace>ng.curPace?'red':'green'),
+  ];
+  document.getElementById('kpiMonthlyCards').innerHTML =
+    cardM(all,  'total',    '전 체')
+   +cardM(gongu,'gongu',    '공  구')
+   +cardM(ng,   'nonGongu', '공 구 외', ngExtra);
+}
+
+// ── Trend Charts ──────────────────────────────────────
+function renderKpiTrendCharts(kd, n) {
+  const {trends:t} = kd;
+  // 누적 추이
+  mkChart('kpiCumulChart', {
+    type:'line',
     data:{
-      labels: mLabels,
+      labels: t.labels,
       datasets:[
-        {label:'2025',data:mRevs25.map(v=>+(v/1e8).toFixed(1)),backgroundColor:'#e2e8f0',borderRadius:4,barPercentage:.7},
-        {label:'2026',data:mRevs26.map((v,i)=>+(v/1e8).toFixed(1)),
-         backgroundColor:mRevs26.map((_,i)=>i===n.m-1?'#1d4ed8':'#93c5fd'),borderRadius:4,barPercentage:.7},
+        {label:'목표 누적', data:t.cumulTarget.map(v=>+(v/1e8).toFixed(1)),
+         borderColor:'#94a3b8',borderDash:[5,4],borderWidth:2,pointRadius:3,fill:false,tension:.3},
+        {label:'2026 누적', data:t.cumulAll.map(v=>+(v/1e8).toFixed(1)),
+         borderColor:'#1d4ed8',borderWidth:2.5,pointRadius:4,fill:false,tension:.3,
+         pointBackgroundColor:t.cumulAll.map((_,i)=>i===n.m-1?'#1d4ed8':'#93c5fd')},
+        {label:'2025 누적', data:t.cumulPrev.map(v=>+(v/1e8).toFixed(1)),
+         borderColor:'#cbd5e1',borderWidth:1.5,pointRadius:3,fill:false,tension:.3},
       ]
     },
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:{position:'bottom',labels:{font:{size:11},boxWidth:10,padding:12}},
+        legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:10}},
         tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y}억`}}
       },
       scales:{
-        x:{grid:{display:false},ticks:{font:{size:11},maxRotation:0}},
-        y:{ticks:{callback:v=>v+'억',font:{size:11}},grid:{color:'#f1f5f9'}}
+        x:{grid:{display:false},ticks:{font:{size:10},maxRotation:0}},
+        y:{ticks:{callback:v=>v+'억',font:{size:10}},grid:{color:'#f1f5f9'}}
       }
     }
   });
 
-  // ── Zone 3: 채널 카드 ──
-  document.getElementById('kpiChannelCards').innerHTML =
-    kpiChCard('ss',   '스마트스토어',    fmtM(chSS),  pctHtml(chSS,pSSp)+' 전월')
-   +kpiChCard('c24',  '카페24',          fmtM(chC24), pctHtml(chC24,pC24p)+' 전월')
-   +kpiChCard('coup', '쿠팡 (로켓 포함)', fmtM(chCoup),pctHtml(chCoup,pCoup)+' 전월')
-   +kpiChCard('kko',  '카카오',           fmtM(chKko), pctHtml(chKko,pKkop)+' 전월')
-   +kpiChCard('rkt',  '로켓그로스',       chRkt ? fmtM(chRkt) : '—', '당월 집계');
+  // 주차별
+  mkChart('kpiWeekChart', {
+    type:'bar',
+    data:{
+      labels:['1주','2주','3주','4주','5주'],
+      datasets:[
+        {label:'공구 외', data:t.weekNonG.map(v=>+(v/1e8).toFixed(2)),
+         backgroundColor:'#10b981',borderRadius:4,barPercentage:.7},
+        {label:'공구',   data:t.weekGongu.map(v=>+(v/1e8).toFixed(2)),
+         backgroundColor:'#8b5cf6',borderRadius:4,barPercentage:.7},
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:10}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y}억`}}
+      },
+      scales:{
+        x:{grid:{display:false},ticks:{font:{size:10}}},
+        y:{stacked:false,ticks:{callback:v=>v+'억',font:{size:10}},grid:{color:'#f1f5f9'}}
+      }
+    }
+  });
 }
 
+// ── Channel Cards ─────────────────────────────────────
+function renderKpiChannels(kd, n) {
+  const pctOfMonth = n.dim>0 ? kd.maxDayM/n.dim : 0;
+  const chCard = c => {
+    const paceTarget = c.target ? c.target * pctOfMonth : null;
+    const achPace = paceTarget ? Math.round(c.rev/paceTarget*100) : null;
+    const sc = achPace!==null ? kpiStatusCls(achPace) : 'gray';
+    const barColor = sc==='ok'?'#10b981':sc==='warn'?'#f59e0b':'#dc2626';
+    const barW = achPace!=null ? Math.min(achPace,100) : 0;
+    const gapV = c.target ? c.target-c.rev : null;
+    return `<div class="kpi-ch-v2" data-ch="${c.key}">
+      <div class="ch-name2"><span>${c.name}</span>${achPace!==null?kpiPill(achPace):''}</div>
+      <div class="ch-ach" style="color:${barColor}">${achPace!==null?achPace+'%':'—'}</div>
+      ${c.target?`<div class="ch-bar"><div class="ch-bar-fill" style="width:${barW}%;background:${barColor}"></div></div>`:''}
+      <div class="ch-rows">
+        <div class="ch-row"><span class="k">월 목표</span><span class="v">${c.target?fmtM(c.target):'미정'}</span></div>
+        <div class="ch-row"><span class="k">실  적</span><span class="v">${fmtM(c.rev)}</span></div>
+        <div class="ch-row"><span class="k">GAP</span><span class="v ${gapV>0?'red':'green'}">${gapV!=null?fmtM(gapV):'—'}</span></div>
+        <div class="ch-row"><span class="k">전월 대비</span><span class="v">${pctHtml(c.rev,c.prev)}</span></div>
+      </div>
+    </div>`;
+  };
+  document.getElementById('kpiChKpiCards').innerHTML = kd.channels.map(chCard).join('');
+}
+
+// ── Gongu KPI ─────────────────────────────────────────
+function renderKpiGongu(kd, n) {
+  const rev = kd.gonguRevM;
+
+  // GONGU_ROWS 상태 집계 (재고 시트 공구탭)
+  let cntTotal=0, cntDone=0, cntActive=0;
+  if (GONGU_ROWS.length > 0) {
+    const hdrIdx = GONGU_ROWS.findIndex(r=>r.some(c=>c.trim()==='품목명'||c.trim()==='제품명'));
+    if (hdrIdx>=0) {
+      const hdr = GONGU_ROWS[hdrIdx];
+      const stCol  = hdr.findIndex(c=>c.trim()==='상태'||c.trim()==='진행상태');
+      const monCol = hdr.findIndex(c=>c.trim()==='월'||c.trim()==='판매월');
+      GONGU_ROWS.slice(hdrIdx+1).forEach(r=>{
+        if (!r || r.every(c=>!c.trim())) return;
+        const mon = monCol>=0?parseInt(r[monCol]):0;
+        if (mon && mon!==n.m) return;
+        cntTotal++;
+        const st = stCol>=0?r[stCol].trim():'';
+        if (st==='O'||st==='완료'||st==='종료') cntDone++;
+        else if (st==='진행'||st==='진행중') cntActive++;
+      });
+    }
+  }
+  const hasCnt = cntTotal>0;
+  const byProd = kd.gonguProd.slice(0,8);
+
+  const countsHtml = hasCnt ? `
+    <div class="kpi-gongu-counts">
+      <div class="kpi-gongu-count"><div class="gcn">${cntTotal}</div><div class="gcl">전체</div></div>
+      <div class="kpi-gongu-count"><div class="gcn">${cntActive}</div><div class="gcl">진행중</div></div>
+      <div class="kpi-gongu-count"><div class="gcn">${cntDone}</div><div class="gcl">완료</div></div>
+    </div>` : '';
+
+  const metricsHtml = `
+    <div class="kpi-gongu-metrics">
+      <div class="kpi-gongu-metric"><div class="gm-k">확정 매출</div><div class="gm-v">${fmtM(rev)}</div></div>
+      <div class="kpi-gongu-metric"><div class="gm-k">건수 (당월)</div><div class="gm-v">${byProd.length}건</div></div>
+      <div class="kpi-gongu-metric"><div class="gm-k">건당 평균</div><div class="gm-v">${byProd.length?fmtM(Math.round(rev/byProd.length)):'—'}</div></div>
+      <div class="kpi-gongu-metric"><div class="gm-k">전월 대비</div><div class="gm-v">${pctHtml(rev, kd.monthly.gongu.prev)}</div></div>
+    </div>`;
+
+  const tblHtml = byProd.length ? `
+    <table class="kpi-gongu-tbl">
+      <thead><tr><th>공구명</th><th style="text-align:right">실적</th><th style="text-align:right">수량</th></tr></thead>
+      <tbody>${byProd.map(p=>`<tr><td>${p.prod||'—'}</td><td style="text-align:right">${fmtM(p.rev)}</td><td style="text-align:right">${fmtQty(p.qty)}</td></tr>`).join('')}</tbody>
+    </table>` : `<div style="color:#94a3b8;font-size:12px;padding:8px 0">이번 달 공구 매출 데이터 없음</div>`;
+
+  document.getElementById('kpiGonguWrap').innerHTML = `
+    <div class="kpi-gongu-top">${countsHtml}${metricsHtml}</div>
+    ${tblHtml}`;
+}
+
+// ── Alert & Action ────────────────────────────────────
+function renderKpiAlerts(kd, n) {
+  const {monthly:{nonGongu:ng}, yearly:{nonGongu:yng}, channels} = kd;
+  const alerts  = [];
+  const actions = [];
+
+  const addAlert = (lvl, icon, msg) => alerts.push({lvl, icon, msg});
+
+  // 월간 예상 미달
+  if (ng.target && ng.forecast < ng.target*0.9) {
+    addAlert('danger','🚨',`월간 목표 예상 미달 — 예상 ${fmtM(ng.forecast)} / 목표 ${fmtM(ng.target)} (예상 달성 ${Math.round(ng.forecast/ng.target*100)}%)`);
+    actions.push(`일평균 매출 ${fmtM(ng.reqPace)} 달성을 위한 채널별 집중 프로모션 계획 수립`);
+  } else if (ng.target && ng.forecast < ng.target) {
+    addAlert('warning','⚠️',`월간 목표 달성 위험 — 예상 ${fmtM(ng.forecast)} / 목표 ${fmtM(ng.target)}`);
+  }
+
+  // 일평균 페이스
+  if (ng.reqPace > ng.curPace*1.5) {
+    addAlert('danger','📉',`필요 일평균(${fmtM(ng.reqPace)})이 현재(${fmtM(ng.curPace)}) 대비 ${Math.round(ng.reqPace/ng.curPace*100-100)}% 높음`);
+  } else if (ng.reqPace > ng.curPace*1.2) {
+    addAlert('warning','📊',`일평균 페이스 부족 — 필요 ${fmtM(ng.reqPace)} / 현재 ${fmtM(ng.curPace)}`);
+  }
+
+  // 연간
+  if (yng.target) {
+    const planYTD = Math.round(yng.target*n.doy/n.diy);
+    if (yng.rev < planYTD*0.9) {
+      addAlert('warning','📅',`연간 누적 계획 대비 부진 — 계획 ${fmtM(planYTD)} / 실제 ${fmtM(yng.rev)} (${Math.round(yng.rev/planYTD*100)}%)`);
+      actions.push(`연간 계획 대비 ${fmtM(planYTD-yng.rev)} 누적 미달 — 하반기 만회 전략 검토`);
+    }
+  }
+
+  // 채널
+  const pctOfMonth = n.dim>0 ? kd.maxDayM/n.dim : 1;
+  channels.forEach(c=>{
+    if (!c.target) return;
+    const achPace = Math.round(c.rev/(c.target*pctOfMonth)*100);
+    if (achPace < 70) {
+      addAlert('danger','🔴',`${c.name} 심각 부진 — 페이스 달성률 ${achPace}% (실적 ${fmtM(c.rev)} / 기대 ${fmtM(Math.round(c.target*pctOfMonth))})`);
+      actions.push(`${c.name} 매출 부진 원인 분석 및 즉시 대응 (광고비, 상품 노출, 프로모션)`);
+    } else if (achPace < 90) {
+      addAlert('warning','🟡',`${c.name} 주의 — 페이스 달성률 ${achPace}%`);
+    }
+  });
+
+  // 공구 없음
+  if (kd.gonguRevM === 0) {
+    addAlert('info','ℹ️','이번 달 공구 매출 미발생 — 공구 일정 확인 필요');
+    actions.push('공구 일정표 확인 및 이번 달 예정 공구 진행 상황 점검');
+  }
+
+  if (alerts.length===0) addAlert('info','✅','현재 주요 KPI 이상 없음');
+  if (actions.length===0) actions.push('현재 주요 액션 없음 — KPI 정상 운영 중입니다.');
+
+  const alertHtml = alerts.map(a=>
+    `<div class="kpi-alert-item ${a.lvl}"><span>${a.icon}</span><span>${a.msg}</span></div>`
+  ).join('');
+  const actionHtml = actions.map((a,i)=>
+    `<div class="kpi-action-item"><span class="kpi-action-num">${i+1}.</span><span>${a}</span></div>`
+  ).join('');
+
+  document.getElementById('kpiAlertCard').innerHTML =
+    `<div class="kpi-panel-title">⚡ KPI Alert</div>${alertHtml}`;
+  document.getElementById('kpiActionCard').innerHTML =
+    `<div class="kpi-panel-title">🎯 추천 액션</div>${actionHtml}`;
+}
+
+// ── 기존 helper 유지 (다른 페이지에서 참조) ────────────
 function kpiCard(label, cls, val, sub) {
   return `<div class="kpi-card ${cls||''}"><div class="lbl">${label}</div><div class="val">${val}</div><div class="sub">${sub}</div></div>`;
-}
-function setArcGauge(fillId, pctId, pct, color) {
-  const ARC = 251.3;
-  const p   = Math.min(Math.max(pct, 0), 100);
-  const el  = document.getElementById(fillId);
-  if (el) { el.style.strokeDasharray = `${(p/100)*ARC} ${ARC}`; el.style.stroke = color; }
-  const pt  = document.getElementById(pctId);
-  if (pt) pt.textContent = Math.round(p) + '%';
-}
-function kpiGaugeColor(pct) {
-  return pct >= 90 ? '#16a34a' : pct >= 70 ? '#f59e0b' : '#dc2626';
-}
-function kpiStatusBadge(pct) {
-  if (pct >= 90) return ['ok',  '정상'];
-  if (pct >= 70) return ['warn','주의'];
-  return                ['bad', '위험'];
-}
-function kpiMetric(lbl, val, sub, primary=false) {
-  return `<div class="kpi-metric${primary?' primary':''}"><div class="lbl">${lbl}</div><div class="val">${val}</div><div class="sub">${sub||'&nbsp;'}</div></div>`;
-}
-function kpiChCard(ch, name, val, sub) {
-  return `<div class="kpi-ch-card" data-ch="${ch}"><div class="ch-name">${name}</div><div class="ch-val">${val}</div><div class="ch-sub">${sub}</div></div>`;
 }
 
 function setProgress(id, pct) {
