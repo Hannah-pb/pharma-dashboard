@@ -218,12 +218,14 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .kpi-exec-item.danger{color:#dc2626}
 .kpi-exec-item.warn  {color:#b45309}
 .kpi-exec-item.ok    {color:#15803d}
-/* 3-col big card */
-.kpi3-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:8px}
+/* 4-col big card */
+.kpi4-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:8px}
 .kpi-big-card{background:#fff;border-radius:12px;padding:18px 16px;box-shadow:0 1px 6px rgba(0,0,0,.08)}
 .kpi-big-card.total   {border-top:4px solid #3b82f6}
 .kpi-big-card.gongu   {border-top:4px solid #8b5cf6}
 .kpi-big-card.nonGongu{border-top:4px solid #10b981}
+.kpi-big-card.ilban   {border-top:4px solid #10b981}
+.kpi-big-card.etc     {border-top:4px solid #f59e0b}
 .kpi-big-label{font-size:10px;font-weight:700;letter-spacing:.06em;color:#64748b;text-transform:uppercase;margin-bottom:10px}
 .kpi-big-ach{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1;margin-bottom:4px}
 .kpi-big-ach.ok  {color:#10b981}
@@ -299,9 +301,9 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .kpi-action-item{padding:7px 0;border-bottom:1px solid #f8fafc;font-size:12px;color:#334155;display:flex;gap:8px;line-height:1.4}
 .kpi-action-item:last-child{border-bottom:none}
 .kpi-action-num{font-weight:700;color:#3b82f6;flex-shrink:0}
-@media(max-width:1100px){.kpi-ch-kpi-grid{grid-template-columns:repeat(2,1fr)}.kpi-gongu-metrics{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:900px) {.kpi3-grid{grid-template-columns:1fr 1fr}.kpi2-grid{grid-template-columns:1fr}}
-@media(max-width:600px) {.kpi3-grid{grid-template-columns:1fr}.kpi-ch-kpi-grid{grid-template-columns:1fr 1fr}.kpi-gongu-top{flex-direction:column}.kpi-gongu-counts{border-right:none;border-bottom:1px solid #f1f5f9;padding-right:0;padding-bottom:12px;margin-bottom:12px}}
+@media(max-width:1200px){.kpi4-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:1100px){.kpi-ch-kpi-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px) {.kpi4-grid{grid-template-columns:1fr}.kpi-ch-kpi-grid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -387,37 +389,15 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 
       <!-- ③ 연간 KPI -->
       <div class="kpi-section-hdr annual">연간 KPI <span class="kpi-section-badge">YTD</span></div>
-      <div class="kpi3-grid" id="kpiAnnualCards"></div>
+      <div class="kpi4-grid" id="kpiAnnualCards"></div>
 
       <!-- ④ 월간 KPI -->
       <div class="kpi-section-hdr monthly">월간 KPI <span class="kpi-section-badge" id="kpiMonthBadge"></span></div>
-      <div class="kpi3-grid" id="kpiMonthlyCards"></div>
+      <div class="kpi4-grid" id="kpiMonthlyCards"></div>
 
-      <!-- ⑤ 추이 차트 -->
-      <div class="kpi2-grid">
-        <div class="kpi-chart-card">
-          <div class="kpi-chart-title">연간 누적 매출 추이</div>
-          <div style="height:220px;position:relative"><canvas id="kpiCumulChart"></canvas></div>
-        </div>
-        <div class="kpi-chart-card">
-          <div class="kpi-chart-title">월간 주차별 매출 추이</div>
-          <div style="height:220px;position:relative"><canvas id="kpiWeekChart"></canvas></div>
-        </div>
-      </div>
-
-      <!-- ⑥ 채널별 KPI -->
+      <!-- ⑤ 채널별 KPI -->
       <div class="kpi-section-hdr channel">채널별 KPI</div>
       <div class="kpi-ch-kpi-grid" id="kpiChKpiCards"></div>
-
-      <!-- ⑦ 공구 KPI -->
-      <div class="kpi-section-hdr gongu">공구 KPI</div>
-      <div class="kpi-gongu-wrap" id="kpiGonguWrap"></div>
-
-      <!-- ⑧ KPI Alert & Action -->
-      <div class="kpi2-grid" style="margin-bottom:24px">
-        <div class="kpi-alert-card" id="kpiAlertCard"></div>
-        <div class="kpi-action-card" id="kpiActionCard"></div>
-      </div>
 
     </div>
   </div>
@@ -622,7 +602,7 @@ const SHEET_ID_2025 = '1R2r3mTrTf699JKXA9mBvTWs8Ro9JQarOh-ArrFd6uDQ';
 const GID = '1605737796';
 // 하위 호환용 (SHEET_ID 단독 참조 없음)
 const SHEET_ID = SHEET_ID_2026;
-const YEARLY_TARGET   = 9_000_000_000;  // 90억 (공구 제외 일반 매출 기준)
+const ANN_TARGET      = {};             // { total, gongu, nonGongu, ilban, etc } — 시트 B4:C8 로드
 const MONTHLY_TARGETS = {};             // 월별 목표 — 시트 row 52에서 로드 (공구 외 기준)
 const DAILY_TARGETS   = {};             // 일평균 목표 — 시트 row 58에서 로드
 const SS_TARGETS      = {};             // 스마트스토어 월 목표 — 시트 row 56
@@ -785,6 +765,18 @@ async function loadData() {
         if (!isNaN(c24)  && c24  > 0) C24_TARGETS[m]  = c24;
         const coup = parseFloat(String(coupTargRow[ci] || '').replace(/[,\s₩]/g, ''));
         if (!isNaN(coup) && coup > 0) COUP_TARGETS[m] = coup;
+      }
+    });
+    // 연간 목표 (B4:C8 = rows 4-8, 0-indexed 3-7: B열=라벨, C열=목표)
+    rr.slice(3, 8).forEach(r => {
+      const label = (r[1] || '').trim().replace(/\s+/g, '');
+      const val   = parseFloat(String(r[2] || '').replace(/[,\s₩]/g, ''));
+      if (!isNaN(val) && val > 0) {
+        if      (label.includes('전체'))                                   ANN_TARGET.total    = val;
+        else if (label.includes('공구') && !label.includes('외') && !label.includes('일반')) ANN_TARGET.gongu    = val;
+        else if (label.includes('공구외') || label.includes('공구 외'))    ANN_TARGET.nonGongu = val;
+        else if (label.includes('일반'))                                   ANN_TARGET.ilban    = val;
+        else if (label.includes('그외') || label.includes('그 외') || label.includes('기타')) ANN_TARGET.etc      = val;
       }
     });
   } catch(e) { console.warn('[로켓그로스 로딩 실패]', e); }
@@ -1138,31 +1130,33 @@ function renderKPI() {
   renderKpiExec(kd, n);
   renderKpiAnnual(kd, n);
   renderKpiMonthly(kd, n);
-  renderKpiTrendCharts(kd, n);
   renderKpiChannels(kd, n);
-  renderKpiGongu(kd, n);
-  renderKpiAlerts(kd, n);
 }
 
 // ── buildKpiData ──────────────────────────────────────
 function buildKpiData(n) {
   const yr26 = ROWS.filter(r=>r.year===n.y);
   const yr25 = ROWS.filter(r=>r.year===n.y-1);
-  const fG   = r=>r.dist==='3.공동구매';
-  const fNG  = r=>r.dist!=='3.공동구매';
+  const fG     = r=>r.dist==='3.공동구매';
+  const fIlban = r=>r.dist==='1.일반';
+  const fEtc   = r=>r.dist!=='3.공동구매'&&r.dist!=='1.일반';
+  const fNG    = r=>r.dist!=='3.공동구매';
 
   // YTD
-  let ytdAll=0;
-  yr26.forEach(r=>{ ytdAll+=r.rev; });
-  for(let m=1;m<=n.m;m++) ytdAll+=(ROCKET_REV[m]||0);
-  const ytdGongu    = yr26.filter(fG).reduce((s,r)=>s+r.rev,0);
-  const ytdNonGongu = ytdAll - ytdGongu;
+  const ytdGongu = yr26.filter(fG).reduce((s,r)=>s+r.rev,0);
+  let   ytdIlban = yr26.filter(fIlban).reduce((s,r)=>s+r.rev,0);
+  for(let m=1;m<=n.m;m++) ytdIlban+=(ROCKET_REV[m]||0); // 로켓=쿠팡=일반커머스
+  const ytdEtc      = yr26.filter(fEtc).reduce((s,r)=>s+r.rev,0);
+  const ytdNonGongu = ytdIlban + ytdEtc;
+  const ytdAll      = ytdGongu + ytdNonGongu;
   const ytd25       = yr25.filter(r=>r.month<n.m||(r.month===n.m&&r.day<=n.dy)).reduce((s,r)=>s+r.rev,0);
 
   const elDoy = n.doy;
-  const fcastYAll     = forecastM(ytdAll,     elDoy, n.diy);
-  const fcastYGongu   = forecastM(ytdGongu,   elDoy, n.diy);
-  const fcastYNonGongu= forecastM(ytdNonGongu,elDoy, n.diy);
+  const fcastYAll      = forecastM(ytdAll,      elDoy, n.diy);
+  const fcastYGongu    = forecastM(ytdGongu,    elDoy, n.diy);
+  const fcastYIlban    = forecastM(ytdIlban,    elDoy, n.diy);
+  const fcastYEtc      = forecastM(ytdEtc,      elDoy, n.diy);
+  const fcastYNonGongu = fcastYIlban + fcastYEtc;
 
   // 월간
   const monRows  = yr26.filter(r=>r.month===n.m);
@@ -1170,20 +1164,31 @@ function buildKpiData(n) {
   const prevRkt  = ROCKET_REV[n.m>1?n.m-1:12]||0;
 
   const revM_gongu    = monRows.filter(fG).reduce((s,r)=>s+r.rev,0);
-  const revM_nonGongu = monRows.filter(fNG).reduce((s,r)=>s+r.rev,0) + (ROCKET_REV[n.m]||0);
+  const revM_ilban    = monRows.filter(fIlban).reduce((s,r)=>s+r.rev,0) + (ROCKET_REV[n.m]||0);
+  const revM_etc      = monRows.filter(fEtc).reduce((s,r)=>s+r.rev,0);
+  const revM_nonGongu = revM_ilban + revM_etc;
   const revM_all      = revM_gongu + revM_nonGongu;
 
   const prevM_gongu    = prevRows.filter(fG).reduce((s,r)=>s+r.rev,0);
-  const prevM_nonGongu = prevRows.filter(fNG).reduce((s,r)=>s+r.rev,0) + prevRkt;
+  const prevM_ilban    = prevRows.filter(fIlban).reduce((s,r)=>s+r.rev,0) + prevRkt;
+  const prevM_etc      = prevRows.filter(fEtc).reduce((s,r)=>s+r.rev,0);
+  const prevM_nonGongu = prevM_ilban + prevM_etc;
   const prevM_all      = prevM_gongu + prevM_nonGongu;
 
   const maxDayM  = maxDay(yr26, n.y, n.m) || n.dy;
-  const monTarget = MONTHLY_TARGETS[n.m] || null;
+  const monTarget = MONTHLY_TARGETS[n.m] || null;  // 공구 외 합산 기준
   const remainDays = n.dim - maxDayM;
 
-  const fcastM_nonGongu = forecastM(revM_nonGongu, maxDayM, n.dim);
+  // 일반커머스 월간 목표: 연간비율로 월 목표 배분 (ANN_TARGET.ilban / ANN_TARGET.nonGongu × 월 목표)
+  const ilbanRatio = (ANN_TARGET.ilban && ANN_TARGET.nonGongu) ? ANN_TARGET.ilban/ANN_TARGET.nonGongu : null;
+  const monTarget_ilban = (monTarget && ilbanRatio) ? Math.round(monTarget * ilbanRatio) : monTarget;
+  const monTarget_etc   = (monTarget && ilbanRatio) ? Math.round(monTarget * (1-ilbanRatio)) : null;
+
+  const fcastM_ilban    = forecastM(revM_ilban,    maxDayM, n.dim);
+  const fcastM_etc      = forecastM(revM_etc,      maxDayM, n.dim);
   const fcastM_gongu    = forecastM(revM_gongu,    maxDayM, n.dim);
-  const fcastM_all      = fcastM_nonGongu + fcastM_gongu;
+  const fcastM_nonGongu = fcastM_ilban + fcastM_etc;
+  const fcastM_all      = fcastM_gongu + fcastM_nonGongu;
 
   const curPace_ng = maxDayM>0 ? Math.round(revM_nonGongu/maxDayM) : 0;
   const reqPace    = (monTarget && remainDays>0) ? Math.round((monTarget-revM_nonGongu)/remainDays) : 0;
@@ -1203,48 +1208,27 @@ function buildKpiData(n) {
     ch('kko',  '카카오톡스토어'),
   ].map(c=>({...c, name: c.key==='coup'?'쿠팡(로켓포함)':c.key==='kko'?'카카오':c.name}));
 
-  // 주차별
-  const weekData = [1,2,3,4,5].map(w=>{
-    const wr = monRows.filter(r=>r.week===w);
-    return { g:wr.filter(fG).reduce((s,r)=>s+r.rev,0), ng:wr.filter(fNG).reduce((s,r)=>s+r.rev,0) };
-  });
-
-  // 누적 추이
-  const cumul = arr => arr.reduce((acc,v)=>[...acc,(acc[acc.length-1]||0)+v],[]);
-  const mRevs26 = Array.from({length:n.m},(_,i)=>
-    yr26.filter(r=>r.month===i+1).reduce((s,r)=>s+r.rev,0)+(ROCKET_REV[i+1]||0));
-  const mRevs25 = Array.from({length:n.m},(_,i)=>
-    yr25.filter(r=>r.month===i+1).reduce((s,r)=>s+r.rev,0));
-  const mTargs  = Array.from({length:n.m},(_,i)=>MONTHLY_TARGETS[i+1]||0);
-
-  // 공구 품목별
-  const gonguProd = Object.values(sumBy(monRows.filter(fG),'prod'))
-    .sort((a,b)=>b.rev-a.rev);
-
   return {
     n, maxDayM,
     yearly: {
-      all:      {rev:ytdAll,     target:null,        forecast:fcastYAll,      prev:ytd25},
-      gongu:    {rev:ytdGongu,   target:null,        forecast:fcastYGongu},
-      nonGongu: {rev:ytdNonGongu,target:YEARLY_TARGET,forecast:fcastYNonGongu,prev:ytd25},
+      all:      {rev:ytdAll,      target:ANN_TARGET.total||null,    forecast:fcastYAll,      prev:ytd25},
+      gongu:    {rev:ytdGongu,    target:ANN_TARGET.gongu||null,    forecast:fcastYGongu},
+      ilban:    {rev:ytdIlban,    target:ANN_TARGET.ilban||null,    forecast:fcastYIlban},
+      etc:      {rev:ytdEtc,      target:ANN_TARGET.etc||null,      forecast:fcastYEtc},
+      nonGongu: {rev:ytdNonGongu, target:ANN_TARGET.nonGongu||null, forecast:fcastYNonGongu, prev:ytd25},
     },
     monthly: {
-      all:      {rev:revM_all,      target:null,      prev:prevM_all,      forecast:fcastM_all,      maxDay:maxDayM},
-      gongu:    {rev:revM_gongu,    target:null,      prev:prevM_gongu,    forecast:fcastM_gongu,    maxDay:maxDayM},
-      nonGongu: {rev:revM_nonGongu, target:monTarget, prev:prevM_nonGongu, forecast:fcastM_nonGongu, maxDay:maxDayM,
+      all:      {rev:revM_all,      target:null,           prev:prevM_all,      forecast:fcastM_all,      maxDay:maxDayM},
+      gongu:    {rev:revM_gongu,    target:null,           prev:prevM_gongu,    forecast:fcastM_gongu,    maxDay:maxDayM},
+      ilban:    {rev:revM_ilban,    target:monTarget_ilban,prev:prevM_ilban,    forecast:fcastM_ilban,    maxDay:maxDayM,
+                 curPace:maxDayM>0?Math.round(revM_ilban/maxDayM):0,
+                 reqPace:monTarget_ilban&&remainDays>0?Math.round((monTarget_ilban-revM_ilban)/remainDays):0,
+                 remainDays},
+      etc:      {rev:revM_etc,     target:monTarget_etc,  prev:prevM_etc,      forecast:fcastM_etc,      maxDay:maxDayM},
+      nonGongu: {rev:revM_nonGongu,target:monTarget,      prev:prevM_nonGongu, forecast:fcastM_nonGongu, maxDay:maxDayM,
                  curPace:curPace_ng, reqPace, remainDays},
     },
     channels,
-    trends: {
-      labels:      Array.from({length:n.m},(_,i)=>`${i+1}월`),
-      cumulAll:    cumul(mRevs26),
-      cumulPrev:   cumul(mRevs25),
-      cumulTarget: cumul(mTargs),
-      weekNonG: weekData.map(w=>w.ng),
-      weekGongu:weekData.map(w=>w.g),
-    },
-    gonguProd,
-    gonguRevM: revM_gongu,
   };
 }
 
@@ -1277,21 +1261,22 @@ function kpiRow(k,v,vcls='') {
 
 // ── Executive Summary ─────────────────────────────────
 function renderKpiExec(kd, n) {
-  const {monthly:{nonGongu:ng}, yearly:{nonGongu:yng}} = kd;
+  const {monthly:{nonGongu:ng, ilban, gongu:g}} = kd;
   const items = [];
   const add = (icon, txt, cls='') => items.push(`<div class="kpi-exec-item ${cls}">${icon} ${txt}</div>`);
 
-  // 연간
-  const achY = yng.target ? Math.round(yng.rev/yng.target*100) : null;
-  const planPaceY = yng.target ? Math.round(yng.target*n.doy/n.diy) : null;
-  const vsY = (planPaceY && yng.rev) ? ((yng.rev-planPaceY)/planPaceY*100).toFixed(1) : null;
+  // 연간 전체
+  const yAll = kd.yearly.all;
+  const achY = yAll.target ? Math.round(yAll.rev/yAll.target*100) : null;
+  const planPaceY = yAll.target ? Math.round(yAll.target*n.doy/n.diy) : null;
+  const vsY = (planPaceY && yAll.rev) ? ((yAll.rev-planPaceY)/planPaceY*100).toFixed(1) : null;
   if (achY!==null) {
     const vsStr = vsY!==null ? ` (계획 대비 ${+vsY>=0?'+':''}${vsY}%)` : '';
     add(achY>=90?'✅':'📊', `연간 목표 달성률 <strong>${achY}%</strong>${vsStr}`, achY<70?'danger':achY<90?'warn':'ok');
   }
 
-  // 월간
-  const achM = ng.target ? Math.round(ng.rev/ng.target*100) : null;
+  // 월간 공구 외
+  const achM  = ng.target ? Math.round(ng.rev/ng.target*100) : null;
   const fachM = ng.target ? Math.round(ng.forecast/ng.target*100) : null;
   const gapM  = ng.target ? ng.target - ng.rev : null;
   if (achM!==null) {
@@ -1305,11 +1290,13 @@ function renderKpiExec(kd, n) {
     add(flag, `목표 달성을 위해 남은 ${ng.remainDays}일간 일평균 <strong>${fmtM(ng.reqPace)}</strong> 필요 (현재 ${fmtM(ng.curPace)})`,
       ng.reqPace>ng.curPace*1.3?'danger':ng.reqPace>ng.curPace?'warn':'ok');
   }
-  // 공구 비교
-  const {monthly:{gongu:g}} = kd;
-  if (g.rev>0||ng.rev>0) {
-    const gPct = g.rev+ng.rev>0?Math.round(g.rev/(g.rev+ng.rev)*100):0;
-    add('📦', `이번 달 공구 매출 ${fmtM(g.rev)} (전체의 ${gPct}%), 공구 외 ${fmtM(ng.rev)}`);
+  // 일반커머스 vs 그 외 vs 공구 비중
+  const total = kd.monthly.all.rev;
+  if (total>0) {
+    const gPct   = Math.round(g.rev/total*100);
+    const iPct   = Math.round(ilban.rev/total*100);
+    const ePct   = 100-gPct-iPct;
+    add('📦', `이번 달 구성 — 공구 ${fmtM(g.rev)} (${gPct}%) / 일반커머스 ${fmtM(ilban.rev)} (${iPct}%) / 그 외 ${fmtM(kd.monthly.etc.rev)} (${ePct}%)`);
   }
 
   document.getElementById('kpiExecSummary').innerHTML =
@@ -1318,15 +1305,15 @@ function renderKpiExec(kd, n) {
 
 // ── Annual Cards ──────────────────────────────────────
 function renderKpiAnnual(kd, n) {
-  const {yearly:{all,gongu,nonGongu}} = kd;
+  const {yearly:{all,gongu,ilban,etc}} = kd;
   const card = (d, cls, label, extra=[]) => {
     const ach = d.target ? Math.round(d.rev/d.target*100) : null;
     const sc  = ach!==null ? kpiStatusCls(ach) : 'gray';
     const rows = [
-      kpiRow('연간 목표',   d.target?fmtM(d.target):'미정'),
-      kpiRow('현재 누적',   fmtM(d.rev)),
-      kpiRow('목표 대비 GAP', d.target?fmtM(d.target-d.rev): '—', d.target&&d.target>d.rev?'red':'green'),
-      kpiRow('예상 연말',   fmtM(d.forecast)),
+      kpiRow('연간 목표',     d.target?fmtM(d.target):'미정'),
+      kpiRow('현재 누적',     fmtM(d.rev)),
+      kpiRow('목표 대비 GAP', d.target?fmtM(d.target-d.rev):'—', d.target&&d.target>d.rev?'red':'green'),
+      kpiRow('예상 연말',     fmtM(d.forecast)),
       ...extra,
     ].join('');
     return `<div class="kpi-big-card ${cls}">
@@ -1336,16 +1323,17 @@ function renderKpiAnnual(kd, n) {
       <div class="kpi-big-rows">${rows}</div>
     </div>`;
   };
-  const vsY25 = kd.yearly.nonGongu.prev ? ((kd.yearly.all.rev-(kd.yearly.all.prev||0))/(kd.yearly.all.prev||1)*100).toFixed(1) : null;
+  const vsY25 = all.prev ? ((all.rev-all.prev)/all.prev*100).toFixed(1) : null;
   document.getElementById('kpiAnnualCards').innerHTML =
-    card(all,      'total',    '전 체', vsY25!==null?[kpiRow('전년 대비', (vsY25>=0?'▲':'▼')+Math.abs(vsY25)+'%', vsY25>=0?'green':'red')]:[])
-   +card(gongu,    'gongu',    '공  구')
-   +card(nonGongu, 'nonGongu', '공 구 외');
+    card(all,   'total', '전 체', vsY25!==null?[kpiRow('전년 대비',(+vsY25>=0?'▲':'▼')+Math.abs(vsY25)+'%',+vsY25>=0?'green':'red')]:[])
+   +card(gongu, 'gongu', '공  구')
+   +card(ilban, 'ilban', '일반커머스')
+   +card(etc,   'etc',   '그  외');
 }
 
 // ── Monthly Cards ─────────────────────────────────────
 function renderKpiMonthly(kd, n) {
-  const {monthly:{all,gongu,nonGongu:ng}} = kd;
+  const {monthly:{all,gongu,ilban,etc}} = kd;
   const cardM = (d, cls, label, extra=[]) => {
     const ach = d.target ? Math.round(d.rev/d.target*100) : null;
     const sc  = ach!==null ? kpiStatusCls(ach) : 'gray';
@@ -1364,71 +1352,15 @@ function renderKpiMonthly(kd, n) {
       <div class="kpi-big-rows">${rows}</div>
     </div>`;
   };
-  const ngExtra = [
-    kpiRow('현재 일평균', fmtM(ng.curPace)),
-    kpiRow('필요 일평균', ng.reqPace>0?fmtM(ng.reqPace):'✓ 달성 페이스', ng.reqPace>ng.curPace?'red':'green'),
-  ];
+  const ilbanExtra = ilban.curPace!=null ? [
+    kpiRow('현재 일평균', fmtM(ilban.curPace)),
+    kpiRow('필요 일평균', ilban.reqPace>0?fmtM(ilban.reqPace):'✓ 달성 페이스', ilban.reqPace>ilban.curPace?'red':'green'),
+  ] : [];
   document.getElementById('kpiMonthlyCards').innerHTML =
-    cardM(all,  'total',    '전 체')
-   +cardM(gongu,'gongu',    '공  구')
-   +cardM(ng,   'nonGongu', '공 구 외', ngExtra);
-}
-
-// ── Trend Charts ──────────────────────────────────────
-function renderKpiTrendCharts(kd, n) {
-  const {trends:t} = kd;
-  // 누적 추이
-  mkChart('kpiCumulChart', {
-    type:'line',
-    data:{
-      labels: t.labels,
-      datasets:[
-        {label:'목표 누적', data:t.cumulTarget.map(v=>+(v/1e8).toFixed(1)),
-         borderColor:'#94a3b8',borderDash:[5,4],borderWidth:2,pointRadius:3,fill:false,tension:.3},
-        {label:'2026 누적', data:t.cumulAll.map(v=>+(v/1e8).toFixed(1)),
-         borderColor:'#1d4ed8',borderWidth:2.5,pointRadius:4,fill:false,tension:.3,
-         pointBackgroundColor:t.cumulAll.map((_,i)=>i===n.m-1?'#1d4ed8':'#93c5fd')},
-        {label:'2025 누적', data:t.cumulPrev.map(v=>+(v/1e8).toFixed(1)),
-         borderColor:'#cbd5e1',borderWidth:1.5,pointRadius:3,fill:false,tension:.3},
-      ]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:10}},
-        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y}억`}}
-      },
-      scales:{
-        x:{grid:{display:false},ticks:{font:{size:10},maxRotation:0}},
-        y:{ticks:{callback:v=>v+'억',font:{size:10}},grid:{color:'#f1f5f9'}}
-      }
-    }
-  });
-
-  // 주차별
-  mkChart('kpiWeekChart', {
-    type:'bar',
-    data:{
-      labels:['1주','2주','3주','4주','5주'],
-      datasets:[
-        {label:'공구 외', data:t.weekNonG.map(v=>+(v/1e8).toFixed(2)),
-         backgroundColor:'#10b981',borderRadius:4,barPercentage:.7},
-        {label:'공구',   data:t.weekGongu.map(v=>+(v/1e8).toFixed(2)),
-         backgroundColor:'#8b5cf6',borderRadius:4,barPercentage:.7},
-      ]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{position:'bottom',labels:{font:{size:10},boxWidth:10,padding:10}},
-        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y}억`}}
-      },
-      scales:{
-        x:{grid:{display:false},ticks:{font:{size:10}}},
-        y:{stacked:false,ticks:{callback:v=>v+'억',font:{size:10}},grid:{color:'#f1f5f9'}}
-      }
-    }
-  });
+    cardM(all,   'total', '전 체')
+   +cardM(gongu, 'gongu', '공  구')
+   +cardM(ilban, 'ilban', '일반커머스', ilbanExtra)
+   +cardM(etc,   'etc',   '그  외');
 }
 
 // ── Channel Cards ─────────────────────────────────────
@@ -1454,125 +1386,6 @@ function renderKpiChannels(kd, n) {
     </div>`;
   };
   document.getElementById('kpiChKpiCards').innerHTML = kd.channels.map(chCard).join('');
-}
-
-// ── Gongu KPI ─────────────────────────────────────────
-function renderKpiGongu(kd, n) {
-  const rev = kd.gonguRevM;
-
-  // GONGU_ROWS 상태 집계 (재고 시트 공구탭)
-  let cntTotal=0, cntDone=0, cntActive=0;
-  if (GONGU_ROWS.length > 0) {
-    const hdrIdx = GONGU_ROWS.findIndex(r=>r.some(c=>c.trim()==='품목명'||c.trim()==='제품명'));
-    if (hdrIdx>=0) {
-      const hdr = GONGU_ROWS[hdrIdx];
-      const stCol  = hdr.findIndex(c=>c.trim()==='상태'||c.trim()==='진행상태');
-      const monCol = hdr.findIndex(c=>c.trim()==='월'||c.trim()==='판매월');
-      GONGU_ROWS.slice(hdrIdx+1).forEach(r=>{
-        if (!r || r.every(c=>!c.trim())) return;
-        const mon = monCol>=0?parseInt(r[monCol]):0;
-        if (mon && mon!==n.m) return;
-        cntTotal++;
-        const st = stCol>=0?r[stCol].trim():'';
-        if (st==='O'||st==='완료'||st==='종료') cntDone++;
-        else if (st==='진행'||st==='진행중') cntActive++;
-      });
-    }
-  }
-  const hasCnt = cntTotal>0;
-  const byProd = kd.gonguProd.slice(0,8);
-
-  const countsHtml = hasCnt ? `
-    <div class="kpi-gongu-counts">
-      <div class="kpi-gongu-count"><div class="gcn">${cntTotal}</div><div class="gcl">전체</div></div>
-      <div class="kpi-gongu-count"><div class="gcn">${cntActive}</div><div class="gcl">진행중</div></div>
-      <div class="kpi-gongu-count"><div class="gcn">${cntDone}</div><div class="gcl">완료</div></div>
-    </div>` : '';
-
-  const metricsHtml = `
-    <div class="kpi-gongu-metrics">
-      <div class="kpi-gongu-metric"><div class="gm-k">확정 매출</div><div class="gm-v">${fmtM(rev)}</div></div>
-      <div class="kpi-gongu-metric"><div class="gm-k">건수 (당월)</div><div class="gm-v">${byProd.length}건</div></div>
-      <div class="kpi-gongu-metric"><div class="gm-k">건당 평균</div><div class="gm-v">${byProd.length?fmtM(Math.round(rev/byProd.length)):'—'}</div></div>
-      <div class="kpi-gongu-metric"><div class="gm-k">전월 대비</div><div class="gm-v">${pctHtml(rev, kd.monthly.gongu.prev)}</div></div>
-    </div>`;
-
-  const tblHtml = byProd.length ? `
-    <table class="kpi-gongu-tbl">
-      <thead><tr><th>공구명</th><th style="text-align:right">실적</th><th style="text-align:right">수량</th></tr></thead>
-      <tbody>${byProd.map(p=>`<tr><td>${p.prod||'—'}</td><td style="text-align:right">${fmtM(p.rev)}</td><td style="text-align:right">${fmtQty(p.qty)}</td></tr>`).join('')}</tbody>
-    </table>` : `<div style="color:#94a3b8;font-size:12px;padding:8px 0">이번 달 공구 매출 데이터 없음</div>`;
-
-  document.getElementById('kpiGonguWrap').innerHTML = `
-    <div class="kpi-gongu-top">${countsHtml}${metricsHtml}</div>
-    ${tblHtml}`;
-}
-
-// ── Alert & Action ────────────────────────────────────
-function renderKpiAlerts(kd, n) {
-  const {monthly:{nonGongu:ng}, yearly:{nonGongu:yng}, channels} = kd;
-  const alerts  = [];
-  const actions = [];
-
-  const addAlert = (lvl, icon, msg) => alerts.push({lvl, icon, msg});
-
-  // 월간 예상 미달
-  if (ng.target && ng.forecast < ng.target*0.9) {
-    addAlert('danger','🚨',`월간 목표 예상 미달 — 예상 ${fmtM(ng.forecast)} / 목표 ${fmtM(ng.target)} (예상 달성 ${Math.round(ng.forecast/ng.target*100)}%)`);
-    actions.push(`일평균 매출 ${fmtM(ng.reqPace)} 달성을 위한 채널별 집중 프로모션 계획 수립`);
-  } else if (ng.target && ng.forecast < ng.target) {
-    addAlert('warning','⚠️',`월간 목표 달성 위험 — 예상 ${fmtM(ng.forecast)} / 목표 ${fmtM(ng.target)}`);
-  }
-
-  // 일평균 페이스
-  if (ng.reqPace > ng.curPace*1.5) {
-    addAlert('danger','📉',`필요 일평균(${fmtM(ng.reqPace)})이 현재(${fmtM(ng.curPace)}) 대비 ${Math.round(ng.reqPace/ng.curPace*100-100)}% 높음`);
-  } else if (ng.reqPace > ng.curPace*1.2) {
-    addAlert('warning','📊',`일평균 페이스 부족 — 필요 ${fmtM(ng.reqPace)} / 현재 ${fmtM(ng.curPace)}`);
-  }
-
-  // 연간
-  if (yng.target) {
-    const planYTD = Math.round(yng.target*n.doy/n.diy);
-    if (yng.rev < planYTD*0.9) {
-      addAlert('warning','📅',`연간 누적 계획 대비 부진 — 계획 ${fmtM(planYTD)} / 실제 ${fmtM(yng.rev)} (${Math.round(yng.rev/planYTD*100)}%)`);
-      actions.push(`연간 계획 대비 ${fmtM(planYTD-yng.rev)} 누적 미달 — 하반기 만회 전략 검토`);
-    }
-  }
-
-  // 채널
-  const pctOfMonth = n.dim>0 ? kd.maxDayM/n.dim : 1;
-  channels.forEach(c=>{
-    if (!c.target) return;
-    const achPace = Math.round(c.rev/(c.target*pctOfMonth)*100);
-    if (achPace < 70) {
-      addAlert('danger','🔴',`${c.name} 심각 부진 — 페이스 달성률 ${achPace}% (실적 ${fmtM(c.rev)} / 기대 ${fmtM(Math.round(c.target*pctOfMonth))})`);
-      actions.push(`${c.name} 매출 부진 원인 분석 및 즉시 대응 (광고비, 상품 노출, 프로모션)`);
-    } else if (achPace < 90) {
-      addAlert('warning','🟡',`${c.name} 주의 — 페이스 달성률 ${achPace}%`);
-    }
-  });
-
-  // 공구 없음
-  if (kd.gonguRevM === 0) {
-    addAlert('info','ℹ️','이번 달 공구 매출 미발생 — 공구 일정 확인 필요');
-    actions.push('공구 일정표 확인 및 이번 달 예정 공구 진행 상황 점검');
-  }
-
-  if (alerts.length===0) addAlert('info','✅','현재 주요 KPI 이상 없음');
-  if (actions.length===0) actions.push('현재 주요 액션 없음 — KPI 정상 운영 중입니다.');
-
-  const alertHtml = alerts.map(a=>
-    `<div class="kpi-alert-item ${a.lvl}"><span>${a.icon}</span><span>${a.msg}</span></div>`
-  ).join('');
-  const actionHtml = actions.map((a,i)=>
-    `<div class="kpi-action-item"><span class="kpi-action-num">${i+1}.</span><span>${a}</span></div>`
-  ).join('');
-
-  document.getElementById('kpiAlertCard').innerHTML =
-    `<div class="kpi-panel-title">⚡ KPI Alert</div>${alertHtml}`;
-  document.getElementById('kpiActionCard').innerHTML =
-    `<div class="kpi-panel-title">🎯 추천 액션</div>${actionHtml}`;
 }
 
 // ── 기존 helper 유지 (다른 페이지에서 참조) ────────────
