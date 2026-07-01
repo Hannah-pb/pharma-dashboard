@@ -210,6 +210,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .kpi-section-hdr.channel{background:linear-gradient(90deg,#0891b2,#06b6d4)}
 .kpi-section-hdr.gongu  {background:linear-gradient(90deg,#7c3aed,#8b5cf6)}
 .kpi-section-badge{background:rgba(255,255,255,.25);padding:2px 8px;border-radius:10px;font-size:10px}
+.kpi-ch-sub-hdr{font-size:11px;font-weight:700;color:#1d4ed8;padding:10px 2px 4px;margin-top:4px;border-top:1px solid #e2e8f0;letter-spacing:.04em}
 /* Executive Summary */
 .kpi-exec-card{background:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 1px 6px rgba(0,0,0,.08);margin-bottom:6px;border-left:4px solid #3b82f6}
 .kpi-exec-title{font-size:11px;font-weight:700;color:#1d4ed8;margin-bottom:8px;letter-spacing:.04em}
@@ -391,12 +392,10 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       <div class="kpi-section-hdr annual">연간 KPI <span class="kpi-section-badge">YTD</span></div>
       <div class="kpi4-grid" id="kpiAnnualCards"></div>
 
-      <!-- ④ 월간 KPI -->
+      <!-- ④ 월간 KPI + 채널 -->
       <div class="kpi-section-hdr monthly">월간 KPI <span class="kpi-section-badge" id="kpiMonthBadge"></span></div>
       <div class="kpi4-grid" id="kpiMonthlyCards"></div>
-
-      <!-- ⑤ 채널별 KPI -->
-      <div class="kpi-section-hdr channel">채널별 KPI</div>
+      <div class="kpi-ch-sub-hdr">채널별 현황</div>
       <div class="kpi-ch-kpi-grid" id="kpiChKpiCards"></div>
 
     </div>
@@ -652,10 +651,9 @@ document.addEventListener('DOMContentLoaded', () => {
   bindSidebar();
   loadData().then(() => {
     document.getElementById('loading').classList.add('hidden');
-    document.getElementById('pageHeader').style.display = '';
     populateMonthSelects();
     const initHash = window.location.hash.slice(1);
-    switchPage(PAGE_TITLES[initHash] ? initHash : 'kpi');
+    switchPage(PAGE_TITLES[initHash] != null && initHash ? initHash : 'kpi');
   }).catch(err => {
     document.getElementById('loadingText').innerHTML =
       `<span style="color:#dc2626">로드 실패: ${err.message}</span><br>
@@ -767,18 +765,33 @@ async function loadData() {
         if (!isNaN(coup) && coup > 0) COUP_TARGETS[m] = coup;
       }
     });
-    // 연간 목표 (B4:C8 = rows 4-8, 0-indexed 3-7: B열=라벨, C열=목표)
-    rr.slice(3, 8).forEach(r => {
-      const label = (r[1] || '').trim().replace(/\s+/g, '');
-      const val   = parseFloat(String(r[2] || '').replace(/[,\s₩]/g, ''));
-      if (!isNaN(val) && val > 0) {
-        if      (label.includes('전체'))                                   ANN_TARGET.total    = val;
-        else if (label.includes('공구') && !label.includes('외') && !label.includes('일반')) ANN_TARGET.gongu    = val;
-        else if (label.includes('공구외') || label.includes('공구 외'))    ANN_TARGET.nonGongu = val;
-        else if (label.includes('일반'))                                   ANN_TARGET.ilban    = val;
-        else if (label.includes('그외') || label.includes('그 외') || label.includes('기타')) ANN_TARGET.etc      = val;
+    // 연간 목표 (B4:C8 = rows 4-8, 0-indexed 3-7)
+    const annRows = rr.slice(3, 8);
+    console.log('[ANN_TARGET] B4:C8 raw rows:', annRows.map(r=>r.slice(0,5)));
+    const parseAnnVal = raw => {
+      const s = String(raw || '').trim();
+      // "90억" → 90 * 1e8, "9000000000" → 9000000000
+      const eok = s.match(/^([\d,.]+)\s*억/);
+      if (eok) return parseFloat(eok[1].replace(/,/g,'')) * 1e8;
+      return parseFloat(s.replace(/[,\s₩]/g, ''));
+    };
+    annRows.forEach((r, ri) => {
+      // 라벨은 col B(idx1) 우선, 없으면 col A(idx0)
+      const rawLabel = (r[1] || r[0] || '').trim();
+      const label    = rawLabel.replace(/\s+/g, '');
+      // 값은 col C(idx2) 우선, 없거나 0이면 col B(idx1) 시도
+      let val = parseAnnVal(r[2]);
+      if (isNaN(val) || val === 0) val = parseAnnVal(r[1]);
+      console.log(`[ANN_TARGET] row${ri+4}: label="${rawLabel}" val=${val}`);
+      if (!isNaN(val) && val > 100) {  // 100 이하면 의미없는 값 제외
+        if      (label.includes('전체'))                                                 ANN_TARGET.total    = val;
+        else if (label.includes('공구') && !label.includes('외') && !label.includes('일반')) ANN_TARGET.gongu = val;
+        else if (label.includes('공구외') || label.includes('공구 외'))                 ANN_TARGET.nonGongu = val;
+        else if (label.includes('일반'))                                                 ANN_TARGET.ilban    = val;
+        else if (label.includes('그외') || label.includes('그 외') || label.includes('기타')) ANN_TARGET.etc  = val;
       }
     });
+    console.log('[ANN_TARGET] 파싱 결과:', ANN_TARGET);
   } catch(e) { console.warn('[로켓그로스 로딩 실패]', e); }
 }
 
@@ -888,7 +901,7 @@ function mkChart(id, cfg) {
 // ═══════════════════════════════════════════════════════
 //  NAV / PAGE SWITCHING
 // ═══════════════════════════════════════════════════════
-const PAGE_TITLES = {kpi:'KPI 요약', sales:'매출 현황', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출', inventory:'재고관리'};
+const PAGE_TITLES = {kpi:'', sales:'매출 현황', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출', inventory:'재고관리'};
 
 function toggleNavParent(id) {
   const parent = document.getElementById(id);
@@ -929,7 +942,9 @@ function bindNav() {
       document.querySelectorAll('.nav-item').forEach(c=>c.classList.remove('active'));
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
       document.getElementById('page-'+pg).classList.add('active');
-      document.getElementById('pageTitle').textContent = PAGE_TITLES[pg] || el.textContent.trim();
+      const _title1 = PAGE_TITLES[pg] != null ? PAGE_TITLES[pg] : el.textContent.trim();
+      document.getElementById('pageHeader').style.display = _title1 ? '' : 'none';
+      document.getElementById('pageTitle').textContent = _title1;
       document.getElementById('pageMeta').textContent = updateMetaText();
       if (subtab) {
         // activate the right tab
@@ -959,7 +974,9 @@ function bindNav() {
       el.classList.add('active');
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
       document.getElementById('page-'+pg).classList.add('active');
-      document.getElementById('pageTitle').textContent = PAGE_TITLES[pg] || el.textContent.trim();
+      const _title2 = PAGE_TITLES[pg] != null ? PAGE_TITLES[pg] : el.textContent.trim();
+      document.getElementById('pageHeader').style.display = _title2 ? '' : 'none';
+      document.getElementById('pageTitle').textContent = _title2;
       document.getElementById('pageMeta').textContent = updateMetaText();
       renderPage(pg);
       document.getElementById('sidebar').classList.remove('open');
@@ -979,7 +996,9 @@ function bindNav() {
       el.classList.add('active');
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
       document.getElementById('page-'+pg).classList.add('active');
-      document.getElementById('pageTitle').textContent = PAGE_TITLES[pg] || el.textContent.trim();
+      const _title3 = PAGE_TITLES[pg] != null ? PAGE_TITLES[pg] : el.textContent.trim();
+      document.getElementById('pageHeader').style.display = _title3 ? '' : 'none';
+      document.getElementById('pageTitle').textContent = _title3;
       document.getElementById('pageMeta').textContent = updateMetaText();
       renderPage(pg);
       document.getElementById('sidebar').classList.remove('open');
@@ -1060,7 +1079,9 @@ function switchPage(pg) {
   document.querySelectorAll('.nav-great-grandchild').forEach(el=>el.classList.toggle('active', el.dataset.page===pg));
   document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
   document.getElementById('page-'+pg)?.classList.add('active');
-  document.getElementById('pageTitle').textContent = PAGE_TITLES[pg] || pg;
+  const title = PAGE_TITLES[pg];
+  document.getElementById('pageHeader').style.display = title ? '' : 'none';
+  document.getElementById('pageTitle').textContent = title || '';
   document.getElementById('pageMeta').textContent = pg === 'inventory' ? invMetaText() : updateMetaText();
   renderPage(pg);
 }
