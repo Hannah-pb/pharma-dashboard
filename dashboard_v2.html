@@ -392,7 +392,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       <!-- ④ 월간 KPI + 채널 -->
       <div class="kpi-section-hdr monthly">월간 KPI <span class="kpi-section-badge" id="kpiMonthBadge"></span></div>
       <div class="kpi4-grid" id="kpiMonthlyCards"></div>
-      <div class="kpi-ch-sub-hdr">채널별 현황</div>
+      <div class="kpi-ch-sub-hdr">일반커머스 채널별 현황</div>
       <div class="kpi-ch-kpi-grid" id="kpiChKpiCards"></div>
 
     </div>
@@ -745,10 +745,6 @@ async function loadData() {
     const targHdrRow  = rr[50] || [];
     const targDataRow = rr[51] || [];
     const dailyRow    = rr[57] || [];
-    const ilbanTargRow = rr[56] || [];  // row 57: 일반커머스 월 목표 (라벨 row55+2)
-    const ssTargRow    = rr[62] || [];  // row 63: 스마트스토어 월 목표 (라벨 row61+2)
-    const c24TargRow   = rr[68] || [];  // row 69: 카페24 월 목표 (라벨 row67+2)
-    const coupTargRow  = rr[73] || [];  // row 74: 쿠팡 월 목표 (라벨 row72+2)
     targHdrRow.forEach((h, ci) => {
       const m = parseInt(h.trim());
       if (m >= 1 && m <= 12) {
@@ -756,42 +752,51 @@ async function loadData() {
         if (!isNaN(t) && t > 0) MONTHLY_TARGETS[m] = t;
         const d = parseFloat(String(dailyRow[ci]    || '').replace(/[,\s₩]/g, ''));
         if (!isNaN(d) && d > 0) DAILY_TARGETS[m]   = d;
-        const ss   = parseFloat(String(ssTargRow[ci]   || '').replace(/[,\s₩]/g, ''));
-        if (!isNaN(ss)   && ss   > 0) SS_TARGETS[m]   = ss;
-        const c24  = parseFloat(String(c24TargRow[ci]  || '').replace(/[,\s₩]/g, ''));
-        if (!isNaN(c24)  && c24  > 0) C24_TARGETS[m]  = c24;
-        const coup  = parseFloat(String(coupTargRow[ci]  || '').replace(/[,\s₩]/g, ''));
-        if (!isNaN(coup)  && coup  > 0) COUP_TARGETS[m]  = coup;
-        const ilban = parseFloat(String(ilbanTargRow[ci] || '').replace(/[,\s₩]/g, ''));
-        if (!isNaN(ilban) && ilban > 0) ILBAN_TARGETS[m] = ilban;
       }
     });
-    // 연간 목표 (rows 4-10, 0-indexed 3-9) — 라벨+값 위치 불확실하므로 모든 인접 셀 쌍 스캔
+    // 채널별 목표 — row 56이 공통 월 헤더(C=1월, D=2월, ... I=7월)
+    const chHdrRow     = rr[55] || [];  // row 56: 채널 공통 월 헤더
+    const ilbanTargRow = rr[56] || [];  // row 57: 일반커머스 목표
+    const ssTargRow    = rr[60] || [];  // row 61: 스마트스토어 목표
+    const c24TargRow   = rr[66] || [];  // row 67: 카페24 목표
+    const coupTargRow  = rr[71] || [];  // row 72: 쿠팡 목표
+    chHdrRow.forEach((h, ci) => {
+      const m = parseInt(String(h).trim());
+      if (m >= 1 && m <= 12) {
+        const ilban = parseFloat(String(ilbanTargRow[ci] || '').replace(/[,\s₩]/g, ''));
+        if (!isNaN(ilban) && ilban > 0) ILBAN_TARGETS[m] = ilban;
+        const ss   = parseFloat(String(ssTargRow[ci]    || '').replace(/[,\s₩]/g, ''));
+        if (!isNaN(ss)    && ss    > 0) SS_TARGETS[m]   = ss;
+        const c24  = parseFloat(String(c24TargRow[ci]   || '').replace(/[,\s₩]/g, ''));
+        if (!isNaN(c24)   && c24   > 0) C24_TARGETS[m]  = c24;
+        const coup = parseFloat(String(coupTargRow[ci]  || '').replace(/[,\s₩]/g, ''));
+        if (!isNaN(coup)  && coup  > 0) COUP_TARGETS[m] = coup;
+      }
+    });
+    // 연간 목표: C4=전체, C5=공구, C6=일반(공구외), C7=일반커머스, C8=그외
+    // C열=index2 값, B열(idx1) 또는 A열(idx0) 라벨
     const parseAnnVal = raw => {
       const s = String(raw || '').trim();
       const eok = s.match(/^([\d,.]+)\s*억/);
       if (eok) return parseFloat(eok[1].replace(/,/g,'')) * 1e8;
-      return parseFloat(s.replace(/[,\s₩]/g, ''));
+      return parseFloat(s.replace(/[,\s₩원]/g, ''));
     };
-    const annCandidateRows = rr.slice(3, 10);
-    console.log('[ANN_TARGET] raw rows:', annCandidateRows.map(r=>r.slice(0,6)));
-    annCandidateRows.forEach((r, ri) => {
-      for (let ci = 0; ci <= 4; ci++) {
-        const rawLabel = String(r[ci] || '').trim();
-        const label    = rawLabel.replace(/\s+/g, '');
-        if (!label) continue;
-        const val = parseAnnVal(r[ci + 1]);
-        if (!isNaN(val) && val > 1_000_000) {
-          console.log(`[ANN_TARGET] row${ri+4} ci${ci}: "${rawLabel}" → ${val}`);
-          if      (label.includes('전체'))                                                      { if (!ANN_TARGET.total)    ANN_TARGET.total    = val; }
-          else if (label.includes('공구') && !label.includes('외') && !label.includes('일반'))  { if (!ANN_TARGET.gongu)    ANN_TARGET.gongu    = val; }
-          else if (label.includes('공구외') || label.includes('공구 외'))                       { if (!ANN_TARGET.nonGongu) ANN_TARGET.nonGongu = val; }
-          else if (label.includes('일반'))                                                       { if (!ANN_TARGET.ilban)    ANN_TARGET.ilban    = val; }
-          else if (label.includes('그외') || label.includes('그 외') || label.includes('기타'))  { if (!ANN_TARGET.etc)      ANN_TARGET.etc      = val; }
-        }
+    const annRows = rr.slice(3, 8);  // rows 4-8
+    console.log('[ANN_TARGET] raw C4:C8:', annRows.map(r=>({lbl:r[1]||r[0], val:r[2]})));
+    annRows.forEach((r, ri) => {
+      const rawLabel = String(r[1] || r[0] || '').trim();
+      const label    = rawLabel.replace(/\s+/g, '');
+      const val      = parseAnnVal(r[2]);
+      console.log(`[ANN_TARGET] row${ri+4}: "${rawLabel}" → ${val}`);
+      if (!isNaN(val) && val > 0) {
+        if      (label.includes('전체'))                                                      ANN_TARGET.total    = val;
+        else if (label.includes('공구') && !label.includes('외') && !label.includes('일반'))  ANN_TARGET.gongu    = val;
+        else if (label.includes('공구외') || label.includes('공구 외'))                        ANN_TARGET.nonGongu = val;
+        else if (label.includes('일반'))                                                        ANN_TARGET.ilban    = val;
+        else if (label.includes('그외') || label.includes('그 외') || label.includes('기타'))  ANN_TARGET.etc      = val;
       }
     });
-    console.log('[ANN_TARGET] 파싱 결과:', ANN_TARGET);
+    console.log('[ANN_TARGET] 결과:', ANN_TARGET);
   } catch(e) { console.warn('[로켓그로스 로딩 실패]', e); }
 }
 
