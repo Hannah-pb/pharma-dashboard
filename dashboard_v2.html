@@ -210,7 +210,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .kpi-section-hdr.channel{background:linear-gradient(90deg,#0891b2,#06b6d4)}
 .kpi-section-hdr.gongu  {background:linear-gradient(90deg,#7c3aed,#8b5cf6)}
 .kpi-section-badge{background:rgba(255,255,255,.25);padding:2px 8px;border-radius:10px;font-size:10px}
-.kpi-ch-sub-hdr{font-size:11px;font-weight:700;color:#1d4ed8;padding:10px 2px 4px;margin-top:4px;border-top:1px solid #e2e8f0;letter-spacing:.04em}
+.kpi-ch-sub-hdr{font-size:11px;font-weight:700;color:#059669;padding:10px 2px 6px;margin-top:8px;border-top:2px solid #10b981;letter-spacing:.04em}
 /* Executive Summary */
 .kpi-exec-card{background:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 1px 6px rgba(0,0,0,.08);margin-bottom:6px;border-left:4px solid #3b82f6}
 .kpi-exec-title{font-size:11px;font-weight:700;color:#1d4ed8;margin-bottom:8px;letter-spacing:.04em}
@@ -263,10 +263,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 /* channel KPI v2 */
 .kpi-ch-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:8px}
 .kpi-ch-v2{background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
-.kpi-ch-v2[data-ch="ss"]  {border-top:3px solid #3b82f6}
-.kpi-ch-v2[data-ch="c24"] {border-top:3px solid #8b5cf6}
-.kpi-ch-v2[data-ch="coup"]{border-top:3px solid #f59e0b}
-.kpi-ch-v2[data-ch="kko"] {border-top:3px solid #eab308}
+.kpi-ch-v2{border-top:3px solid #10b981}
 .kpi-ch-v2 .ch-name2{font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
 .kpi-ch-v2 .ch-ach  {font-size:22px;font-weight:800;line-height:1;margin-bottom:4px}
 .kpi-ch-v2 .ch-bar  {height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-bottom:8px}
@@ -604,9 +601,10 @@ const SHEET_ID = SHEET_ID_2026;
 const ANN_TARGET      = {};             // { total, gongu, nonGongu, ilban, etc } — 시트 B4:C8 로드
 const MONTHLY_TARGETS = {};             // 월별 목표 — 시트 row 52에서 로드 (공구 외 기준)
 const DAILY_TARGETS   = {};             // 일평균 목표 — 시트 row 58에서 로드
-const SS_TARGETS      = {};             // 스마트스토어 월 목표 — 시트 row 56
-const C24_TARGETS     = {};             // 카페24 월 목표 — 시트 row 62
-const COUP_TARGETS    = {};             // 쿠팡 월 목표 — 시트 row 67
+const ILBAN_TARGETS   = {};             // 일반커머스 월 목표 — 시트 row 57 (라벨 row55+2)
+const SS_TARGETS      = {};             // 스마트스토어 월 목표 — 시트 row 63 (라벨 row61+2)
+const C24_TARGETS     = {};             // 카페24 월 목표 — 시트 row 69 (라벨 row67+2)
+const COUP_TARGETS    = {};             // 쿠팡 월 목표 — 시트 row 74 (라벨 row72+2)
 const ROCKET_GID      = '629942175';    // 매출 시트 2026 요약탭 (로켓그로스)
 let   ROCKET_REV      = {};             // { 월(1-12): 로켓그로스 매출액 }
 
@@ -747,9 +745,10 @@ async function loadData() {
     const targHdrRow  = rr[50] || [];
     const targDataRow = rr[51] || [];
     const dailyRow    = rr[57] || [];
-    const ssTargRow   = rr[55] || [];
-    const c24TargRow  = rr[61] || [];
-    const coupTargRow = rr[66] || [];
+    const ilbanTargRow = rr[56] || [];  // row 57: 일반커머스 월 목표 (라벨 row55+2)
+    const ssTargRow    = rr[62] || [];  // row 63: 스마트스토어 월 목표 (라벨 row61+2)
+    const c24TargRow   = rr[68] || [];  // row 69: 카페24 월 목표 (라벨 row67+2)
+    const coupTargRow  = rr[73] || [];  // row 74: 쿠팡 월 목표 (라벨 row72+2)
     targHdrRow.forEach((h, ci) => {
       const m = parseInt(h.trim());
       if (m >= 1 && m <= 12) {
@@ -761,34 +760,35 @@ async function loadData() {
         if (!isNaN(ss)   && ss   > 0) SS_TARGETS[m]   = ss;
         const c24  = parseFloat(String(c24TargRow[ci]  || '').replace(/[,\s₩]/g, ''));
         if (!isNaN(c24)  && c24  > 0) C24_TARGETS[m]  = c24;
-        const coup = parseFloat(String(coupTargRow[ci] || '').replace(/[,\s₩]/g, ''));
-        if (!isNaN(coup) && coup > 0) COUP_TARGETS[m] = coup;
+        const coup  = parseFloat(String(coupTargRow[ci]  || '').replace(/[,\s₩]/g, ''));
+        if (!isNaN(coup)  && coup  > 0) COUP_TARGETS[m]  = coup;
+        const ilban = parseFloat(String(ilbanTargRow[ci] || '').replace(/[,\s₩]/g, ''));
+        if (!isNaN(ilban) && ilban > 0) ILBAN_TARGETS[m] = ilban;
       }
     });
-    // 연간 목표 (B4:C8 = rows 4-8, 0-indexed 3-7)
-    const annRows = rr.slice(3, 8);
-    console.log('[ANN_TARGET] B4:C8 raw rows:', annRows.map(r=>r.slice(0,5)));
+    // 연간 목표 (rows 4-10, 0-indexed 3-9) — 라벨+값 위치 불확실하므로 모든 인접 셀 쌍 스캔
     const parseAnnVal = raw => {
       const s = String(raw || '').trim();
-      // "90억" → 90 * 1e8, "9000000000" → 9000000000
       const eok = s.match(/^([\d,.]+)\s*억/);
       if (eok) return parseFloat(eok[1].replace(/,/g,'')) * 1e8;
       return parseFloat(s.replace(/[,\s₩]/g, ''));
     };
-    annRows.forEach((r, ri) => {
-      // 라벨은 col B(idx1) 우선, 없으면 col A(idx0)
-      const rawLabel = (r[1] || r[0] || '').trim();
-      const label    = rawLabel.replace(/\s+/g, '');
-      // 값은 col C(idx2) 우선, 없거나 0이면 col B(idx1) 시도
-      let val = parseAnnVal(r[2]);
-      if (isNaN(val) || val === 0) val = parseAnnVal(r[1]);
-      console.log(`[ANN_TARGET] row${ri+4}: label="${rawLabel}" val=${val}`);
-      if (!isNaN(val) && val > 100) {  // 100 이하면 의미없는 값 제외
-        if      (label.includes('전체'))                                                 ANN_TARGET.total    = val;
-        else if (label.includes('공구') && !label.includes('외') && !label.includes('일반')) ANN_TARGET.gongu = val;
-        else if (label.includes('공구외') || label.includes('공구 외'))                 ANN_TARGET.nonGongu = val;
-        else if (label.includes('일반'))                                                 ANN_TARGET.ilban    = val;
-        else if (label.includes('그외') || label.includes('그 외') || label.includes('기타')) ANN_TARGET.etc  = val;
+    const annCandidateRows = rr.slice(3, 10);
+    console.log('[ANN_TARGET] raw rows:', annCandidateRows.map(r=>r.slice(0,6)));
+    annCandidateRows.forEach((r, ri) => {
+      for (let ci = 0; ci <= 4; ci++) {
+        const rawLabel = String(r[ci] || '').trim();
+        const label    = rawLabel.replace(/\s+/g, '');
+        if (!label) continue;
+        const val = parseAnnVal(r[ci + 1]);
+        if (!isNaN(val) && val > 1_000_000) {
+          console.log(`[ANN_TARGET] row${ri+4} ci${ci}: "${rawLabel}" → ${val}`);
+          if      (label.includes('전체'))                                                      { if (!ANN_TARGET.total)    ANN_TARGET.total    = val; }
+          else if (label.includes('공구') && !label.includes('외') && !label.includes('일반'))  { if (!ANN_TARGET.gongu)    ANN_TARGET.gongu    = val; }
+          else if (label.includes('공구외') || label.includes('공구 외'))                       { if (!ANN_TARGET.nonGongu) ANN_TARGET.nonGongu = val; }
+          else if (label.includes('일반'))                                                       { if (!ANN_TARGET.ilban)    ANN_TARGET.ilban    = val; }
+          else if (label.includes('그외') || label.includes('그 외') || label.includes('기타'))  { if (!ANN_TARGET.etc)      ANN_TARGET.etc      = val; }
+        }
       }
     });
     console.log('[ANN_TARGET] 파싱 결과:', ANN_TARGET);
@@ -1202,7 +1202,7 @@ function buildKpiData(n) {
 
   // 일반커머스 월간 목표: 연간비율로 월 목표 배분 (ANN_TARGET.ilban / ANN_TARGET.nonGongu × 월 목표)
   const ilbanRatio = (ANN_TARGET.ilban && ANN_TARGET.nonGongu) ? ANN_TARGET.ilban/ANN_TARGET.nonGongu : null;
-  const monTarget_ilban = (monTarget && ilbanRatio) ? Math.round(monTarget * ilbanRatio) : monTarget;
+  const monTarget_ilban = ILBAN_TARGETS[n.m] || ((monTarget && ilbanRatio) ? Math.round(monTarget * ilbanRatio) : monTarget);
   const monTarget_etc   = (monTarget && ilbanRatio) ? Math.round(monTarget * (1-ilbanRatio)) : null;
 
   const fcastM_ilban    = forecastM(revM_ilban,    maxDayM, n.dim);
@@ -1387,6 +1387,7 @@ function renderKpiMonthly(kd, n) {
 // ── Channel Cards ─────────────────────────────────────
 function renderKpiChannels(kd, n) {
   const pctOfMonth = n.dim>0 ? kd.maxDayM/n.dim : 0;
+  const elDays = kd.maxDayM || 1;
   const chCard = c => {
     const paceTarget = c.target ? c.target * pctOfMonth : null;
     const achPace = paceTarget ? Math.round(c.rev/paceTarget*100) : null;
@@ -1394,6 +1395,20 @@ function renderKpiChannels(kd, n) {
     const barColor = sc==='ok'?'#10b981':sc==='warn'?'#f59e0b':'#dc2626';
     const barW = achPace!=null ? Math.min(achPace,100) : 0;
     const gapV = c.target ? c.target-c.rev : null;
+    const dailyAvg = c.rev > 0 ? c.rev / elDays : 0;
+    let forecastStr = '—', forecastCls = '';
+    if (c.target && c.rev >= c.target) {
+      forecastStr = '초과달성'; forecastCls = 'green';
+    } else if (c.target && dailyAvg > 0) {
+      const daysNeeded = Math.ceil((c.target - c.rev) / dailyAvg);
+      const closeDay = elDays + daysNeeded;
+      if (closeDay <= n.dim) {
+        forecastStr = `${n.m}월 ${closeDay}일`;
+        forecastCls = '';
+      } else {
+        forecastStr = '목표 미달 예상'; forecastCls = 'red';
+      }
+    }
     return `<div class="kpi-ch-v2" data-ch="${c.key}">
       <div class="ch-name2"><span>${c.name}</span>${achPace!==null?kpiPill(achPace):''}</div>
       <div class="ch-ach" style="color:${barColor}">${achPace!==null?achPace+'%':'—'}</div>
@@ -1402,7 +1417,8 @@ function renderKpiChannels(kd, n) {
         <div class="ch-row"><span class="k">월 목표</span><span class="v">${c.target?fmtM(c.target):'미정'}</span></div>
         <div class="ch-row"><span class="k">실  적</span><span class="v">${fmtM(c.rev)}</span></div>
         <div class="ch-row"><span class="k">GAP</span><span class="v ${gapV>0?'red':'green'}">${gapV!=null?fmtM(gapV):'—'}</span></div>
-        <div class="ch-row"><span class="k">전월 대비</span><span class="v">${pctHtml(c.rev,c.prev)}</span></div>
+        <div class="ch-row"><span class="k">일평균</span><span class="v">${dailyAvg>0?fmtM(Math.round(dailyAvg)):'—'}</span></div>
+        <div class="ch-row"><span class="k">예상마감</span><span class="v ${forecastCls}">${forecastStr}</span></div>
       </div>
     </div>`;
   };
