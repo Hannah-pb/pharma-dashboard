@@ -562,6 +562,15 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
           <div class="tbl-wrap"><table id="tblStockoutCheck"></table></div>
         </div>
 
+        <!-- 섹션 4-1: 공구 소비기한 점검 -->
+        <div class="card">
+          <div class="card-title">
+            ⏰ 공구 소비기한 점검 <span id="invGonguExpiryCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span>
+            <div style="font-size:11px;font-weight:400;color:#64748b;margin-top:4px">시작일이 소비기한 1년 이내인 공구건</div>
+          </div>
+          <div id="invGonguExpiry"></div>
+        </div>
+
         <!-- 섹션 5: 발주 일정표 -->
         <div class="card">
           <div class="card-title">📅 입고 일정표 <span style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px">향후 90일</span></div>
@@ -2507,6 +2516,7 @@ async function loadInventoryData() {
         .map(r => {
           const obj = {};
           gonguHdr.forEach((h, i) => { obj[h] = (r[i] ?? '').trim(); });
+          obj._colG = (r[6] ?? '').trim(); // G열 raw 값 (점검 여부)
           return obj;
         });
       console.log('[공구탭] 헤더:', gonguHdr);
@@ -2671,6 +2681,7 @@ function renderInventory() {
     renderOrderAlarm();
     renderExpiry();
     renderStockoutCheck();
+    renderGonguExpiryCheck();
     renderOrderTimeline();
     document.getElementById('pageMeta').textContent = invMetaText();
   };
@@ -2933,10 +2944,12 @@ function renderExpiry() {
 function renderStockoutCheck() {
   const today = new Date(); today.setHours(0, 0, 0, 0);
 
-  // G열(입고예정일)과 U열(소진예상일) 직접 비교 — 소진예상일 < 입고예정일이면 품절 위험
-  const atRisk = INV_ROWS.map(r => {
+  // G열(입고예정일)과 V열(소진 예상일) 직접 비교 — 소진예상일 < 입고예정일이면 품절 위험
+  const atRisk = INV_ROWS
+    .filter(r => (r['판매시작일'] || '').trim())  // AM열 공란 제외
+    .map(r => {
     const delivDate = parseInvDate(r['입고예정일']); // G열
-    const sellout   = parseInvDate(r['소진예상일']); // U열 직접
+    const sellout   = parseInvDate(r['소진 예상일'] ?? r['소진예상일']); // V열: 소진 예상일
     if (!delivDate || !sellout) return null;
     if (delivDate < today) return null; // 과거 입고예정일 = 이미 입고된 것, 제외
     if (sellout >= delivDate) return null; // 소진예상일이 입고 후면 문제없음
@@ -3019,6 +3032,31 @@ function renderStockoutCheck() {
   }
   html += '</tbody>';
   document.getElementById('tblStockoutCheck').innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════
+//  INVENTORY — 공구 소비기한 점검
+// ═══════════════════════════════════════════════════════
+function renderGonguExpiryCheck() {
+  const items = GONGU_ROWS.filter(r => r._colG && r._colG.includes('점검'));
+  const el    = document.getElementById('invGonguExpiry');
+  const badge = document.getElementById('invGonguExpiryCount');
+  if (!el) return;
+  if (badge) badge.textContent = items.length ? `${items.length}건` : '';
+  if (!items.length) {
+    el.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:24px;font-size:13px">✓ 점검 대상 공구건이 없습니다</div>';
+    return;
+  }
+  let html = `<div class="tbl-wrap"><table class="inv-tbl" style="width:100%">
+    <thead><tr><th>품목명</th><th>닉네임</th><th>시작일</th></tr></thead><tbody>`;
+  for (const r of items) {
+    const name  = r['품목명'] || r['제품명'] || '—';
+    const nick  = r['닉네임'] || '—';
+    const start = r['시작일'] || '—';
+    html += `<tr><td>${name}</td><td>${nick}</td><td>${start}</td></tr>`;
+  }
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
 }
 
 // ═══════════════════════════════════════════════════════
