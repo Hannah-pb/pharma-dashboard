@@ -3038,7 +3038,8 @@ function renderStockoutCheck() {
 //  INVENTORY — 공구 소비기한 점검
 // ═══════════════════════════════════════════════════════
 function renderGonguExpiryCheck() {
-  const items = GONGU_ROWS.filter(r => r._colG && r._colG.includes('점검'));
+  // B열(진행여부) = "O" : 진행 예정인 공구건
+  const items = GONGU_ROWS.filter(r => (r['진행여부'] || '').trim() === 'O');
   const el    = document.getElementById('invGonguExpiry');
   const badge = document.getElementById('invGonguExpiryCount');
   if (!el) return;
@@ -3047,16 +3048,29 @@ function renderGonguExpiryCheck() {
     el.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:24px;font-size:13px">✓ 점검 대상 공구건이 없습니다</div>';
     return;
   }
-  let html = `<div class="tbl-wrap"><table class="inv-tbl" style="width:100%">
-    <thead><tr><th>품목명</th><th>닉네임</th><th>시작일</th></tr></thead><tbody>`;
+  // 품목명별 그룹핑
+  const grouped = {};
   for (const r of items) {
-    const name  = r['품목명'] || r['제품명'] || '—';
-    const nick  = r['닉네임'] || '—';
-    const start = r['시작일'] || '—';
-    html += `<tr><td>${name}</td><td>${nick}</td><td>${start}</td></tr>`;
+    const prod = r['품목명'] || r['제품명'] || '—';
+    if (!grouped[prod]) grouped[prod] = [];
+    grouped[prod].push({ nick: r['닉네임'] || '—', start: r['시작일'] || '—' });
+  }
+  const prods = Object.keys(grouped);
+  let html = `<div class="tbl-wrap"><table class="inv-tbl" style="width:100%">
+    <thead><tr>
+      <th style="width:45%">품목명</th>
+      <th>공구 일정</th>
+    </tr></thead><tbody>`;
+  for (const prod of prods) {
+    const schedule = grouped[prod].map(e => `${e.nick} – ${e.start}`).join('<br>');
+    html += `<tr>
+      <td style="vertical-align:top">${prod}</td>
+      <td style="line-height:1.8">${schedule}</td>
+    </tr>`;
   }
   html += '</tbody></table></div>';
   el.innerHTML = html;
+  if (badge) badge.textContent = `${prods.length}품목 / ${items.length}건`;
 }
 
 // ═══════════════════════════════════════════════════════
