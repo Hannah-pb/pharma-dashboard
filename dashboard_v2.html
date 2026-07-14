@@ -541,7 +541,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
         <!-- 섹션 3: 소비기한 임박 -->
         <div class="card">
           <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
-            <span>⚠️ 소비기한 임박 (14개월 이내) <span id="invExpiryCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
+            <span>⚠️ 소비기한 임박 (15개월 이내) <span id="invExpiryCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
             <span style="font-size:11px;font-weight:400;color:#94a3b8">
               <span class="inv-badge red">3개월↓</span>
               <span class="inv-badge orange">6개월↓</span>
@@ -2516,7 +2516,8 @@ async function loadInventoryData() {
         .map(r => {
           const obj = {};
           gonguHdr.forEach((h, i) => { obj[h] = (r[i] ?? '').trim(); });
-          obj._colG = (r[6] ?? '').trim(); // G열 raw 값 (점검 여부)
+          obj._colG = (r[6] ?? '').trim();  // G열 raw 값
+          obj._colP = (r[15] ?? '').trim(); // P열 raw 값 (점검 여부)
           return obj;
         });
       console.log('[공구탭] 헤더:', gonguHdr);
@@ -2845,10 +2846,11 @@ function renderExpiry() {
   const MS_PER_MONTH = 30 * MS_PER_DAY;
 
   const expRows = INV_ROWS.filter(r => {
+    if ((r['브랜드'] || '').includes('한독')) return false;
     const exp = parseInvDate(r['소비기한']);
     if (!exp) return false;
     const ms = exp.getTime() - today.getTime();
-    return ms > 0 && ms <= 14 * MS_PER_MONTH;
+    return ms > 0 && ms <= 15 * MS_PER_MONTH;
   }).sort((a, b) => {
     const da = parseInvDate(a['소비기한']);
     const db = parseInvDate(b['소비기한']);
@@ -2871,16 +2873,17 @@ function renderExpiry() {
     <th>입고예정 / 발주수량</th><th>비고</th><th>소진 가능 여부</th>
   </tr></thead><tbody>`;
 
-  const GROUP_LABELS = ['3개월 이하', '4~6개월', '7~9개월', '10~12개월', '13~14개월'];
+  const GROUP_LABELS = ['3개월 이하', '4~6개월', '7~9개월', '10~12개월', '13~15개월'];
   let prevGroup = '';
 
   for (const r of expRows) {
-    const exp        = parseInvDate(r['소비기한']);
-    const daysLeft   = Math.round((exp.getTime() - today.getTime()) / MS_PER_DAY);
-    const monthsLeft = Math.floor(daysLeft / 30);
-    const badgeCls   = monthsLeft <= 3 ? 'red' : monthsLeft <= 6 ? 'orange' : monthsLeft <= 9 ? 'yellow' : monthsLeft <= 12 ? 'blue' : 'gray';
-    const groupLabel = monthsLeft <= 3 ? GROUP_LABELS[0] : monthsLeft <= 6 ? GROUP_LABELS[1] : monthsLeft <= 9 ? GROUP_LABELS[2] : monthsLeft <= 12 ? GROUP_LABELS[3] : GROUP_LABELS[4];
-    const monthLabel = monthsLeft <= 0 ? '1개월 미만' : `${monthsLeft}개월 남음`;
+    const exp           = parseInvDate(r['소비기한']);
+    const daysLeft      = Math.round((exp.getTime() - today.getTime()) / MS_PER_DAY);
+    const monthsLeftF   = daysLeft / 30;
+    const monthsLeft    = Math.floor(monthsLeftF);
+    const badgeCls      = monthsLeft <= 3 ? 'red' : monthsLeft <= 6 ? 'orange' : monthsLeft <= 9 ? 'yellow' : monthsLeft <= 12 ? 'blue' : 'gray';
+    const groupLabel    = monthsLeft <= 3 ? GROUP_LABELS[0] : monthsLeft <= 6 ? GROUP_LABELS[1] : monthsLeft <= 9 ? GROUP_LABELS[2] : monthsLeft <= 12 ? GROUP_LABELS[3] : GROUP_LABELS[4];
+    const monthLabel    = monthsLeftF < 1 ? '1개월 미만' : `${monthsLeftF.toFixed(1)}개월 남음`;
 
     // 그룹 헤더 행
     if (groupLabel !== prevGroup) {
@@ -3012,10 +3015,8 @@ function renderStockoutCheck() {
           const prd    = g['품목명'] || g['제품명'] || '';
           const qty    = g['예상판매량'] || '';
           const qtyNum = parseInt(qty.replace(/,/g, ''), 10);
-          return `<div style="border-left:3px solid #ef4444;padding:3px 8px;margin-bottom:4px;background:#fef2f2;border-radius:3px">
-            <div style="font-size:12px;font-weight:700;color:#dc2626">⚡ ${s ? `${s.getMonth()+1}/${s.getDate()}` : '?'} 입고 전 공구</div>
-            ${nick || prd ? `<div style="font-size:11px;color:#374151;margin-top:1px">${[nick, prd].filter(Boolean).join(' · ')}</div>` : ''}
-            ${qty ? `<div style="font-size:11px;color:#6b7280">예상 ${isNaN(qtyNum) ? qty : qtyNum.toLocaleString()}개</div>` : ''}
+          return `<div style="border-left:3px solid #ef4444;padding:3px 8px;margin-bottom:4px;background:#fef2f2;border-radius:3px;font-size:11px;color:#374151">
+            <span style="font-weight:700;color:#dc2626">${s ? `${s.getMonth()+1}/${s.getDate()}` : '?'}</span>${nick ? ` · ${nick}` : ''}${prd ? ` · ${prd}` : ''}${qty ? ` · 예상 ${isNaN(qtyNum) ? qty : qtyNum.toLocaleString()}개` : ''}
           </div>`;
         }).join('');
 
@@ -3038,8 +3039,13 @@ function renderStockoutCheck() {
 //  INVENTORY — 공구 소비기한 점검
 // ═══════════════════════════════════════════════════════
 function renderGonguExpiryCheck() {
-  // B열(진행여부) = "O" : 진행 예정인 공구건
-  const items = GONGU_ROWS.filter(r => (r['진행여부'] || '').trim() === 'O');
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  // P열 = "점검" AND 시작일이 오늘 이후인 공구건
+  const items = GONGU_ROWS.filter(r => {
+    if (!r._colP?.includes('점검')) return false;
+    const start = parseInvDate(r['시작일']);
+    return start && start >= today;
+  });
   const el    = document.getElementById('invGonguExpiry');
   const badge = document.getElementById('invGonguExpiryCount');
   if (!el) return;
