@@ -87,6 +87,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic','맑은 고딕
 .chart-wrap{position:relative;height:260px}
 .chart-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
 
+/* ── Design Tokens ── */
+:root{--inv-cell-pad-v:8px;--inv-cell-pad-h:12px;--inv-font-base:12px;--inv-font-sub:11px;--inv-color-sub:#94a3b8;--inv-border-row:#f1f5f9;--inv-border-col:#e8edf3;--inv-bg-head:#f8fafc;--inv-color-head:#64748b}
 /* ── Tables ── */
 .tbl-wrap{overflow-x:auto;border-radius:8px}
 .tbl-auto table{width:auto!important;min-width:unset}
@@ -95,17 +97,21 @@ th,td{padding:9px 12px;text-align:left;border-bottom:1px solid #f1f5f9;white-spa
 th{background:#f8fafc;font-weight:600;color:#64748b;font-size:11px;letter-spacing:.03em;position:sticky;top:0;z-index:2}
 tr:hover td{background:#f8fafc}
 td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
-/* ── 재고관리 4개 섹션 컬럼 구분선 ── */
-#tblOrderAlarm th,#tblOrderAlarm td,
-#tblExpiry th,#tblExpiry td,
-#tblStockoutCheck th,#tblStockoutCheck td,
-.inv-tbl th,.inv-tbl td{border-right:1px solid #e8edf3}
-#tblOrderAlarm th:last-child,#tblOrderAlarm td:last-child,
-#tblExpiry th:last-child,#tblExpiry td:last-child,
-#tblStockoutCheck th:last-child,#tblStockoutCheck td:last-child,
-.inv-tbl th:last-child,.inv-tbl td:last-child{border-right:none}
-/* 공구 소비기한 점검 — 왼쪽 정렬, 너비 content 기준 */
-.inv-tbl{width:auto!important;min-width:unset;table-layout:auto}
+/* ── 재고관리 공통 테이블 (.inv-table) ── */
+.inv-table{width:100%;border-collapse:collapse;font-size:var(--inv-font-base);table-layout:auto}
+.inv-table th{padding:var(--inv-cell-pad-v) var(--inv-cell-pad-h);background:var(--inv-bg-head);color:var(--inv-color-head);font-size:var(--inv-font-sub);font-weight:600;letter-spacing:.03em;text-align:center;border-bottom:2px solid var(--inv-border-col);border-right:1px solid var(--inv-border-col);position:sticky;top:0;z-index:2;white-space:nowrap}
+.inv-table td{padding:var(--inv-cell-pad-v) var(--inv-cell-pad-h);text-align:left;border-bottom:1px solid var(--inv-border-row);border-right:1px solid var(--inv-border-col);font-size:var(--inv-font-base);white-space:nowrap;vertical-align:middle}
+.inv-table th:last-child,.inv-table td:last-child{border-right:none}
+.inv-table tr:hover td{background:var(--inv-bg-head)}
+.inv-table td.r,.inv-table th.r{text-align:right;font-variant-numeric:tabular-nums}
+.inv-table.narrow{width:auto;min-width:unset}
+.inv-table.narrow td{vertical-align:top;line-height:1.7}
+/* ── 재고관리 공통 헬퍼 클래스 ── */
+.cell-sub{display:block;font-size:var(--inv-font-sub);color:var(--inv-color-sub);margin-top:2px}
+.cell-note{font-size:var(--inv-font-sub);max-width:160px;white-space:normal;word-break:break-word;color:#374151}
+.cell-wide{min-width:160px}
+.inv-group-hdr td{background:var(--inv-bg-head);padding:5px 12px;font-size:var(--inv-font-sub);font-weight:600;color:#475569;border-top:2px solid var(--inv-border-col)}
+.card-title-row{display:flex;align-items:center;justify-content:space-between}
 td.prod-cell{max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .up{color:#15803d;font-weight:600}
 .down{color:#dc2626;font-weight:600}
@@ -449,7 +455,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       <div id="ss-monthly" class="tab-pane">
         <div class="card" style="padding:16px 20px 8px"><canvas id="chartSSMonthly" height="80"></canvas></div>
         <div class="card">
-          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+          <div class="card-title card-title-row">
             월간 상품별 매출 (스마트스토어)
             <div style="display:flex;gap:6px">
               <button class="tog-btn active" id="ssMonth2026" onclick="setSSMonthYear(2026)">2026</button>
@@ -488,7 +494,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       <div id="c24-monthly" class="tab-pane">
         <div class="card" style="padding:16px 20px 8px"><canvas id="chartC24Monthly" height="80"></canvas></div>
         <div class="card">
-          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+          <div class="card-title card-title-row">
             월간 상품별 매출 (카페24)
             <div style="display:flex;gap:6px">
               <button class="tog-btn active" id="c24Month2026" onclick="setC24MonthYear(2026)">2026</button>
@@ -542,16 +548,16 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 
         <!-- 섹션 2: 발주 알람 -->
         <div class="card">
-          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+          <div class="card-title card-title-row">
             <span>🔔 발주 알람 <span id="invAlarmCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
             <span style="font-size:11px;font-weight:400;color:#94a3b8">소진 예상일 = (재고 − 공구할당 − 사입) ÷ 상시판매 일평균, 입고 전후 공구 분리 계산</span>
           </div>
-          <div class="tbl-wrap"><table id="tblOrderAlarm"></table></div>
+          <div class="tbl-wrap"><table id="tblOrderAlarm" class="inv-table"></table></div>
         </div>
 
         <!-- 섹션 3: 소비기한 임박 -->
         <div class="card">
-          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+          <div class="card-title card-title-row">
             <span>⚠️ 소비기한 임박 (15개월 이내) <span id="invExpiryCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
             <span style="font-size:11px;font-weight:400;color:#94a3b8">
               <span class="inv-badge red">3개월↓</span>
@@ -561,7 +567,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
               <span class="inv-badge gray">14개월↓</span>
             </span>
           </div>
-          <div class="tbl-wrap"><table id="tblExpiry"></table></div>
+          <div class="tbl-wrap"><table id="tblExpiry" class="inv-table"></table></div>
         </div>
 
         <!-- 섹션 4: 입고 예정일 점검 -->
@@ -570,7 +576,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
             📦 입고 예정일 점검 <span id="invStockoutCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span>
             <div style="font-size:11px;font-weight:400;color:#64748b;margin-top:4px">입고 전 품절 가능성 상품 확인</div>
           </div>
-          <div class="tbl-wrap"><table id="tblStockoutCheck"></table></div>
+          <div class="tbl-wrap"><table id="tblStockoutCheck" class="inv-table"></table></div>
         </div>
 
         <!-- 섹션 4-1: 공구 소비기한 점검 -->
@@ -2832,17 +2838,17 @@ function renderOrderAlarm() {
     }
 
     html += `<tr class="${rowCls}" style="border-top:2px solid #f1f5f9">
-      <td style="padding:8px 10px">
+      <td>
         <b>${r['품목명']}</b>
-        <div style="font-size:11px;color:#94a3b8;margin-top:2px">${[r['브랜드'],r['상기담당']].filter(Boolean).join(' · ')}</div>
+        <div class="cell-sub">${[r['브랜드'],r['상기담당']].filter(Boolean).join(' · ')}</div>
       </td>
-      <td style="padding:8px 10px"><span class="inv-badge ${gradeCls}">${grade}</span></td>
-      <td style="padding:8px 10px">${fmtDateInv(sellout)}${ddayBadge}</td>
-      <td class="r" style="padding:8px 10px">${parseInvNum(r['재고수량']).toLocaleString()}</td>
-      <td style="padding:8px 10px;min-width:110px">${delivTxt}</td>
-      <td style="padding:8px 10px;font-size:11px;max-width:160px;white-space:normal;word-break:break-word;color:#374151">${orderReq || '—'}</td>
-      <td style="padding:8px 10px;font-size:11px">${gbn}</td>
-      <td style="padding:8px 10px;font-size:11px;max-width:180px;white-space:normal;word-break:break-all">${note}</td>
+      <td><span class="inv-badge ${gradeCls}">${grade}</span></td>
+      <td>${fmtDateInv(sellout)}${ddayBadge}</td>
+      <td class="r">${parseInvNum(r['재고수량']).toLocaleString()}</td>
+      <td style="min-width:110px">${delivTxt}</td>
+      <td class="cell-note">${orderReq || '—'}</td>
+      <td style="font-size:11px">${gbn}</td>
+      <td style="font-size:11px;max-width:180px;white-space:normal;word-break:break-all">${note}</td>
     </tr>`;
   }
   html += '</tbody>';
@@ -2899,7 +2905,7 @@ function renderExpiry() {
 
     // 그룹 헤더 행
     if (groupLabel !== prevGroup) {
-      html += `<tr><td colspan="9" style="background:#f8fafc;padding:5px 12px;font-size:11px;font-weight:600;color:#475569;border-top:2px solid #e2e8f0"><span class="inv-badge ${badgeCls}" style="margin-right:6px">${badgeCls==='red'?'🔴':badgeCls==='orange'?'🟠':badgeCls==='yellow'?'🟡':badgeCls==='blue'?'🔵':'⚪'}</span>${groupLabel}</td></tr>`;
+      html += `<tr class="inv-group-hdr"><td colspan="9"><span class="inv-badge ${badgeCls}" style="margin-right:6px">${badgeCls==='red'?'🔴':badgeCls==='orange'?'🟠':badgeCls==='yellow'?'🟡':badgeCls==='blue'?'🔵':'⚪'}</span>${groupLabel}</td></tr>`;
       prevGroup = groupLabel;
     }
 
@@ -2933,7 +2939,7 @@ function renderExpiry() {
     html += `<tr${trClass}>
       <td>
         <b>${r['품목명']}</b>
-        <div style="font-size:11px;color:#94a3b8;margin-top:2px">${r['브랜드'] || ''} · ${r['상기담당'] || ''}</div>
+        <div class="cell-sub">${r['브랜드'] || ''} · ${r['상기담당'] || ''}</div>
       </td>
       <td>
         <span style="font-variant-numeric:tabular-nums">${fmtDateInv(exp)}</span>
@@ -2961,7 +2967,7 @@ function renderStockoutCheck() {
 
   // G열(입고예정일)과 V열(소진 예상일) 직접 비교 — 소진예상일 < 입고예정일이면 품절 위험
   const atRisk = INV_ROWS
-    .filter(r => (r['판매시작일'] || '').trim())  // AM열 공란 제외
+    .filter(r => !!parseInvDate(r['판매시작일']))  // AM열: 유효한 날짜 있는 상품만
     .map(r => {
     const delivDate = parseInvDate(r['입고예정일']); // G열
     const sellout   = parseInvDate(r['소진 예상일'] ?? r['소진예상일']); // V열: 소진 예상일
@@ -3033,14 +3039,14 @@ function renderStockoutCheck() {
         }).join('');
 
     html += `<tr>
-      <td><b>${r['품목명']}</b><div style="font-size:11px;color:#94a3b8">${r['브랜드']||''}</div></td>
+      <td><b>${r['품목명']}</b><div class="cell-sub">${r['브랜드']||''}</div></td>
       <td class="r">${parseInvNum(r['재고수량']).toLocaleString()}</td>
       <td>${fmtDateInv(sellout)}</td>
-      <td>${fmtDateInv(delivDate)} <span style="font-size:11px;color:#94a3b8">D-${daysToDelivery}</span></td>
+      <td>${fmtDateInv(delivDate)} <span class="cell-sub" style="display:inline">D-${daysToDelivery}</span></td>
       <td class="r"><span class="inv-badge ${riskCls}">${gapDays}일</span></td>
-      <td style="font-size:11px">${delivQty > 0 ? delivQty.toLocaleString()+'개' : '—'}</td>
+      <td>${delivQty > 0 ? delivQty.toLocaleString()+'개' : '—'}</td>
       <td><span class="inv-badge ${riskCls}">${riskLabel}</span></td>
-      <td style="min-width:160px">${gonguCell}</td>
+      <td class="cell-wide">${gonguCell}</td>
     </tr>`;
   }
   html += '</tbody>';
@@ -3078,7 +3084,7 @@ function renderGonguExpiryCheck() {
     });
   }
   const prods = Object.keys(grouped);
-  let html = `<div class="tbl-wrap"><table class="inv-tbl">
+  let html = `<div class="tbl-wrap"><table class="inv-table narrow">
     <thead><tr>
       <th>품목명</th>
       <th>공구 일정</th>
@@ -3089,9 +3095,9 @@ function renderGonguExpiryCheck() {
     const schedule = events.map(e => `${e.nick} – ${e.start}`).join('<br>');
     const checks   = events.map(e => e.check).join('<br>');
     html += `<tr>
-      <td style="vertical-align:top">${prod}</td>
-      <td style="line-height:1.8;vertical-align:top">${schedule}</td>
-      <td style="line-height:1.8;vertical-align:top">${checks}</td>
+      <td>${prod}</td>
+      <td>${schedule}</td>
+      <td>${checks}</td>
     </tr>`;
   }
   html += '</tbody></table></div>';
