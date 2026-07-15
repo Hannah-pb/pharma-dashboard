@@ -95,6 +95,17 @@ th,td{padding:9px 12px;text-align:left;border-bottom:1px solid #f1f5f9;white-spa
 th{background:#f8fafc;font-weight:600;color:#64748b;font-size:11px;letter-spacing:.03em;position:sticky;top:0;z-index:2}
 tr:hover td{background:#f8fafc}
 td.r,th.r{text-align:right;font-variant-numeric:tabular-nums}
+/* ── 재고관리 4개 섹션 컬럼 구분선 ── */
+#tblOrderAlarm th,#tblOrderAlarm td,
+#tblExpiry th,#tblExpiry td,
+#tblStockoutCheck th,#tblStockoutCheck td,
+.inv-tbl th,.inv-tbl td{border-right:1px solid #e8edf3}
+#tblOrderAlarm th:last-child,#tblOrderAlarm td:last-child,
+#tblExpiry th:last-child,#tblExpiry td:last-child,
+#tblStockoutCheck th:last-child,#tblStockoutCheck td:last-child,
+.inv-tbl th:last-child,.inv-tbl td:last-child{border-right:none}
+/* 공구 소비기한 점검 — 왼쪽 정렬, 너비 content 기준 */
+.inv-tbl{width:auto!important;min-width:unset;table-layout:auto}
 td.prod-cell{max-width:220px;overflow:hidden;text-overflow:ellipsis}
 .up{color:#15803d;font-weight:600}
 .down{color:#dc2626;font-weight:600}
@@ -2518,6 +2529,7 @@ async function loadInventoryData() {
           gonguHdr.forEach((h, i) => { obj[h] = (r[i] ?? '').trim(); });
           obj._colG = (r[6] ?? '').trim();  // G열 raw 값
           obj._colP = (r[15] ?? '').trim(); // P열 raw 값 (점검 여부)
+          obj._colQ = (r[16] ?? '').trim(); // Q열 raw 값 (점검 확인)
           return obj;
         });
       console.log('[공구탭] 헤더:', gonguHdr);
@@ -3054,24 +3066,32 @@ function renderGonguExpiryCheck() {
     el.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:24px;font-size:13px">✓ 점검 대상 공구건이 없습니다</div>';
     return;
   }
-  // 품목명별 그룹핑
+  // 품목명별 그룹핑 (한 품목에 여러 행사가 있을 경우 합치기)
   const grouped = {};
   for (const r of items) {
     const prod = r['품목명'] || r['제품명'] || '—';
     if (!grouped[prod]) grouped[prod] = [];
-    grouped[prod].push({ nick: r['닉네임'] || '—', start: r['시작일'] || '—' });
+    grouped[prod].push({
+      nick:  r['닉네임'] || '—',
+      start: r['시작일'] || '—',
+      check: r._colQ || '—',
+    });
   }
   const prods = Object.keys(grouped);
-  let html = `<div class="tbl-wrap"><table class="inv-tbl" style="width:100%">
+  let html = `<div class="tbl-wrap"><table class="inv-tbl">
     <thead><tr>
-      <th style="width:45%">품목명</th>
+      <th>품목명</th>
       <th>공구 일정</th>
+      <th>점검 확인</th>
     </tr></thead><tbody>`;
   for (const prod of prods) {
-    const schedule = grouped[prod].map(e => `${e.nick} – ${e.start}`).join('<br>');
+    const events = grouped[prod];
+    const schedule = events.map(e => `${e.nick} – ${e.start}`).join('<br>');
+    const checks   = events.map(e => e.check).join('<br>');
     html += `<tr>
       <td style="vertical-align:top">${prod}</td>
-      <td style="line-height:1.8">${schedule}</td>
+      <td style="line-height:1.8;vertical-align:top">${schedule}</td>
+      <td style="line-height:1.8;vertical-align:top">${checks}</td>
     </tr>`;
   }
   html += '</tbody></table></div>';
