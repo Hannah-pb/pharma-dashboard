@@ -217,111 +217,110 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
   .drill-kpi-row{grid-template-columns:1fr 1fr}
 }
 
-/* ── KPI Dashboard v2 ── */
-.kpi-page{max-width:1400px}
-.kpi-dash-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:16px}
-.kpi-dash-title{font-size:18px;font-weight:800;color:#1e293b}
-.kpi-dash-sub{font-size:11px;color:#64748b;margin-top:3px}
-.kpi-dash-legend{display:flex;align-items:center;gap:10px;font-size:11px;color:#64748b}
-.leg-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:3px;vertical-align:middle}
-.kpi-section-hdr{font-size:12px;font-weight:700;color:#fff;padding:7px 14px;border-radius:7px;margin:20px 0 10px;display:flex;align-items:center;gap:8px}
-.kpi-section-hdr.annual {background:linear-gradient(90deg,#4f46e5,#6366f1)}
-.kpi-section-hdr.monthly{background:linear-gradient(90deg,#1d4ed8,#3b82f6)}
-.kpi-section-hdr.channel{background:linear-gradient(90deg,#0891b2,#06b6d4)}
-.kpi-section-hdr.gongu  {background:linear-gradient(90deg,#7c3aed,#8b5cf6)}
-.kpi-section-badge{background:rgba(255,255,255,.25);padding:2px 8px;border-radius:10px;font-size:10px}
-.kpi-ch-sub-hdr{font-size:11px;font-weight:700;color:#059669;padding:10px 2px 6px;margin-top:8px;border-top:2px solid #10b981;letter-spacing:.04em}
-/* Executive Summary */
-.kpi-exec-card{background:#fff;border-radius:12px;padding:14px 18px;box-shadow:0 1px 6px rgba(0,0,0,.08);margin-bottom:6px;border-left:4px solid #3b82f6}
-.kpi-exec-title{font-size:11px;font-weight:700;color:#1d4ed8;margin-bottom:8px;letter-spacing:.04em}
-.kpi-exec-list{display:flex;flex-direction:column;gap:4px}
-.kpi-exec-item{font-size:12px;color:#334155;display:flex;gap:6px}
-.kpi-exec-item.danger{color:#dc2626}
-.kpi-exec-item.warn  {color:#b45309}
-.kpi-exec-item.ok    {color:#15803d}
-/* 4-col big card */
-.kpi4-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:8px}
-.kpi-big-card{background:#fff;border-radius:12px;padding:18px 16px;box-shadow:0 1px 6px rgba(0,0,0,.08)}
-.kpi-big-card.total   {border-top:4px solid #3b82f6}
-.kpi-big-card.gongu   {border-top:4px solid #8b5cf6}
-.kpi-big-card.nonGongu{border-top:4px solid #10b981}
-.kpi-big-card.ilban   {border-top:4px solid #10b981}
-.kpi-big-card.etc     {border-top:4px solid #f59e0b}
-.kpi-big-label{font-size:10px;font-weight:700;letter-spacing:.06em;color:#64748b;text-transform:uppercase;margin-bottom:10px}
-.kpi-big-ach{font-size:34px;font-weight:800;letter-spacing:-.03em;line-height:1;margin-bottom:4px}
-.kpi-big-ach.ok  {color:#10b981}
-.kpi-big-ach.warn{color:#f59e0b}
-.kpi-big-ach.bad {color:#dc2626}
-.kpi-big-ach.gray{color:#94a3b8}
-/* 3-point progress bar */
-.kpi-tri-wrap{position:relative;height:8px;background:#e2e8f0;border-radius:99px;margin:10px 0 8px}
-.kpi-tri-fill{height:100%;border-radius:99px}
-.kpi-tri-fill.ok  {background:linear-gradient(90deg,#10b981,#34d399)}
-.kpi-tri-fill.warn{background:linear-gradient(90deg,#f59e0b,#fbbf24)}
-.kpi-tri-fill.bad {background:linear-gradient(90deg,#dc2626,#ef4444)}
-.kpi-tri-marker{position:absolute;top:-5px;width:2px;height:18px;border-radius:1px}
-.kpi-tri-marker.fcast {background:#6366f1}
-.kpi-tri-marker.target{background:#1e293b}
-.kpi-bar-labels{display:flex;justify-content:space-between;font-size:9px;color:#94a3b8;margin-bottom:6px}
-/* detail rows */
-.kpi-big-rows{display:flex;flex-direction:column}
-.kpi-big-row{display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid #f8fafc;font-size:12px}
-.kpi-big-row:last-child{border-bottom:none}
-.kpi-big-row .kbr-k{color:#64748b}
-.kpi-big-row .kbr-v{font-weight:600;color:#1e293b}
-.kpi-big-row .kbr-v.red   {color:#dc2626}
-.kpi-big-row .kbr-v.green {color:#10b981}
-.kpi-big-row .kbr-v.purple{color:#8b5cf6}
-.kpi-status-pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700}
-.kpi-status-pill.ok  {background:#dcfce7;color:#16a34a}
-.kpi-status-pill.warn{background:#fef9c3;color:#ca8a04}
-.kpi-status-pill.bad {background:#fee2e2;color:#dc2626}
-/* charts */
-.kpi2-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px}
-.kpi-chart-card{background:#fff;border-radius:12px;padding:16px 18px;box-shadow:0 1px 6px rgba(0,0,0,.08);min-width:0;overflow:hidden}
-.kpi-chart-title{font-size:12px;font-weight:700;color:#1e293b;margin-bottom:12px}
-/* channel KPI v2 */
-.kpi-ch-kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:8px}
-.kpi-ch-v2{background:#fff;border-radius:10px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
-.kpi-ch-v2{border-top:3px solid #10b981}
-.kpi-ch-v2 .ch-name2{font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center}
-.kpi-ch-v2 .ch-ach  {font-size:22px;font-weight:800;line-height:1;margin-bottom:4px}
-.kpi-ch-v2 .ch-bar  {height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-bottom:8px}
-.kpi-ch-v2 .ch-bar-fill{height:100%;border-radius:99px}
-.kpi-ch-v2 .ch-rows {display:flex;flex-direction:column;gap:3px}
-.kpi-ch-v2 .ch-row  {display:flex;justify-content:space-between;font-size:11px}
-.kpi-ch-v2 .ch-row .k{color:#94a3b8}
-.kpi-ch-v2 .ch-row .v{font-weight:600;color:#334155}
-.kpi-ch-v2 .ch-row .v.red  {color:#dc2626}
-.kpi-ch-v2 .ch-row .v.green{color:#16a34a}
-/* Gongu */
-.kpi-gongu-wrap{background:#fff;border-radius:12px;padding:16px 18px;box-shadow:0 1px 6px rgba(0,0,0,.08);margin-bottom:8px}
-.kpi-gongu-top{display:flex;align-items:stretch;margin-bottom:14px}
-.kpi-gongu-counts{display:flex;gap:20px;padding-right:20px;border-right:1px solid #f1f5f9}
-.kpi-gongu-count{text-align:center}
-.kpi-gongu-count .gcn{font-size:26px;font-weight:800;color:#7c3aed}
-.kpi-gongu-count .gcl{font-size:10px;color:#94a3b8;margin-top:1px}
-.kpi-gongu-metrics{flex:1;display:grid;grid-template-columns:repeat(4,1fr);gap:8px;padding-left:20px}
-.kpi-gongu-metric .gm-k{font-size:10px;color:#94a3b8;margin-bottom:2px}
-.kpi-gongu-metric .gm-v{font-size:15px;font-weight:700;color:#1e293b}
-.kpi-gongu-metric .gm-v.red{color:#dc2626}
-.kpi-gongu-tbl{width:100%;border-collapse:collapse;font-size:11px}
-.kpi-gongu-tbl th{background:#f8fafc;color:#64748b;font-weight:600;padding:6px 8px;text-align:left;border-bottom:1px solid #e2e8f0}
-.kpi-gongu-tbl td{padding:6px 8px;border-bottom:1px solid #f8fafc;color:#334155}
-.kpi-gongu-tbl tr:last-child td{border-bottom:none}
-/* Alert / Action */
-.kpi-alert-card,.kpi-action-card{background:#fff;border-radius:12px;padding:16px 18px;box-shadow:0 1px 6px rgba(0,0,0,.08)}
-.kpi-panel-title{font-size:12px;font-weight:700;color:#1e293b;margin-bottom:10px;display:flex;align-items:center;gap:6px}
-.kpi-alert-item{display:flex;align-items:flex-start;gap:8px;padding:7px 10px;border-radius:8px;margin-bottom:5px;font-size:12px;line-height:1.4}
-.kpi-alert-item.danger {background:#fff5f5;color:#dc2626}
-.kpi-alert-item.warning{background:#fffbeb;color:#b45309}
-.kpi-alert-item.info   {background:#eff6ff;color:#2563eb}
-.kpi-action-item{padding:7px 0;border-bottom:1px solid #f8fafc;font-size:12px;color:#334155;display:flex;gap:8px;line-height:1.4}
-.kpi-action-item:last-child{border-bottom:none}
-.kpi-action-num{font-weight:700;color:#3b82f6;flex-shrink:0}
-@media(max-width:1200px){.kpi4-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:1100px){.kpi-ch-kpi-grid{grid-template-columns:repeat(2,1fr)}}
-@media(max-width:600px) {.kpi4-grid{grid-template-columns:1fr}.kpi-ch-kpi-grid{grid-template-columns:1fr 1fr}}
+/* ── KPI 대시보드 (kd-) ── */
+.kd-header{display:flex;justify-content:space-between;align-items:center;padding:14px 0 16px;border-bottom:1px solid #e8edf3;margin-bottom:18px;flex-wrap:wrap;gap:8px}
+.kd-title-wrap{display:flex;align-items:baseline;gap:10px}
+.kd-title{font-size:18px;font-weight:800;color:#1e293b}
+.kd-meta{font-size:11px;color:#94a3b8}
+.kd-ctrl{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.kd-unit{font-size:11px;color:#94a3b8}
+.kd-view-toggle{display:flex;background:#f1f5f9;border-radius:6px;padding:2px}
+.kd-vbtn{border:none;background:transparent;padding:4px 12px;font-size:12px;border-radius:4px;cursor:pointer;color:#64748b;font-family:inherit}
+.kd-vbtn.active{background:#fff;color:#1e293b;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.1)}
+/* PB 블록 */
+.kd-pb-block{display:flex;gap:24px;background:#fff;border-radius:12px;padding:22px 24px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:16px;cursor:pointer;border:2px solid transparent;transition:border-color .15s}
+.kd-pb-block:hover,.kd-pb-block.kd-selected{border-color:#3b82f6}
+.kd-pb-left{min-width:180px;flex-shrink:0}
+.kd-pb-label{font-size:10px;font-weight:700;letter-spacing:.06em;color:#64748b;text-transform:uppercase;margin-bottom:6px}
+.kd-pb-ach{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1;margin-bottom:6px}
+.kd-pb-nums{font-size:13px;margin-bottom:6px}
+.kd-val-main{font-weight:700;color:#1e293b;font-size:16px;font-variant-numeric:tabular-nums}
+.kd-val-sep{color:#94a3b8;margin:0 4px}
+.kd-val-sub{color:#64748b;font-size:13px}
+.kd-pb-badge-wrap{margin-top:4px}
+.kd-badge{background:#f1f5f9;color:#64748b;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px;letter-spacing:.03em}
+.kd-pb-right{flex:1;display:flex;flex-direction:column;justify-content:center;gap:12px;min-width:0}
+.kd-pb-stats{display:flex;gap:20px;flex-wrap:wrap}
+.kd-stat{display:flex;flex-direction:column}
+.kd-stat-k{font-size:10px;color:#94a3b8;margin-bottom:2px}
+.kd-stat-v{font-size:14px;font-weight:700;color:#1e293b;font-variant-numeric:tabular-nums}
+/* progress bars */
+.kd-prog-wrap{margin-bottom:4px}
+.kd-prog-bg{height:10px;background:#f1f5f9;border-radius:99px;position:relative;overflow:visible}
+.kd-prog-fill{height:100%;border-radius:99px;position:absolute;top:0;left:0;max-width:100%}
+.kd-prog-fcast{position:absolute;top:-4px;width:2px;height:18px;background:#6366f1;border-radius:1px;z-index:2}
+.kd-prog-target{position:absolute;top:-4px;right:0;width:2px;height:18px;background:#334155;border-radius:1px;z-index:2}
+.kd-prog-labels{display:flex;justify-content:space-between;font-size:10px;color:#94a3b8;margin-top:5px;flex-wrap:wrap;gap:4px}
+.kd-prog-sm{height:5px;background:#f1f5f9;border-radius:99px;overflow:hidden;margin-bottom:10px}
+.kd-prog-sm-fill{height:100%;border-radius:99px}
+.kd-prog-xs{height:3px;background:#f1f5f9;border-radius:99px;overflow:hidden;margin-top:3px}
+.kd-prog-xs-fill{height:100%;border-radius:99px}
+/* 상태 색상 */
+.kd-pb-ach.ok,.kd-half-ach.ok,.kd-child-ach.ok,.kd-stat-v.ok{color:#10b981}
+.kd-pb-ach.warn,.kd-half-ach.warn,.kd-child-ach.warn,.kd-stat-v.warn{color:#f59e0b}
+.kd-pb-ach.bad,.kd-half-ach.bad,.kd-child-ach.bad,.kd-stat-v.bad{color:#dc2626}
+.kd-pb-ach.gray,.kd-half-ach.gray,.kd-child-ach.gray,.kd-stat-v.gray{color:#94a3b8}
+.kd-prog-fill.ok,.kd-prog-sm-fill.ok,.kd-prog-xs-fill.ok,.kd-ch-bar-fill.ok{background:#10b981}
+.kd-prog-fill.warn,.kd-prog-sm-fill.warn,.kd-prog-xs-fill.warn,.kd-ch-bar-fill.warn{background:#f59e0b}
+.kd-prog-fill.bad,.kd-prog-sm-fill.bad,.kd-prog-xs-fill.bad,.kd-ch-bar-fill.bad{background:#dc2626}
+.kd-prog-fill.gray,.kd-prog-sm-fill.gray,.kd-prog-xs-fill.gray,.kd-ch-bar-fill.gray{background:#cbd5e1}
+/* 국내/해외 2열 */
+.kd-dom-ovr-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.kd-half-card{background:#fff;border-radius:10px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);cursor:pointer;border:2px solid transparent;transition:border-color .15s}
+.kd-half-card:hover{border-color:#e2e8f0}
+.kd-half-card.kd-sel{border-color:#3b82f6}
+.kd-half-name{font-size:10px;font-weight:700;letter-spacing:.06em;color:#64748b;text-transform:uppercase;margin-bottom:4px}
+.kd-half-ach{font-size:28px;font-weight:800;margin-bottom:4px}
+.kd-half-nums{font-size:12px;color:#475569;margin-bottom:8px;font-variant-numeric:tabular-nums}
+.kd-half-sep{color:#94a3b8;margin:0 3px}
+.kd-children{border-top:1px solid #f1f5f9;margin-top:8px;padding-top:6px;display:flex;flex-direction:column;gap:1px}
+.kd-child-row{display:flex;align-items:center;padding:5px 8px;border-radius:6px;cursor:pointer;font-size:12px;flex-wrap:wrap;gap:4px}
+.kd-child-row:hover{background:#f8fafc}
+.kd-child-row.kd-sel{background:#eff6ff}
+.kd-child-name{flex:1;color:#475569;font-weight:500}
+.kd-child-right{display:flex;gap:8px;align-items:center}
+.kd-child-rev{font-variant-numeric:tabular-nums;color:#1e293b;font-weight:600}
+.kd-child-ach{font-size:11px;font-weight:700;min-width:36px;text-align:right}
+/* 상세 패널 */
+.kd-detail-panel{background:#fff;border-radius:10px;padding:20px 24px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:16px}
+.kd-breadcrumb{font-size:11px;color:#94a3b8;margin-bottom:14px;line-height:1.6}
+.kd-bc-link{cursor:pointer;color:#94a3b8}
+.kd-bc-link:hover{color:#3b82f6;text-decoration:underline}
+.kd-bc-sep{color:#cbd5e1;margin:0 4px}
+.kd-bc-cur{color:#1e293b;font-weight:600}
+.kd-cmp-tbl{width:100%;border-collapse:collapse;font-size:13px}
+.kd-cmp-tbl th{padding:7px 12px;text-align:right;font-size:11px;font-weight:600;color:#64748b;background:#f8fafc;border-bottom:2px solid #e8edf3}
+.kd-cmp-tbl th:first-child{text-align:left}
+.kd-cmp-tbl td{padding:7px 12px;text-align:right;border-bottom:1px solid #f1f5f9;font-variant-numeric:tabular-nums;color:#1e293b}
+.kd-cmp-tbl td:first-child{text-align:left;color:#64748b;font-size:12px;white-space:nowrap}
+.kd-cmp-tbl td.ok{color:#10b981;font-weight:600}
+.kd-cmp-tbl td.warn{color:#f59e0b;font-weight:600}
+.kd-cmp-tbl td.bad{color:#dc2626;font-weight:600}
+.kd-cmp-tbl td.gray{color:#94a3b8}
+.kd-cmp-tbl tr:last-child td{border-bottom:none}
+/* 채널 분석 표 */
+.kd-section-title{font-size:12px;font-weight:700;color:#475569;margin:0 0 10px;letter-spacing:.04em}
+.kd-ch-tbl{width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.kd-ch-tbl th{padding:9px 12px;background:#f8fafc;color:#64748b;font-size:11px;font-weight:600;text-align:right;border-bottom:2px solid #e8edf3;white-space:nowrap}
+.kd-ch-tbl th:first-child{text-align:left}
+.kd-ch-tbl th.kd-bar-th{width:120px;min-width:80px}
+.kd-ch-tbl td{padding:8px 12px;text-align:right;border-bottom:1px solid #f1f5f9;font-variant-numeric:tabular-nums;vertical-align:middle}
+.kd-ch-tbl td:first-child{text-align:left;font-weight:500;color:#475569}
+.kd-ch-tbl td.ok{color:#10b981;font-weight:600}
+.kd-ch-tbl td.warn{color:#f59e0b;font-weight:600}
+.kd-ch-tbl td.bad{color:#dc2626;font-weight:600}
+.kd-ch-tbl td.gray{color:#94a3b8}
+.kd-ch-tbl tr.kd-ch-row-sel td{background:#eff6ff}
+.kd-ch-tbl tr:last-child td{border-bottom:none}
+.kd-ch-name{cursor:pointer}
+.kd-ch-name:hover{color:#3b82f6}
+.kd-bar-cell{padding:8px 12px;min-width:80px}
+.kd-ch-bar{height:6px;background:#f1f5f9;border-radius:99px;overflow:hidden}
+.kd-ch-bar-fill{height:100%;border-radius:99px}
+.kd-no-target{color:#94a3b8;font-size:11px}
+/* 반응형 */
+@media(max-width:900px){.kd-dom-ovr-grid{grid-template-columns:1fr}.kd-pb-block{flex-direction:column;gap:14px}}
+@media(max-width:600px){.kd-header{flex-direction:column;align-items:flex-start}.kd-pb-left{min-width:unset}.kd-pb-ach{font-size:32px}.kd-cmp-tbl th:nth-child(2),.kd-cmp-tbl td:nth-child(2){display:none}}
 </style>
 </head>
 <body>
@@ -387,33 +386,40 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 
   <!-- ── KPI ── -->
   <div id="page-kpi" class="page">
-    <div class="page-body kpi-page">
+    <div class="page-body">
 
-      <!-- ① 대시보드 헤더 -->
-      <div class="kpi-dash-header">
-        <div>
-          <div class="kpi-dash-title">KPI Dashboard</div>
-          <div class="kpi-dash-sub" id="kpiDateBadge"></div>
+      <!-- A. 헤더 -->
+      <div class="kd-header">
+        <div class="kd-title-wrap">
+          <span class="kd-title">PB 매출 KPI</span>
+          <span class="kd-meta" id="kdMeta"></span>
         </div>
-        <div class="kpi-dash-legend">
-          <span class="leg-dot" style="background:#3b82f6"></span>전체&nbsp;
-          <span class="leg-dot" style="background:#8b5cf6"></span>공구&nbsp;
-          <span class="leg-dot" style="background:#10b981"></span>공구 외
+        <div class="kd-ctrl">
+          <span class="kd-unit">단위: 원(KRW)</span>
+          <div class="kd-view-toggle" id="kdViewToggle">
+            <button class="kd-vbtn active" data-view="annual">연간</button>
+            <button class="kd-vbtn" data-view="monthly">월간</button>
+          </div>
         </div>
       </div>
 
-      <!-- ② Executive Summary -->
-      <div class="kpi-exec-card" id="kpiExecSummary"></div>
+      <!-- B. PB 전체 -->
+      <div id="kdPbRow"></div>
 
-      <!-- ③ 연간 KPI -->
-      <div class="kpi-section-hdr annual">연간 KPI <span class="kpi-section-badge">YTD</span></div>
-      <div class="kpi4-grid" id="kpiAnnualCards"></div>
+      <!-- C. 국내 / 해외 -->
+      <div class="kd-dom-ovr-grid" id="kdDomOvr"></div>
 
-      <!-- ④ 월간 KPI + 채널 -->
-      <div class="kpi-section-hdr monthly">월간 KPI <span class="kpi-section-badge" id="kpiMonthBadge"></span></div>
-      <div class="kpi4-grid" id="kpiMonthlyCards"></div>
-      <div class="kpi-ch-sub-hdr">일반커머스 채널별 현황</div>
-      <div class="kpi-ch-kpi-grid" id="kpiChKpiCards"></div>
+      <!-- D. 선택 상세 패널 -->
+      <div class="kd-detail-panel" id="kdDetailPanel" style="display:none">
+        <div class="kd-breadcrumb" id="kdBreadcrumb"></div>
+        <div id="kdDetailBody"></div>
+      </div>
+
+      <!-- E. 채널 분석 (일반/채널 선택 시) -->
+      <div id="kdChannelSection" style="display:none">
+        <div class="kd-section-title">일반커머스 채널별 현황</div>
+        <div id="kdChannelTable"></div>
+      </div>
 
     </div>
   </div>
@@ -636,6 +642,8 @@ const C24_TARGETS     = {};             // 카페24 월 목표 — 시트 row 69
 const COUP_TARGETS    = {};             // 쿠팡 월 목표 — 시트 row 74 (라벨 row72+2)
 const ROCKET_GID      = '629942175';    // 매출 시트 2026 요약탭 (로켓그로스)
 let   ROCKET_REV      = {};             // { 월(1-12): 로켓그로스 매출액 }
+const PIVOT_GID  = '2123234833';        // 2026 피벗탭 (채널별 실적/예상/목표)
+let   PIVOT_DATA = null;                // 파싱된 계층 데이터 { pb, domestic, … }
 
 // ── 재고관리 시트 ──
 const INV_SHEET_ID  = '1hVQZOo3MYhksqhsE6B4TFYUr997HgiDzo27zKVBNx2I';
@@ -827,6 +835,76 @@ async function loadData() {
     });
     console.log('[ANN_TARGET] 결과:', ANN_TARGET);
   } catch(e) { console.warn('[로켓그로스 로딩 실패]', e); }
+
+  // ── 2026 피벗탭 (PIVOT_GID) ──────────────────────────
+  try {
+    const pivotUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID_2026}/export?format=csv&gid=${PIVOT_GID}`;
+    const pr = parseCSV(await fetch(pivotUrl).then(r => r.ok ? r.text() : Promise.reject(r.status)));
+
+    // 월 헤더행 찾기: 숫자 1~12가 10개 이상인 첫 번째 행 (startIdx 이후)
+    const findMColMap = (rows, startIdx) => {
+      for (let i = startIdx; i < rows.length; i++) {
+        const nums = rows[i].slice(1, 14).map(c => parseInt(String(c).trim())).filter(n => n >= 1 && n <= 12);
+        if (nums.length >= 10) {
+          const map = {};
+          rows[i].forEach((cell, ci) => { const m = parseInt(String(cell).trim()); if (m >= 1 && m <= 12) map[m] = ci; });
+          return { map, hdrIdx: i };
+        }
+      }
+      return { map: {}, hdrIdx: -1 };
+    };
+
+    const { map: mMap26, hdrIdx: hdr26 } = findMColMap(pr, 30);  // 2026 월 헤더: ~row 33
+    const { map: mMap25, hdrIdx: hdr25 } = findMColMap(pr, 17);  // 2025 월 헤더: ~row 20
+
+    const pn = v => { const x = parseFloat(String(v || '').replace(/[,\s₩]/g, '')); return isNaN(x) ? null : x; };
+
+    // 라벨로 행 찾기 (hdrIdx 이후의 행에서만 검색)
+    const extract = (label, mMap, afterIdx) => {
+      const row = pr.find((r, i) => i > afterIdx && (r[0] || '').trim() === label);
+      if (!row) return { monthly: {}, annual: null };
+      const monthly = {};
+      for (let m = 1; m <= 12; m++) {
+        const ci = mMap[m];
+        if (ci !== undefined) { const v = pn(row[ci]); if (v !== null && v > 0) monthly[m] = v; }
+      }
+      return { monthly, annual: pn(row[13]) };
+    };
+
+    const e26 = label => extract(label, mMap26, hdr26);
+    const e25 = label => extract(label, mMap25, hdr25);
+
+    PIVOT_DATA = {
+      pb:           { rev: e26('PB 매출(실적)'),       fcast: e26('PB 예상'),                 target: e26('PB 목표') },
+      domestic:     { rev: e26('국내 매출'),           fcast: e26('국내 예상'),                target: e26('국내 목표') },
+      gongu:        { rev: e26('공구 매출'),           fcast: e26('공구 예상'),                target: e26('공구 목표') },
+      ilban:        { rev: e26('일반 매출'),           fcast: e26('일반 예상'),                target: e26('일반 목표') },
+      overseas:     { rev: e26('해외 매출'),           fcast: e26('해외 예상'),                target: e26('해외 목표') },
+      channel:      { rev: e26('채널'),               fcast: e26('채널 예상'),                target: e26('채널 목표') },
+      ss:           { rev: e26('스마트스토어'),         fcast: e26('스마트스토어 예상'),          target: e26('스마트스토어 목표') },
+      c24:          { rev: e26('카페24'),             fcast: e26('카페24 예상'),               target: e26('카페24 목표') },
+      coupang:      { rev: e26('쿠팡'),               fcast: e26('쿠팡 예상'),                target: e26('쿠팡 목표') },
+      kakaoStore:   { rev: e26('카카오톡스토어'),      fcast: e26('카카오톡스토어 예상'),        target: { monthly: {}, annual: null } },
+      kakaoGift:    { rev: e26('카카오선물하기'),      fcast: e26('카카오선물하기 예상'),        target: e26('카카오선물하기 목표') },
+      etc:          { rev: e26('기타'),               fcast: e26('기타 예상'),                target: e26('기타 목표') },
+      overseasGongu:{ rev: e26('해외 공구'),           fcast: e26('해외 공구 예상'),             target: e26('해외 공구 목표') },
+      overseasIlban:{ rev: e26('해외 일반'),           fcast: e26('해외 일반 예상'),             target: e26('해외 일반 목표') },
+      prev2025: {
+        gongu:      e25('공구'),
+        channel:    e25('채널'),
+        ss:         e25('스마트스토어'),
+        coupang:    e25('쿠팡 합계'),
+        kakaoStore: e25('카카오톡스토어'),
+        etc:        e25('기타'),
+      },
+    };
+
+    validatePivotTotals(PIVOT_DATA, new Date().getMonth() + 1);
+    console.log('[PIVOT] 로드 완료:', Object.fromEntries(
+      Object.entries(PIVOT_DATA).filter(([k]) => k !== 'prev2025')
+        .map(([k, v]) => [k, { rev7: v.rev.monthly[7], tgt: v.target.annual }])
+    ));
+  } catch(e) { console.warn('[PIVOT 로딩 실패]', e); }
 }
 
 function parseCSV(text) {
@@ -1171,24 +1249,285 @@ function populateMonthSelects() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  KPI v2
+//  KPI 대시보드 — PIVOT_GID 기반 계층형
 // ═══════════════════════════════════════════════════════
-function renderKPI() {
-  const n  = getNow();
-  const kd = buildKpiData(n);
 
-  const maxDayM = maxDay(ROWS.filter(r=>r.year===n.y), n.y, n.m) || n.dy;
-  document.getElementById('kpiDateBadge').textContent =
-    `데이터 기준: ${n.y}.${String(n.m).padStart(2,'0')}.${String(n.dy).padStart(2,'0')} (${n.m}월 ${maxDayM}일까지 반영)`;
-  document.getElementById('kpiMonthBadge').textContent = `${n.m}월`;
+let kdView     = 'annual';   // 'annual' | 'monthly'
+let kdSelected = 'pb';
 
-  renderKpiExec(kd, n);
-  renderKpiAnnual(kd, n);
-  renderKpiMonthly(kd, n);
-  renderKpiChannels(kd, n);
+const KD_HIERARCHY = {
+  pb:           { name: 'PB',             parent: null,       children: ['domestic','overseas'] },
+  domestic:     { name: '국내',           parent: 'pb',       children: ['gongu','ilban'] },
+  gongu:        { name: '공구',           parent: 'domestic', children: [] },
+  ilban:        { name: '일반',           parent: 'domestic', children: ['channel','etc'] },
+  channel:      { name: '채널',           parent: 'ilban',    children: ['ss','c24','coupang','kakaoStore','kakaoGift'] },
+  etc:          { name: '기타',           parent: 'ilban',    children: [] },
+  ss:           { name: '스마트스토어',   parent: 'channel',  children: [] },
+  c24:          { name: '카페24',         parent: 'channel',  children: [] },
+  coupang:      { name: '쿠팡',           parent: 'channel',  children: [] },
+  kakaoStore:   { name: '카카오톡스토어', parent: 'channel',  children: [] },
+  kakaoGift:    { name: '카카오선물하기', parent: 'channel',  children: [] },
+  overseas:     { name: '해외',           parent: 'pb',       children: ['overseasGongu','overseasIlban'] },
+  overseasGongu:{ name: '해외 공구',      parent: 'overseas', children: [] },
+  overseasIlban:{ name: '해외 일반',      parent: 'overseas', children: [] },
+};
+
+function validatePivotTotals(pd, m) {
+  const chk = (name, pKey, cKeys, field) => {
+    const parent   = pd[pKey][field].monthly[m] || 0;
+    const children = cKeys.reduce((s, k) => s + (pd[k][field].monthly[m] || 0), 0);
+    if (parent > 0 && Math.abs(parent - children) > 1)
+      console.warn(`[PIVOT 불일치] ${name} ${field}: 시트=${parent.toLocaleString()} 하위합=${children.toLocaleString()}`);
+  };
+  chk('PB',   'pb',       ['domestic','overseas'],                          'rev');
+  chk('국내', 'domestic', ['gongu','ilban'],                                'rev');
+  chk('일반', 'ilban',    ['channel','etc'],                                'rev');
+  chk('채널', 'channel',  ['ss','c24','coupang','kakaoStore','kakaoGift'],  'rev');
+  chk('해외', 'overseas', ['overseasGongu','overseasIlban'],                'rev');
 }
 
-// ── buildKpiData ──────────────────────────────────────
+function renderKPI() {
+  if (!PIVOT_DATA) {
+    const el = document.getElementById('kdPbRow');
+    if (el) el.innerHTML = '<div style="padding:30px;color:#94a3b8;text-align:center">데이터 로딩 중...</div>';
+    return;
+  }
+  kdRenderAll(getNow());
+}
+
+// ── core render ──────────────────────────────────────
+function kdRenderAll(n) {
+  const meta = document.getElementById('kdMeta');
+  if (meta) meta.textContent = `${n.y}년 ${n.m}월 ${n.dy}일 기준`;
+  document.querySelectorAll('.kd-vbtn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.view === kdView);
+    btn.onclick = () => { kdView = btn.dataset.view; kdRenderAll(getNow()); };
+  });
+  kdRenderPb(n);
+  kdRenderDomOvr(n);
+  kdRenderDetail(n);
+  kdRenderChannel(n);
+}
+
+function kdMetrics(key, n) {
+  if (!PIVOT_DATA) return null;
+  const d = PIVOT_DATA[key];
+  if (!d) return null;
+  const ytdRev    = Object.entries(d.rev.monthly).filter(([mo]) => +mo <= n.m).reduce((s, [, v]) => s + (v || 0), 0);
+  const annTarget = d.target.annual;
+  const monRev    = d.rev.monthly[n.m]    || 0;
+  const monTarget = d.target.monthly[n.m] || null;
+  const monFcast  = d.fcast.monthly[n.m]  || 0;
+  const annFcast  = d.fcast.annual        || null;
+  const paceFcastAnn = (ytdRev > 0 && n.doy > 0) ? forecastM(ytdRev, n.doy, n.diy) : null;
+  const fcastAnn     = (annFcast && annFcast >= ytdRev) ? annFcast : paceFcastAnn;
+  const paceFcastMon = n.dy > 0 ? monRev / n.dy * n.dim : null;
+  const fcastMon     = (monFcast > 0 && monFcast >= monRev) ? monFcast : paceFcastMon;
+  const annAch  = (annTarget && annTarget > 0) ? ytdRev / annTarget * 100 : null;
+  const monAch  = (monTarget && monTarget > 0) ? monRev / monTarget * 100 : null;
+  const curPace = n.dy > 0 ? monRev / n.dy : 0;
+  const reqPace = (monTarget && (n.dim - n.dy) > 0) ? (monTarget - monRev) / (n.dim - n.dy) : null;
+  return { ytdRev, annTarget, fcastAnn, monRev, monTarget, fcastMon, annAch, monAch, curPace, reqPace };
+}
+
+function kdAchCls(ach) {
+  if (ach === null || ach === undefined) return 'gray';
+  return ach >= 100 ? 'ok' : ach >= 70 ? 'warn' : 'bad';
+}
+
+function kdRenderPb(n) {
+  const el = document.getElementById('kdPbRow');
+  if (!el) return;
+  const m  = kdMetrics('pb', n);
+  if (!m)  return;
+  const isAnn  = kdView === 'annual';
+  const rev    = isAnn ? m.ytdRev    : m.monRev;
+  const target = isAnn ? m.annTarget : m.monTarget;
+  const ach    = isAnn ? m.annAch    : m.monAch;
+  const fcast  = isAnn ? m.fcastAnn  : m.fcastMon;
+  const achCls = kdAchCls(ach);
+  const barRev   = target ? Math.min(100, rev / target * 100) : 0;
+  const barFcast = (fcast && target) ? Math.min(100, fcast / target * 100) : 0;
+  const isSel  = kdSelected === 'pb';
+  el.innerHTML = `
+  <div class="kd-pb-block${isSel ? ' kd-selected' : ''}" onclick="kdSelect('pb')">
+    <div class="kd-pb-left">
+      <div class="kd-pb-label">PB 전체</div>
+      <div class="kd-pb-ach ${achCls}">${ach !== null ? ach.toFixed(1)+'%' : '—'}</div>
+      <div class="kd-pb-nums">
+        <span class="kd-val-main">${fmtM(rev)}</span>
+        <span class="kd-val-sep"> / </span>
+        <span class="kd-val-sub">${target ? fmtM(target) : '미설정'}</span>
+      </div>
+      <div class="kd-pb-badge-wrap"><span class="kd-badge">${isAnn ? '연간 YTD' : n.m+'월'}</span></div>
+    </div>
+    <div class="kd-pb-right">
+      <div class="kd-prog-wrap">
+        <div class="kd-prog-bg">
+          <div class="kd-prog-fill ${achCls}" style="width:${barRev.toFixed(1)}%"></div>
+          ${barFcast > 0 ? `<div class="kd-prog-fcast" style="left:${Math.min(barFcast, 98).toFixed(1)}%"></div>` : ''}
+          <div class="kd-prog-target"></div>
+        </div>
+        <div class="kd-prog-labels">
+          <span>실적 ${fmtM(rev)}</span>
+          ${fcast ? `<span>예상 ${fmtM(fcast)}</span>` : ''}
+          <span>목표 ${target ? fmtM(target) : '—'}</span>
+        </div>
+      </div>
+      <div class="kd-pb-stats">
+        ${fcast && target ? `<div class="kd-stat"><div class="kd-stat-k">${isAnn ? '예상 연말' : '예상'}</div><div class="kd-stat-v">${fmtM(fcast)}</div></div>` : ''}
+        ${fcast && target ? `<div class="kd-stat"><div class="kd-stat-k">목표 대비</div><div class="kd-stat-v ${fcast >= target ? 'ok' : 'bad'}">${fcast >= target ? '+' : ''}${fmtM(fcast - target)}</div></div>` : ''}
+        ${m.curPace > 0 ? `<div class="kd-stat"><div class="kd-stat-k">일평균</div><div class="kd-stat-v">${fmtM(m.curPace)}</div></div>` : ''}
+        ${m.reqPace !== null ? `<div class="kd-stat"><div class="kd-stat-k">필요 일평균</div><div class="kd-stat-v ${m.reqPace <= m.curPace ? 'ok' : 'bad'}">${fmtM(m.reqPace)}</div></div>` : ''}
+      </div>
+    </div>
+  </div>`;
+}
+
+function kdRenderDomOvr(n) {
+  const el = document.getElementById('kdDomOvr');
+  if (!el) return;
+  const renderHalf = (key, childKeys) => {
+    const m  = kdMetrics(key, n);
+    if (!m)  return '';
+    const isAnn  = kdView === 'annual';
+    const rev    = isAnn ? m.ytdRev    : m.monRev;
+    const target = isAnn ? m.annTarget : m.monTarget;
+    const ach    = isAnn ? m.annAch    : m.monAch;
+    const achCls = kdAchCls(ach);
+    const barW   = target ? Math.min(100, rev / target * 100).toFixed(1) : 0;
+    const isSel  = kdSelected === key;
+    const children = childKeys.map(ck => {
+      const cm = kdMetrics(ck, n);
+      if (!cm) return '';
+      const cRev  = isAnn ? cm.ytdRev    : cm.monRev;
+      const cTgt  = isAnn ? cm.annTarget : cm.monTarget;
+      const cAch  = isAnn ? cm.annAch    : cm.monAch;
+      const cCls  = kdAchCls(cAch);
+      const cBarW = cTgt ? Math.min(100, cRev / cTgt * 100).toFixed(1) : 0;
+      return `<div class="kd-child-row${kdSelected === ck ? ' kd-sel' : ''}" onclick="kdSelect('${ck}');event.stopPropagation()">
+        <span class="kd-child-name">${KD_HIERARCHY[ck].name}</span>
+        <div class="kd-child-right">
+          <span class="kd-child-rev">${fmtM(cRev)}</span>
+          <span class="kd-child-ach ${cCls}">${cAch !== null ? cAch.toFixed(0)+'%' : '—'}</span>
+        </div>
+        <div class="kd-prog-xs"><div class="kd-prog-xs-fill ${cCls}" style="width:${cBarW}%"></div></div>
+      </div>`;
+    }).join('');
+    return `<div class="kd-half-card${isSel ? ' kd-sel' : ''}" onclick="kdSelect('${key}')">
+      <div class="kd-half-name">${KD_HIERARCHY[key].name}</div>
+      <div class="kd-half-ach ${achCls}">${ach !== null ? ach.toFixed(1)+'%' : '—'}</div>
+      <div class="kd-half-nums">${fmtM(rev)}<span class="kd-half-sep"> / </span>${target ? fmtM(target) : '—'}</div>
+      <div class="kd-prog-sm"><div class="kd-prog-sm-fill ${achCls}" style="width:${barW}%"></div></div>
+      <div class="kd-children">${children}</div>
+    </div>`;
+  };
+  el.innerHTML = renderHalf('domestic', ['gongu', 'ilban']) + renderHalf('overseas', ['overseasGongu', 'overseasIlban']);
+}
+
+function kdSelect(key) {
+  kdSelected = key;
+  const n = getNow();
+  kdRenderDomOvr(n);
+  kdRenderDetail(n);
+  kdRenderChannel(n);
+}
+
+function kdBreadcrumb(key) {
+  const path = [];
+  let cur = key;
+  while (cur) { path.unshift(cur); cur = KD_HIERARCHY[cur]?.parent; }
+  return path.map((k, i) => i === path.length - 1
+    ? `<span class="kd-bc-cur">${KD_HIERARCHY[k].name}</span>`
+    : `<span class="kd-bc-link" onclick="kdSelect('${k}')">${KD_HIERARCHY[k].name}</span><span class="kd-bc-sep"> › </span>`
+  ).join('');
+}
+
+function kdRenderDetail(n) {
+  const panel = document.getElementById('kdDetailPanel');
+  const bcEl  = document.getElementById('kdBreadcrumb');
+  const body  = document.getElementById('kdDetailBody');
+  if (!panel || !bcEl || !body) return;
+  if (kdSelected === 'pb') { panel.style.display = 'none'; return; }
+  panel.style.display = '';
+  bcEl.innerHTML = kdBreadcrumb(kdSelected);
+  const m = kdMetrics(kdSelected, n);
+  if (!m) { body.innerHTML = '<div style="color:#94a3b8;padding:12px">데이터 없음</div>'; return; }
+  const fmtGap = (a, b) => a !== null && b ? (a >= b ? '+' : '') + fmtM(a - b) : '—';
+  const rows = [
+    { k: '목표',
+      ann: m.annTarget ? fmtM(m.annTarget) : '<span class="kd-no-target">미설정</span>',
+      mon: m.monTarget ? fmtM(m.monTarget) : '<span class="kd-no-target">미설정</span>' },
+    { k: '실적',
+      ann: fmtM(m.ytdRev), annCls: kdAchCls(m.annAch),
+      mon: fmtM(m.monRev), monCls: kdAchCls(m.monAch) },
+    { k: '달성률',
+      ann: m.annAch !== null ? `<b>${m.annAch.toFixed(1)}%</b>` : '—', annCls: kdAchCls(m.annAch),
+      mon: m.monAch !== null ? `<b>${m.monAch.toFixed(1)}%</b>` : '—', monCls: kdAchCls(m.monAch) },
+    { k: '예상 (연말/월말)',
+      ann: m.fcastAnn ? fmtM(m.fcastAnn) : '—',
+      mon: m.fcastMon ? fmtM(m.fcastMon) : '—' },
+    { k: '목표 GAP',
+      ann: fmtGap(m.fcastAnn, m.annTarget),
+      annCls: (m.fcastAnn && m.annTarget) ? (m.fcastAnn >= m.annTarget ? 'ok' : 'bad') : '',
+      mon: fmtGap(m.fcastMon, m.monTarget),
+      monCls: (m.fcastMon && m.monTarget) ? (m.fcastMon >= m.monTarget ? 'ok' : 'bad') : '' },
+    { k: '일평균 / 필요',
+      ann: '—',
+      mon: m.curPace > 0 ? `${fmtM(m.curPace)} / ${m.reqPace !== null ? fmtM(m.reqPace) : '—'}` : '—',
+      monCls: m.reqPace !== null ? (m.reqPace <= m.curPace ? 'ok' : 'bad') : '' },
+  ];
+  body.innerHTML = `<table class="kd-cmp-tbl">
+    <thead><tr><th></th><th>연간 YTD</th><th>${n.m}월</th></tr></thead>
+    <tbody>${rows.map(r => `<tr>
+      <td>${r.k}</td>
+      <td class="${r.annCls || ''}">${r.ann}</td>
+      <td class="${r.monCls || ''}">${r.mon}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function kdRenderChannel(n) {
+  const section = document.getElementById('kdChannelSection');
+  const tbl     = document.getElementById('kdChannelTable');
+  if (!section || !tbl) return;
+  const showForKeys = new Set(['ilban','channel','ss','c24','coupang','kakaoStore','kakaoGift','etc']);
+  if (!showForKeys.has(kdSelected)) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  const isAnn = kdView === 'annual';
+  const CHDEFS = [
+    { key: 'ss',         name: '스마트스토어' },
+    { key: 'c24',        name: '카페24' },
+    { key: 'coupang',    name: '쿠팡' },
+    { key: 'kakaoStore', name: '카카오톡스토어' },
+    { key: 'kakaoGift',  name: '카카오선물하기' },
+    { key: 'etc',        name: '기타' },
+  ];
+  const rows = CHDEFS.map(ch => {
+    const m  = kdMetrics(ch.key, n);
+    if (!m)  return '';
+    const rev    = isAnn ? m.ytdRev    : m.monRev;
+    const target = isAnn ? m.annTarget : m.monTarget;
+    const ach    = isAnn ? m.annAch    : m.monAch;
+    const fcast  = isAnn ? m.fcastAnn  : m.fcastMon;
+    const achCls = kdAchCls(ach);
+    const barW   = target ? Math.min(100, rev / target * 100).toFixed(1) : 0;
+    return `<tr class="${kdSelected === ch.key ? 'kd-ch-row-sel' : ''}">
+      <td class="kd-ch-name" onclick="kdSelect('${ch.key}')">${ch.name}</td>
+      <td>${target ? fmtM(target) : '<span class="kd-no-target">미설정</span>'}</td>
+      <td class="${achCls}">${fmtM(rev)}</td>
+      <td class="${achCls}">${ach !== null ? ach.toFixed(0)+'%' : '—'}</td>
+      <td class="kd-bar-cell"><div class="kd-ch-bar"><div class="kd-ch-bar-fill ${achCls}" style="width:${barW}%"></div></div></td>
+      <td>${fcast ? fmtM(fcast) : '—'}</td>
+    </tr>`;
+  }).join('');
+  tbl.innerHTML = `<table class="kd-ch-tbl">
+    <thead><tr><th>채널</th><th>목표</th><th>실적</th><th>달성률</th><th class="kd-bar-th">진행</th><th>예상</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>`;
+}
+
+// ── 구 buildKpiData (더 이상 사용 안 함, 레거시 보존용) ──
 function buildKpiData(n) {
   const yr26 = ROWS.filter(r=>r.year===n.y);
   const yr25 = ROWS.filter(r=>r.year===n.y-1);
