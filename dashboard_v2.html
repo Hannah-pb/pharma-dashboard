@@ -390,16 +390,16 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 
       <!-- A. 헤더 -->
       <div class="kd-header">
+        <div class="kd-view-toggle" id="kdViewToggle">
+          <button class="kd-vbtn active" data-view="annual">연간</button>
+          <button class="kd-vbtn" data-view="monthly">월간</button>
+        </div>
         <div class="kd-title-wrap">
           <span class="kd-title">PB 매출 KPI</span>
           <span class="kd-meta" id="kdMeta"></span>
         </div>
         <div class="kd-ctrl">
           <span class="kd-unit">단위: 원(KRW)</span>
-          <div class="kd-view-toggle" id="kdViewToggle">
-            <button class="kd-vbtn active" data-view="annual">연간</button>
-            <button class="kd-vbtn" data-view="monthly">월간</button>
-          </div>
         </div>
       </div>
 
@@ -1381,8 +1381,9 @@ function kdRenderPb(n) {
       <div class="kd-pb-stats">
         ${fcast && target ? `<div class="kd-stat"><div class="kd-stat-k">${isAnn ? '예상 연말' : '예상'}</div><div class="kd-stat-v">${fmtM(fcast)}</div></div>` : ''}
         ${fcast && target ? `<div class="kd-stat"><div class="kd-stat-k">목표 대비</div><div class="kd-stat-v ${fcast >= target ? 'ok' : 'bad'}">${fcast >= target ? '+' : ''}${fmtM(fcast - target)}</div></div>` : ''}
-        ${m.curPace > 0 ? `<div class="kd-stat"><div class="kd-stat-k">일평균</div><div class="kd-stat-v">${fmtM(m.curPace)}</div></div>` : ''}
-        ${m.reqPace !== null ? `<div class="kd-stat"><div class="kd-stat-k">필요 일평균</div><div class="kd-stat-v ${m.reqPace <= m.curPace ? 'ok' : 'bad'}">${fmtM(m.reqPace)}</div></div>` : ''}
+        ${isAnn && m.ytdRev > 0 ? `<div class="kd-stat"><div class="kd-stat-k">월평균</div><div class="kd-stat-v">${fmtM(m.ytdRev / n.m)}</div></div>` : ''}
+        ${!isAnn && m.curPace > 0 ? `<div class="kd-stat"><div class="kd-stat-k">일평균</div><div class="kd-stat-v">${fmtM(m.curPace)}</div></div>` : ''}
+        ${!isAnn && m.reqPace !== null ? `<div class="kd-stat"><div class="kd-stat-k">필요 일평균</div><div class="kd-stat-v ${m.reqPace <= m.curPace ? 'ok' : 'bad'}">${fmtM(m.reqPace)}</div></div>` : ''}
       </div>
     </div>
   </div>`;
