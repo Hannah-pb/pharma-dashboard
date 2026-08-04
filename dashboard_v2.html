@@ -644,6 +644,7 @@ const ROCKET_GID      = '629942175';    // 매출 시트 2026 요약탭 (로켓�
 let   ROCKET_REV      = {};             // { 월(1-12): 로켓그로스 매출액 }
 const PIVOT_GID  = '2123234833';        // 2026 피벗탭 (채널별 실적/예상/목표)
 let   PIVOT_DATA = null;                // 파싱된 계층 데이터 { pb, domestic, … }
+let   PIVOT_DATE = null;                // { y, m, dy } — 시트 A1(월), A2(일) 기반 데이터 기준일
 
 // ── 재고관리 시트 ──
 const INV_SHEET_ID  = '1hVQZOo3MYhksqhsE6B4TFYUr997HgiDzo27zKVBNx2I';
@@ -841,6 +842,14 @@ async function loadData() {
     const pivotUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID_2026}/export?format=csv&gid=${PIVOT_GID}`;
     const pr = parseCSV(await fetch(pivotUrl).then(r => r.ok ? r.text() : Promise.reject(r.status)));
 
+    // A1 = 기준월, A2 = 기준일 (데이터 마지막 날짜)
+    const pivM  = parseInt(String((pr[0]  || [])[0] || '').trim());
+    const pivDy = parseInt(String((pr[1]  || [])[0] || '').trim());
+    if (!isNaN(pivM) && !isNaN(pivDy) && pivM >= 1 && pivM <= 12 && pivDy >= 1 && pivDy <= 31) {
+      PIVOT_DATE = { y: 2026, m: pivM, dy: pivDy };
+    }
+    console.log('[PIVOT] A1/A2 기준일:', PIVOT_DATE);
+
     // 전체 CSV에서 월 헤더행 모두 찾기 (1~12 숫자 10개 이상인 행)
     const allHdrs = [];
     pr.forEach((row, i) => {
@@ -853,12 +862,19 @@ async function loadData() {
       }
     });
 
-    // 2025 = 첫 번째 헤더, 2026 = 두 번째 헤더
-    const { map: mMap25, hdrIdx: hdr25, annCol: annCol25 } = allHdrs[0] || { map: {}, hdrIdx: -1, annCol: 13 };
-    const { map: mMap26, hdrIdx: hdr26, annCol: annCol26 } = allHdrs[1] || { map: {}, hdrIdx: -1, annCol: 13 };
+    console.log('[PIVOT 디버그] 감지된 헤더행:', allHdrs.map(h => `idx=${h.hdrIdx} annCol=${h.annCol} map1=${h.map[1]} map12=${h.map[12]}`));
 
-    console.log('[PIVOT 디버그] 헤더행:', allHdrs.map(h => `idx=${h.hdrIdx} annCol=${h.annCol}`));
-    if (hdr26 >= 0) console.log('[PIVOT 디버그] hdr26 이후:', pr.slice(hdr26, hdr26 + 8).map((r, i) => `[${hdr26+i}] "${r[0]}" | "${r[1]}"`));
+    // 위치 기반 분류: 행 번호 25 미만 = 2025, 25 이상 = 2026
+    // (순서 기반 allHdrs[0]/[1] 는 중간에 다른 헤더 행이 끼면 오탐)
+    const hdrs25 = allHdrs.filter(h => h.hdrIdx < 25);
+    const hdrs26 = allHdrs.filter(h => h.hdrIdx >= 25);
+    const { map: mMap25, hdrIdx: hdr25, annCol: annCol25 } = hdrs25[0] || { map: {}, hdrIdx: -1, annCol: 14 };
+    const { map: mMap26, hdrIdx: hdr26, annCol: annCol26 } = hdrs26[0] || { map: {}, hdrIdx: -1, annCol: 14 };
+
+    console.log('[PIVOT 디버그] 2025헤더 idx='+hdr25+' annCol='+annCol25+' | 2026헤더 idx='+hdr26+' annCol='+annCol26);
+    if (hdr26 >= 0) {
+      console.log('[PIVOT 디버그] hdr26 이후 행:', pr.slice(hdr26, hdr26 + 10).map((r, i) => `[${hdr26+i}] col0="${r[0]}" col1="${r[1]}" col${mMap26[7] || 8}="${r[mMap26[7] || 8]}" col${annCol26}="${r[annCol26]}"`));
+    }
 
     const pn = v => { const x = parseFloat(String(v || '').replace(/[,\s₩]/g, '')); return isNaN(x) ? null : x; };
 
@@ -904,6 +920,12 @@ async function loadData() {
     };
 
     validatePivotTotals(PIVOT_DATA, new Date().getMonth() + 1);
+    // PB 전체 상세 검증 로그
+    const pbRev = PIVOT_DATA.pb.rev;
+    const pbTgt = PIVOT_DATA.pb.target;
+    const pbFcast = PIVOT_DATA.pb.fcast;
+    console.log('[PIVOT] pb.rev.monthly:', pbRev.monthly, '→ sum1-8:', Object.entries(pbRev.monthly).filter(([m])=>+m<=8).reduce((s,[,v])=>s+v,0));
+    console.log('[PIVOT] pb.target.annual:', pbTgt.annual, '| pb.fcast.annual:', pbFcast.annual);
     console.log('[PIVOT] 로드 완료:', Object.fromEntries(
       Object.entries(PIVOT_DATA).filter(([k]) => k !== 'prev2025')
         .map(([k, v]) => [k, { rev7: v.rev.monthly[7], tgt: v.target.annual }])
@@ -946,6 +968,17 @@ function getNow() {
   const diy = (y%4===0&&(y%100!==0||y%400===0))?366:365;
   const jan1 = new Date(y,0,1);
   const doy = Math.ceil((d - jan1)/86400000);
+  return {y,m,dy,dim,diy,doy};
+}
+// KPI 전용: PIVOT_DATE(시트 A1/A2) 기준일 우선, 없으면 오늘 날짜
+function getKpiNow() {
+  if (!PIVOT_DATE) return getNow();
+  const y = PIVOT_DATE.y, m = PIVOT_DATE.m, dy = PIVOT_DATE.dy;
+  const dim = new Date(y,m,0).getDate();
+  const diy = (y%4===0&&(y%100!==0||y%400===0))?366:365;
+  const jan1 = new Date(y,0,1);
+  const pivD = new Date(y,m-1,dy);
+  const doy  = Math.ceil((pivD - jan1)/86400000);
   return {y,m,dy,dim,diy,doy};
 }
 
@@ -1296,16 +1329,16 @@ function renderKPI() {
     if (el) el.innerHTML = '<div style="padding:30px;color:#94a3b8;text-align:center">데이터 로딩 중...</div>';
     return;
   }
-  kdRenderAll(getNow());
+  kdRenderAll(getKpiNow());
 }
 
 // ── core render ──────────────────────────────────────
 function kdRenderAll(n) {
   const meta = document.getElementById('kdMeta');
-  if (meta) meta.textContent = `${n.y}년 ${n.m}월 ${n.dy}일 기준`;
+  if (meta) meta.textContent = `${n.y}년 ${n.m}월 ${n.dy}일 기준 데이터`;
   document.querySelectorAll('.kd-vbtn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.view === kdView);
-    btn.onclick = () => { kdView = btn.dataset.view; kdRenderAll(getNow()); };
+    btn.onclick = () => { kdView = btn.dataset.view; kdRenderAll(getKpiNow()); };
   });
   kdRenderPb(n);
   kdRenderDomOvr(n);
@@ -1432,7 +1465,7 @@ function kdRenderDomOvr(n) {
 
 function kdSelect(key) {
   kdSelected = key;
-  const n = getNow();
+  const n = getKpiNow();
   kdRenderDomOvr(n);
   kdRenderDetail(n);
   kdRenderChannel(n);
