@@ -22,9 +22,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Malgun Gothic','맑은 고딕
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;margin:1px 8px;cursor:pointer;color:#6b7280;white-space:nowrap;transition:background .12s,color .12s;font-size:13px;border-radius:8px}
 .nav-item:hover{background:#e9eaec;color:#111827}
 .nav-item.active{background:#e3e5e8;color:#111827;font-weight:600}
-.nav-icon{font-size:15px;flex-shrink:0;width:22px;text-align:center;filter:grayscale(1) opacity(0.5);transition:filter .12s}
-.nav-item:hover .nav-icon{filter:grayscale(1) brightness(0.3)}
-.nav-item.active .nav-icon{filter:grayscale(1) brightness(0)}
+.nav-icon{flex-shrink:0;width:20px;height:20px;display:flex;align-items:center;justify-content:center;color:#9ca3af;transition:color .12s}
+.nav-icon svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.nav-item:hover .nav-icon,.nav-parent:hover .nav-icon{color:#374151}
+.nav-item.active .nav-icon{color:#111827}
 .nav-label{overflow:hidden;transition:opacity .15s,width .15s}
 #sidebar.collapsed .nav-label{opacity:0;width:0}
 .sb-footer{padding:12px;border-top:1px solid #e5e7eb}
@@ -339,24 +340,26 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
   <ul class="nav-list">
     <!-- KPI -->
     <li class="nav-item active" data-page="kpi">
-      <span class="nav-icon">📊</span><span class="nav-label">KPI 대시보드</span>
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="12" width="4" height="9" rx="1"/><rect x="10" y="7" width="4" height="14" rx="1"/><rect x="17" y="3" width="4" height="18" rx="1"/></svg></span>
+      <span class="nav-label">KPI 대시보드</span>
     </li>
 
     <!-- 판매분석 accordion -->
     <li class="nav-parent open" id="navParentSales" onclick="toggleNavParent('navParentSales')">
-      <span class="nav-icon">📈</span><span class="nav-label">판매분석</span><span class="nav-arrow">▾</span>
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
+      <span class="nav-label">판매분석</span><span class="nav-arrow">▾</span>
     </li>
     <div class="nav-children open" id="navChildrenSales">
-      <div class="nav-child" data-page="sales">💹 매출 현황</div>
+      <div class="nav-child" data-page="sales">매출 현황</div>
       <!-- 일반 커머스 sub-accordion -->
       <div class="nav-subparent" id="navSubparentIlban" onclick="toggleNavGroup('navChildrenIlban')">
-        <span class="nav-label">🛒 일반 커머스</span><span id="navChildrenIlbanArrow" class="nav-subarrow">▾</span>
+        <span class="nav-label">일반 커머스</span><span id="navChildrenIlbanArrow" class="nav-subarrow">▾</span>
       </div>
       <div class="nav-grandchildren open" id="navChildrenIlban">
-        <div class="nav-grandchild" data-page="products">📦 상품 매출</div>
+        <div class="nav-grandchild" data-page="products">상품 매출</div>
         <!-- 채널 상세 sub-sub-accordion -->
         <div class="nav-subparent-2" id="navSubparentChannel2" onclick="toggleNavGroup('navChildrenChannel2')">
-          <span class="nav-label">🔗 채널 상세</span><span id="navChildrenChannel2Arrow" class="nav-subarrow">▾</span>
+          <span class="nav-label">채널 상세</span><span id="navChildrenChannel2Arrow" class="nav-subarrow">▾</span>
         </div>
         <div class="nav-great-grandchildren open" id="navChildrenChannel2">
           <div class="nav-great-grandchild" data-page="smartstore">스마트스토어</div>
@@ -367,11 +370,15 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 
     <!-- 재고관리 -->
     <li class="nav-item" data-page="inventory">
-      <span class="nav-icon">📋</span><span class="nav-label">재고관리</span>
+      <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span>
+      <span class="nav-label">재고관리</span>
     </li>
   </ul>
   <div class="sb-footer">
-    <button id="refreshBtn" onclick="location.reload()">🔄 <span class="btn-label">새로고침</span></button>
+    <button id="refreshBtn" onclick="location.reload()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex-shrink:0"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      <span class="btn-label">새로고침</span>
+    </button>
   </div>
 </nav>
 
