@@ -198,9 +198,16 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .expiry-bar{height:5px;border-radius:3px;background:#e2e8f0;margin-top:5px;overflow:hidden;width:100%;max-width:140px}
 .expiry-bar-fill{height:100%;border-radius:3px;transition:width .4s}
 .inv-loading{display:flex;align-items:center;justify-content:center;padding:60px;gap:12px;color:#3b82f6;font-size:13px}
-.kpi-grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:12px}
+.kpi-grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:14px}
 @media(max-width:900px){.kpi-grid-5{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:480px){.kpi-grid-5{grid-template-columns:1fr 1fr}}
+/* ── Inventory tab nav ── */
+.inv-tab-bar{display:flex;gap:2px;background:#e5e7eb;padding:4px;border-radius:12px;width:fit-content;margin-bottom:18px}
+.inv-tab-btn{padding:7px 18px;background:transparent;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;color:#6b7280;transition:all .12s;font-family:inherit;white-space:nowrap}
+.inv-tab-btn:hover:not(.active){color:#374151}
+.inv-tab-btn.active{background:#fff;color:#111827;font-weight:600;box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.inv-tab-pane{display:none}
+.inv-tab-pane.active{display:block}
 
 /* ── Hamburger (mobile) ── */
 #hamburger{display:none;position:fixed;top:12px;left:12px;z-index:60;background:#0f2744;color:#fff;border:none;border-radius:8px;width:40px;height:40px;font-size:20px;cursor:pointer}
@@ -565,57 +572,78 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       </div>
 
       <div id="inv-content">
-        <!-- 섹션 1: KPI 카드 -->
-        <div class="section-label" style="margin-top:4px">재고 현황 요약</div>
-        <div class="kpi-grid-5" id="invKpiCards"></div>
 
-        <!-- 섹션 2: 발주 알람 -->
-        <div class="card">
-          <div class="card-title card-title-row">
-            <span>🔔 발주 알람 <span id="invAlarmCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
-            <span style="font-size:11px;font-weight:400;color:#94a3b8">소진 예상일 = (재고 − 공구할당 − 사입) ÷ 상시판매 일평균, 입고 전후 공구 분리 계산</span>
+        <!-- 탭 네비게이션 -->
+        <div class="inv-tab-bar">
+          <button class="inv-tab-btn active" data-tab="status"   onclick="switchInvTab('status')">재고 현황</button>
+          <button class="inv-tab-btn"         data-tab="issues"   onclick="switchInvTab('issues')">재고 이슈</button>
+          <button class="inv-tab-btn"         data-tab="schedule" onclick="switchInvTab('schedule')">입고 일정</button>
+        </div>
+
+        <!-- 탭 1: 재고 현황 -->
+        <div class="inv-tab-pane active" id="invTab-status">
+          <div class="kpi-grid-5" id="invKpiCards"></div>
+          <div class="card" style="padding:0;overflow:hidden">
+            <div class="card-title" style="padding:14px 16px 12px;border-bottom:1px solid #f1f5f9">재고 현황 전체</div>
+            <div id="invStatusTbl"></div>
           </div>
-          <div class="tbl-wrap"><table id="tblOrderAlarm" class="inv-table"></table></div>
         </div>
 
-        <!-- 섹션 3: 소비기한 임박 -->
-        <div class="card">
-          <div class="card-title card-title-row">
-            <span>⚠️ 소비기한 임박 (15개월 이내) <span id="invExpiryCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
-            <span style="font-size:11px;font-weight:400;color:#94a3b8">
-              <span class="inv-badge red">3개월↓</span>
-              <span class="inv-badge orange">6개월↓</span>
-              <span class="inv-badge yellow">9개월↓</span>
-              <span class="inv-badge blue">12개월↓</span>
-              <span class="inv-badge gray">14개월↓</span>
-            </span>
+        <!-- 탭 2: 재고 이슈 -->
+        <div class="inv-tab-pane" id="invTab-issues">
+
+          <!-- 발주 필요 -->
+          <div class="card">
+            <div class="card-title card-title-row">
+              <span>발주 필요 <span id="invAlarmCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
+              <span style="font-size:11px;font-weight:400;color:#94a3b8">소진 예상일 = (재고 − 공구할당 − 사입) ÷ 상시판매 일평균</span>
+            </div>
+            <div class="tbl-wrap"><table id="tblOrderAlarm" class="inv-table"></table></div>
           </div>
-          <div class="tbl-wrap"><table id="tblExpiry" class="inv-table"></table></div>
-        </div>
 
-        <!-- 섹션 4: 입고 예정일 점검 -->
-        <div class="card">
-          <div class="card-title">
-            📦 입고 예정일 점검 <span id="invStockoutCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span>
-            <div style="font-size:11px;font-weight:400;color:#64748b;margin-top:4px">입고 전 품절 가능성 상품 확인</div>
+          <!-- 소비기한 임박 -->
+          <div class="card">
+            <div class="card-title card-title-row">
+              <span>소비기한 임박 (15개월 이내) <span id="invExpiryCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
+              <span style="font-size:11px;font-weight:400;color:#94a3b8">
+                <span class="inv-badge red">3개월↓</span>
+                <span class="inv-badge orange">6개월↓</span>
+                <span class="inv-badge yellow">9개월↓</span>
+                <span class="inv-badge blue">12개월↓</span>
+                <span class="inv-badge gray">14개월↓</span>
+              </span>
+            </div>
+            <div class="tbl-wrap"><table id="tblExpiry" class="inv-table"></table></div>
           </div>
-          <div class="tbl-wrap"><table id="tblStockoutCheck" class="inv-table"></table></div>
-        </div>
 
-        <!-- 섹션 4-1: 공구 소비기한 점검 -->
-        <div class="card">
-          <div class="card-title">
-            ⏰ 공구 소비기한 점검 <span id="invGonguExpiryCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span>
-            <div style="font-size:11px;font-weight:400;color:#64748b;margin-top:4px">시작일이 소비기한 1년 이내인 공구건</div>
+          <!-- 공구 소비기한 점검 -->
+          <div class="card">
+            <div class="card-title card-title-row">
+              <span>공구 소비기한 점검 <span id="invGonguExpiryCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
+              <span style="font-size:11px;font-weight:400;color:#94a3b8">시작일이 소비기한 1년 이내인 공구건</span>
+            </div>
+            <div id="invGonguExpiry"></div>
           </div>
-          <div id="invGonguExpiry"></div>
+
+          <!-- 입고 전 품절 위험 -->
+          <div class="card">
+            <div class="card-title card-title-row">
+              <span>입고 전 품절 위험 <span id="invStockoutCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
+              <span style="font-size:11px;font-weight:400;color:#94a3b8">입고예정일 이전 소진 예상 상품</span>
+            </div>
+            <div class="tbl-wrap"><table id="tblStockoutCheck" class="inv-table"></table></div>
+          </div>
+
         </div>
 
-        <!-- 섹션 5: 발주 일정표 -->
-        <div class="card">
-          <div class="card-title">📅 입고 일정표 <span style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px">향후 90일</span></div>
-          <div id="invTimeline" style="padding:4px 0"></div>
+        <!-- 탭 3: 입고 일정 -->
+        <div class="inv-tab-pane" id="invTab-schedule">
+          <div class="card">
+            <div class="card-title">입고 일정표 <span style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px">향후 90일</span></div>
+            <div id="invTimeline" style="padding:4px 0"></div>
+          </div>
         </div>
+
       </div>
 
     </div>
@@ -690,8 +718,9 @@ let c24MonthYear = 2026;
 // 재고관리 상태
 let INV_ROWS   = [];
 let GONGU_ROWS = [];
-let invLoaded  = false;
-let invLoading = false;
+let invLoaded    = false;
+let invLoading   = false;
+let invActiveTab = 'status';
 
 // ═══════════════════════════════════════════════════════
 //  INIT
@@ -3083,6 +3112,79 @@ function calcSelloutDate(row, gonguRows, today) {
 }
 
 // ═══════════════════════════════════════════════════════
+//  INVENTORY — TAB SWITCH
+// ═══════════════════════════════════════════════════════
+function switchInvTab(tab) {
+  invActiveTab = tab;
+  document.querySelectorAll('.inv-tab-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+  document.querySelectorAll('.inv-tab-pane').forEach(pane => {
+    pane.classList.toggle('active', pane.id === 'invTab-' + tab);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  INVENTORY — 재고 현황 전체 목록
+// ═══════════════════════════════════════════════════════
+function renderInvStatus() {
+  const el = document.getElementById('invStatusTbl');
+  if (!el) return;
+
+  const today = new Date(); today.setHours(0,0,0,0);
+
+  if (!INV_ROWS.length) {
+    el.innerHTML = '<div style="padding:20px;color:#94a3b8;font-size:13px">데이터 없음</div>';
+    return;
+  }
+
+  const fmtDate = v => {
+    const d = parseInvDate(v);
+    if (!d) return '—';
+    return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  };
+
+  const rows = INV_ROWS.map(r => {
+    const expDate = parseInvDate(r['소비기한']);
+    let expMonths = null;
+    if (expDate) {
+      const ms = expDate - today;
+      expMonths = ms > 0 ? Math.round(ms / (30 * 86400000)) : 0;
+    }
+    let expCls = '';
+    if (expMonths !== null) {
+      if      (expMonths <= 3)  expCls = 'color:#dc2626;font-weight:600';
+      else if (expMonths <= 6)  expCls = 'color:#ea580c;font-weight:600';
+      else if (expMonths <= 9)  expCls = 'color:#ca8a04';
+      else if (expMonths <= 12) expCls = 'color:#2563eb';
+    }
+    return { r, expMonths, expCls };
+  });
+
+  const thead = `<thead><tr>
+    <th style="text-align:left">품목명</th>
+    <th>담당자</th>
+    <th>소비기한</th>
+    <th class="r">재고수량</th>
+    <th>소진예상일</th>
+    <th class="r">발주수량</th>
+    <th>입고예정일</th>
+  </tr></thead>`;
+
+  const tbody = rows.map(({ r, expMonths, expCls }) => `<tr>
+    <td style="font-weight:500">${r['품목명'] || '—'}</td>
+    <td style="text-align:center">${r['담당자'] || '—'}</td>
+    <td style="text-align:center;${expCls}">${expMonths !== null ? expMonths + '개월' : '—'}</td>
+    <td class="r">${r['재고수량'] || r['현재고'] || '—'}</td>
+    <td style="text-align:center">${fmtDate(r['소진 예상일'] || r['소진예상일'])}</td>
+    <td class="r">${r['발주수량'] || '—'}</td>
+    <td style="text-align:center">${fmtDate(r['입고예정일'])}</td>
+  </tr>`).join('');
+
+  el.innerHTML = `<div class="tbl-wrap"><table class="inv-table">${thead}<tbody>${tbody}</tbody></table></div>`;
+}
+
+// ═══════════════════════════════════════════════════════
 //  INVENTORY — RENDER ENTRY
 // ═══════════════════════════════════════════════════════
 function renderInventory() {
@@ -3090,6 +3192,7 @@ function renderInventory() {
   const contentEl = document.getElementById('inv-content');
 
   const renderAll = () => {
+    renderInvStatus();
     renderInvKPI();
     renderOrderAlarm();
     renderExpiry();
