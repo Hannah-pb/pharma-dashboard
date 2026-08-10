@@ -3288,14 +3288,8 @@ function renderOrderAlarm() {
 
   if (!alarmRows.length) {
     document.getElementById('tblOrderAlarm').innerHTML =
-      '<thead></thead><tbody><tr><td colspan="9" style="text-align:center;color:#94a3b8;padding:28px">✓ 발주 필요 상품이 없습니다</td></tr></tbody>';
+      '<thead></thead><tbody><tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:28px">✓ 발주 필요 상품이 없습니다</td></tr></tbody>';
     return;
-  }
-
-  // 디버그: 첫 번째 발주필요 행의 V열 값 확인
-  if (alarmRows[0]) {
-    const keys = Object.keys(alarmRows[0]).filter(k => k.includes('소진'));
-    console.log('[발주알람] 소진 관련 컬럼:', keys, '/ 입고후소진예상일값:', alarmRows[0]['입고후소진예상일']);
   }
 
   const processed = alarmRows.map(r => {
@@ -3305,47 +3299,41 @@ function renderOrderAlarm() {
   }).sort((a, b) => (a.dDay ?? 9999) - (b.dDay ?? 9999));
 
   let html = `<thead><tr>
-    <th>품목명</th><th>등급</th>
-    <th>소진 예상일</th><th class="r">현재고</th>
-    <th>입고예정 / 발주수량</th><th>발주요청</th><th>구분</th><th>비고</th>
+    <th>품목명</th>
+    <th>담당자</th>
+    <th>현재고</th>
+    <th>MOQ</th>
+    <th>소진 예상일</th>
+    <th>입고예정 / 발주수량</th>
+    <th>비고</th>
   </tr></thead><tbody>`;
 
   for (const { r, sellout, dDay } of processed) {
-    const rowCls   = dDay !== null && dDay >= 0 && dDay <= 30 ? 'alarm-red'
-                   : dDay !== null && dDay >= 0 && dDay <= 60 ? 'alarm-orange'
-                   : 'alarm-yellow';
-    const grade    = r['관리등급']?.trim() || 'C';
-    const gradeCls = grade === 'A' ? 'red' : grade === 'B' ? 'orange' : 'blue';
+    const rowCls  = dDay !== null && dDay >= 0 && dDay <= 30 ? 'alarm-red'
+                  : dDay !== null && dDay >= 0 && dDay <= 60 ? 'alarm-orange'
+                  : 'alarm-yellow';
     const delivDate = r['입고예정일']?.trim() || '';
     const delivQty  = parseInvNum(r['발주수량']);
     const delivTxt  = delivDate
-      ? `<div style="font-weight:600">${delivDate}</div><div style="font-size:11px;color:#64748b;margin-top:1px">${delivQty.toLocaleString()}개</div>`
+      ? `${delivDate}<div style="font-size:11px;color:#64748b;margin-top:1px">${delivQty.toLocaleString()}개</div>`
       : '—';
-    const gbn      = r['구분'] || '—';
-    const note     = (r['커머스이슈'] || r['비고'] || '').substring(0, 60);
-    const orderReq = (r['발주요청'] || '').trim();
+    const note = (r['커머스 이슈'] || r['커머스이슈'] || r['비고'] || '').substring(0, 80);
 
-    // D-day 배지: 양수 → D-N, 음수 → D+N(과거)
     let ddayBadge = '';
     if (dDay !== null) {
-      const ddayAbs = Math.abs(dDay);
-      const ddayStr = dDay >= 0 ? `D-${dDay}` : `D+${ddayAbs}`;
+      const ddayStr = dDay >= 0 ? `D-${dDay}` : `D+${Math.abs(dDay)}`;
       const ddayCls = dDay < 0 ? 'gray' : dDay <= 30 ? 'red' : dDay <= 60 ? 'orange' : 'yellow';
       ddayBadge = ` <span class="inv-badge ${ddayCls}">${ddayStr}</span>`;
     }
 
-    html += `<tr class="${rowCls}" style="border-top:2px solid #f1f5f9">
-      <td>
-        <b>${r['품목명']}</b>
-        <div class="cell-sub">${[r['브랜드'],r['상기담당']].filter(Boolean).join(' · ')}</div>
-      </td>
-      <td><span class="inv-badge ${gradeCls}">${grade}</span></td>
+    html += `<tr class="${rowCls}">
+      <td><b>${r['품목명']}</b></td>
+      <td>${r['상기담당'] || '—'}</td>
+      <td>${parseInvNum(r['재고수량']).toLocaleString()}</td>
+      <td>${r['MOQ'] || '—'}</td>
       <td>${fmtDateInv(sellout)}${ddayBadge}</td>
-      <td class="r">${parseInvNum(r['재고수량']).toLocaleString()}</td>
-      <td style="min-width:110px">${delivTxt}</td>
-      <td class="cell-note">${orderReq || '—'}</td>
-      <td style="font-size:11px">${gbn}</td>
-      <td style="font-size:11px;max-width:180px;white-space:normal;word-break:break-all">${note}</td>
+      <td>${delivTxt}</td>
+      <td style="max-width:200px;white-space:normal;word-break:break-all">${note || '—'}</td>
     </tr>`;
   }
   html += '</tbody>';
