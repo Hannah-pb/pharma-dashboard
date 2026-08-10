@@ -3162,23 +3162,23 @@ function renderInvStatus() {
   });
 
   const thead = `<thead><tr>
-    <th style="text-align:left">품목명</th>
+    <th>품목명</th>
     <th>담당자</th>
     <th>소비기한</th>
-    <th class="r">재고수량</th>
+    <th>재고수량</th>
     <th>소진예상일</th>
-    <th class="r">발주수량</th>
+    <th>발주수량</th>
     <th>입고예정일</th>
   </tr></thead>`;
 
   const tbody = rows.map(({ r, expMonths, expCls }) => `<tr>
     <td style="font-weight:500">${r['품목명'] || '—'}</td>
-    <td style="text-align:center">${r['상기담당'] || '—'}</td>
-    <td style="text-align:center;${expCls}">${expMonths !== null ? fmtDate(r['소비기한']) + ' (' + expMonths + '개월)' : '—'}</td>
-    <td class="r">${r['재고수량'] || r['현재고'] || '—'}</td>
-    <td style="text-align:center">${fmtDate(r['소진 예상일'] || r['소진예상일'])}</td>
-    <td class="r">${r['발주수량'] || '—'}</td>
-    <td style="text-align:center">${fmtDate(r['입고예정일'])}</td>
+    <td>${r['상기담당'] || '—'}</td>
+    <td style="${expCls}">${expMonths !== null ? fmtDate(r['소비기한']) + ' (' + expMonths + '개월)' : '—'}</td>
+    <td>${r['재고수량'] || r['현재고'] || '—'}</td>
+    <td>${fmtDate(r['소진 예상일'] || r['소진예상일'])}</td>
+    <td>${r['발주수량'] || '—'}</td>
+    <td>${fmtDate(r['입고예정일'])}</td>
   </tr>`).join('');
 
   el.innerHTML = `<div class="tbl-wrap"><table class="inv-table">${thead}<tbody>${tbody}</tbody></table></div>`;
