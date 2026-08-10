@@ -3173,8 +3173,8 @@ function renderInvStatus() {
 
   const tbody = rows.map(({ r, expMonths, expCls }) => `<tr>
     <td style="font-weight:500">${r['품목명'] || '—'}</td>
-    <td style="text-align:center">${r['담당자'] || '—'}</td>
-    <td style="text-align:center;${expCls}">${expMonths !== null ? expMonths + '개월' : '—'}</td>
+    <td style="text-align:center">${r['상기담당'] || '—'}</td>
+    <td style="text-align:center;${expCls}">${expMonths !== null ? fmtDate(r['소비기한']) + ' (' + expMonths + '개월)' : '—'}</td>
     <td class="r">${r['재고수량'] || r['현재고'] || '—'}</td>
     <td style="text-align:center">${fmtDate(r['소진 예상일'] || r['소진예상일'])}</td>
     <td class="r">${r['발주수량'] || '—'}</td>
