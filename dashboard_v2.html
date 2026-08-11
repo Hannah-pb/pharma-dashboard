@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>파마브로스 실적 대시보드</title>
+<title>커머스팀 대시보드</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
@@ -407,159 +407,27 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 
   <!-- ── KPI ── -->
   <div id="page-kpi" class="page">
-    <div class="page-body">
-
-      <!-- A. 헤더 -->
-      <div class="kd-header">
-        <div class="kd-view-toggle" id="kdViewToggle">
-          <button class="kd-vbtn active" data-view="annual">연간</button>
-          <button class="kd-vbtn" data-view="monthly">월간</button>
-        </div>
-        <div class="kd-title-wrap">
-          <span class="kd-title">PB 매출 KPI</span>
-          <span class="kd-meta" id="kdMeta"></span>
-        </div>
-        <div class="kd-ctrl">
-          <span class="kd-unit">단위: 원(KRW)</span>
-        </div>
-      </div>
-
-      <!-- B. PB 전체 -->
-      <div id="kdPbRow"></div>
-
-      <!-- C. 국내 / 해외 -->
-      <div class="kd-dom-ovr-grid" id="kdDomOvr"></div>
-
-      <!-- D. 선택 상세 패널 -->
-      <div class="kd-detail-panel" id="kdDetailPanel" style="display:none">
-        <div class="kd-breadcrumb" id="kdBreadcrumb"></div>
-        <div id="kdDetailBody"></div>
-      </div>
-
-      <!-- E. 채널 분석 (일반/채널 선택 시) -->
-      <div id="kdChannelSection" style="display:none">
-        <div class="kd-section-title">일반커머스 채널별 현황</div>
-        <div id="kdChannelTable"></div>
-      </div>
-
-    </div>
+    <div class="page-body"></div>
   </div>
 
   <!-- ── 매출 현황 ── -->
   <div id="page-sales" class="page">
-    <div class="page-body">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
-        <button id="btnToggleAllSubs" onclick="toggleAllSubRows(this)" style="padding:7px 12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;color:#64748b;cursor:pointer">통계 접기</button>
-        <button id="btnToggleProdDetail" onclick="toggleProdDetail(this)" style="padding:7px 12px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:7px;font-size:11px;color:#64748b;cursor:pointer">상품별 상세 ▾</button>
-      </div>
-      <div class="card"><div class="card-title">매출 현황</div><div class="tbl-wrap tbl-auto"><table id="tblSalesSummary"></table></div></div>
-      <div id="prodDetailCard" style="display:none;margin-top:12px">
-        <div class="card"><div class="card-title">상품별 매출 상세</div><div class="tbl-wrap"><table id="tblSalesByProduct" class="tbl-auto"></table></div></div>
-      </div>
-    </div>
+    <div class="page-body"></div>
   </div>
 
   <!-- ── 스마트스토어 ── -->
   <div id="page-smartstore" class="page">
-    <div class="page-body">
-      <div class="tab-bar">
-        <button class="tab-btn active" data-tab="ss-heatmap">일간</button>
-        <button class="tab-btn" data-tab="ss-weekly">주간</button>
-        <button class="tab-btn" data-tab="ss-monthly">월간</button>
-      </div>
-      <div id="ss-heatmap" class="tab-pane active">
-        <div class="ctrl-row">
-          <span class="ctrl-label">연도:</span>
-          <button class="tog-btn active" data-hm-year="2026" id="hmSS2026">2026</button>
-          <button class="tog-btn" data-hm-year="2025" id="hmSS2025">2025</button>
-        </div>
-        <div class="card" style="padding:16px 20px 8px"><canvas id="chartSSHeatmap" height="80"></canvas></div>
-        <div class="card"><div class="card-title">일별 매출 히트맵 (스마트스토어)</div><div class="heatmap-wrap" id="hmSS"></div></div>
-      </div>
-      <div id="ss-weekly" class="tab-pane">
-        <div class="card" style="padding:16px 20px 8px"><canvas id="chartSSWeekly" height="80"></canvas></div>
-        <div class="card"><div class="card-title">주간 매출 (스마트스토어)</div>
-          <div class="tbl-wrap tbl-auto"><table id="tblSSWeekly"></table></div>
-        </div>
-      </div>
-      <div id="ss-monthly" class="tab-pane">
-        <div class="card" style="padding:16px 20px 8px"><canvas id="chartSSMonthly" height="80"></canvas></div>
-        <div class="card">
-          <div class="card-title card-title-row">
-            월간 상품별 매출 (스마트스토어)
-            <div style="display:flex;gap:6px">
-              <button class="tog-btn active" id="ssMonth2026" onclick="setSSMonthYear(2026)">2026</button>
-              <button class="tog-btn" id="ssMonth2025" onclick="setSSMonthYear(2025)">2025</button>
-            </div>
-          </div>
-          <div style="overflow:auto;max-height:620px"><table id="tblSSMonthly" style="min-width:600px"></table></div>
-        </div>
-      </div>
-    </div>
+    <div class="page-body"></div>
   </div>
 
   <!-- ── 카페24 ── -->
   <div id="page-cafe24" class="page">
-    <div class="page-body">
-      <div class="tab-bar">
-        <button class="tab-btn active" data-tab="c24-heatmap">일간</button>
-        <button class="tab-btn" data-tab="c24-weekly">주간</button>
-        <button class="tab-btn" data-tab="c24-monthly">월간</button>
-      </div>
-      <div id="c24-heatmap" class="tab-pane active">
-        <div class="ctrl-row">
-          <span class="ctrl-label">연도:</span>
-          <button class="tog-btn active" data-hm-year="2026" id="hmC242026">2026</button>
-          <button class="tog-btn" data-hm-year="2025" id="hmC242025">2025</button>
-        </div>
-        <div class="card" style="padding:16px 20px 8px"><canvas id="chartC24Heatmap" height="80"></canvas></div>
-        <div class="card"><div class="card-title">일별 매출 히트맵 (카페24)</div><div class="heatmap-wrap" id="hmC24"></div></div>
-      </div>
-      <div id="c24-weekly" class="tab-pane">
-        <div class="card" style="padding:16px 20px 8px"><canvas id="chartC24Weekly" height="80"></canvas></div>
-        <div class="card"><div class="card-title">주간 매출 (카페24)</div>
-          <div class="tbl-wrap tbl-auto"><table id="tblC24Weekly"></table></div>
-        </div>
-      </div>
-      <div id="c24-monthly" class="tab-pane">
-        <div class="card" style="padding:16px 20px 8px"><canvas id="chartC24Monthly" height="80"></canvas></div>
-        <div class="card">
-          <div class="card-title card-title-row">
-            월간 상품별 매출 (카페24)
-            <div style="display:flex;gap:6px">
-              <button class="tog-btn active" id="c24Month2026" onclick="setC24MonthYear(2026)">2026</button>
-              <button class="tog-btn" id="c24Month2025" onclick="setC24MonthYear(2025)">2025</button>
-            </div>
-          </div>
-          <div style="overflow:auto;max-height:620px"><table id="tblC24Monthly" style="min-width:600px"></table></div>
-        </div>
-      </div>
-    </div>
+    <div class="page-body"></div>
   </div>
 
-  <!-- ── 상품매출 (채널별 + 유통별 통합) ── -->
+  <!-- ── 상품매출 ── -->
   <div id="page-products" class="page">
-    <div class="page-body">
-      <div class="tab-bar" style="margin-bottom:12px">
-        <button class="tab-btn active" data-tab="prod-monthly">월별</button>
-        <button class="tab-btn" data-tab="prod-channel">채널별</button>
-      </div>
-      <!-- 채널별 -->
-      <div id="prod-channel" class="tab-pane">
-        <div class="ctrl-row">
-          <span class="ctrl-label">기준:</span>
-          <select class="sel-month" id="selProductsMonth"></select>
-        </div>
-        <div class="card"><div class="card-title">채널별 매출</div><div class="tbl-wrap"><table id="tblProducts"></table></div></div>
-      </div>
-      <!-- 월별 -->
-      <div id="prod-monthly" class="tab-pane active">
-        <div class="card">
-          <div class="card-title">월별 매출</div>
-          <div class="tbl-wrap"><table id="tblProductsMonthly"></table></div>
-        </div>
-      </div>
-    </div>
+    <div class="page-body"></div>
   </div>
 
   <!-- ── 재고관리 ── -->
@@ -721,6 +589,10 @@ let GONGU_ROWS = [];
 let invLoaded    = false;
 let invLoading   = false;
 let invActiveTab = 'status';
+const ALARM_EXCLUDE = new Set([
+  '테라큐민 슈퍼플러스100','테라큐민 맥스60','네이처셋 빌베리 엘더베리',
+  '네이처셋 빌베리 엘더베리 츄어블','테라큐민 부스터 100','테라큐민 프라임 70','테라큐민 주걱',
+]);
 
 // ═══════════════════════════════════════════════════════
 //  INIT
@@ -3244,7 +3116,7 @@ function renderInvKPI() {
     return s + parseInvNum(r['제품단가(VAT-)']) * parseInvNum(r['재고수량']);
   }, 0);
 
-  const alarmCount  = rows.filter(r => r['발주알람']?.trim() === '발주필요').length;
+  const alarmCount  = rows.filter(r => r['발주알람']?.trim() === '발주필요' && !ALARM_EXCLUDE.has(r['품목명']?.trim())).length;
   // 소비기한 12개월 이내
   const expCount    = rows.filter(r => {
     const exp = parseInvDate(r['소비기한']);
@@ -3276,10 +3148,6 @@ function invKpiCard(label, val, unit, color) {
 function renderOrderAlarm() {
   const today     = new Date(); today.setHours(0, 0, 0, 0);
   const GRADE_D   = { A: 150, B: 120, C: 100 };
-  const ALARM_EXCLUDE = new Set([
-    '테라큐민 슈퍼플러스100','테라큐민 맥스60','네이처셋 빌베리 엘더베리',
-    '네이처셋 빌베리 엘더베리 츄어블','테라큐민 부스터 100','테라큐민 프라임 70','테라큐민 주걱',
-  ]);
   const alarmRows = INV_ROWS.filter(r =>
     r['발주알람']?.trim() === '발주필요' && !ALARM_EXCLUDE.has(r['품목명']?.trim())
   );
