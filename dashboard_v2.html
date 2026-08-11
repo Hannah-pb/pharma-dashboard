@@ -3288,7 +3288,7 @@ function renderOrderAlarm() {
 
   if (!alarmRows.length) {
     document.getElementById('tblOrderAlarm').innerHTML =
-      '<thead></thead><tbody><tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:28px">✓ 발주 필요 상품이 없습니다</td></tr></tbody>';
+      '<thead></thead><tbody><tr><td colspan="8" style="text-align:center;color:#94a3b8;padding:28px">✓ 발주 필요 상품이 없습니다</td></tr></tbody>';
     return;
   }
 
@@ -3305,6 +3305,7 @@ function renderOrderAlarm() {
     <th>MOQ</th>
     <th>소진 예상일</th>
     <th>입고예정 / 발주수량</th>
+    <th>오늘 공구여부</th>
     <th>비고</th>
   </tr></thead><tbody>`;
 
@@ -3333,6 +3334,7 @@ function renderOrderAlarm() {
       <td>${r['MOQ'] || '—'}</td>
       <td>${fmtDateInv(sellout)}${ddayBadge}</td>
       <td>${delivTxt}</td>
+      <td>${r['오늘 공구여부'] || r['오늘공구여부'] || '—'}</td>
       <td style="max-width:200px;white-space:normal;word-break:break-all">${note || '—'}</td>
     </tr>`;
   }
@@ -3514,12 +3516,18 @@ function renderStockoutCheck() {
       ? '<span style="color:#94a3b8;font-size:11px">—</span>'
       : gonguBefore.map(g => {
           const s      = parseInvDate(g['시작일']);
+          const e      = parseInvDate(g['종료일']);
           const nick   = g['닉네임']     || '';
           const prd    = g['품목명'] || g['제품명'] || '';
           const qty    = g['예상판매량'] || '';
           const qtyNum = parseInt(qty.replace(/,/g, ''), 10);
+          const dateStr = s
+            ? e
+              ? `${s.getMonth()+1}/${s.getDate()} ~ ${e.getMonth()+1}/${e.getDate()}`
+              : `${s.getMonth()+1}/${s.getDate()}`
+            : '?';
           return `<div style="border-left:3px solid #ef4444;padding:3px 8px;margin-bottom:4px;background:#fef2f2;border-radius:3px;font-size:11px;color:#374151">
-            <span style="font-weight:700;color:#dc2626">${s ? `${s.getMonth()+1}/${s.getDate()}` : '?'}</span>${nick ? ` · ${nick}` : ''}${prd ? ` · ${prd}` : ''}${qty ? ` · 예상 ${isNaN(qtyNum) ? qty : qtyNum.toLocaleString()}개` : ''}
+            <span style="font-weight:700;color:#dc2626">${dateStr}</span>${nick ? ` · ${nick}` : ''}${prd ? ` · ${prd}` : ''}${qty ? ` · 예상 ${isNaN(qtyNum) ? qty : qtyNum.toLocaleString()}개` : ''}
           </div>`;
         }).join('');
 
