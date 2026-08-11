@@ -352,29 +352,11 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       <span class="nav-label">KPI 대시보드</span>
     </li>
 
-    <!-- 판매분석 accordion -->
-    <li class="nav-parent open" id="navParentSales" onclick="toggleNavParent('navParentSales')">
+    <!-- 판매분석 -->
+    <li class="nav-item" data-page="sales">
       <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
-      <span class="nav-label">판매분석</span><span class="nav-arrow">▾</span>
+      <span class="nav-label">판매분석</span>
     </li>
-    <div class="nav-children open" id="navChildrenSales">
-      <div class="nav-child" data-page="sales">매출 현황</div>
-      <!-- 일반 커머스 sub-accordion -->
-      <div class="nav-subparent" id="navSubparentIlban" onclick="toggleNavGroup('navChildrenIlban')">
-        <span class="nav-label">일반 커머스</span><span id="navChildrenIlbanArrow" class="nav-subarrow">▾</span>
-      </div>
-      <div class="nav-grandchildren open" id="navChildrenIlban">
-        <div class="nav-grandchild" data-page="products">상품 매출</div>
-        <!-- 채널 상세 sub-sub-accordion -->
-        <div class="nav-subparent-2" id="navSubparentChannel2" onclick="toggleNavGroup('navChildrenChannel2')">
-          <span class="nav-label">채널 상세</span><span id="navChildrenChannel2Arrow" class="nav-subarrow">▾</span>
-        </div>
-        <div class="nav-great-grandchildren open" id="navChildrenChannel2">
-          <div class="nav-great-grandchild" data-page="smartstore">스마트스토어</div>
-          <div class="nav-great-grandchild" data-page="cafe24">카페24</div>
-        </div>
-      </div>
-    </div>
 
     <!-- 재고관리 -->
     <li class="nav-item" data-page="inventory">
@@ -598,8 +580,15 @@ const ALARM_EXCLUDE = new Set([
 //  INIT
 // ═══════════════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
-  bindNav();
-  bindSidebar();
+  try {
+    bindNav();
+    bindSidebar();
+  } catch(e) {
+    console.error('[초기화 오류]', e);
+    const lt = document.getElementById('loadingText');
+    if (lt) lt.innerHTML = `<span style="color:#dc2626">초기화 오류: ${e.message}</span><br><button onclick="location.reload()" style="margin-top:10px;padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer">다시 시도</button>`;
+    return;
+  }
   loadData().then(() => {
     document.getElementById('loading').classList.add('hidden');
     populateMonthSelects();
@@ -683,7 +672,8 @@ async function loadData() {
   // 로켓그로스 로딩 (2026 요약탭 row25=헤더, row42=로켓그로스)
   try {
     const rocketUrl  = `https://docs.google.com/spreadsheets/d/${SHEET_ID_2026}/export?format=csv&gid=${ROCKET_GID}`;
-    const rocketText = await fetch(rocketUrl).then(r => r.ok ? r.text() : Promise.reject(r.status));
+    const _rc = new AbortController(); const _rt = setTimeout(() => _rc.abort(), 15000);
+    const rocketText = await fetch(rocketUrl, { signal: _rc.signal }).then(r => { clearTimeout(_rt); return r.ok ? r.text() : Promise.reject(r.status); });
     const rr = parseCSV(rocketText);
     const hdrRow  = rr[24] || []; // row 25 (0-indexed 24)
     const dataRow = rr[41] || []; // row 42 (0-indexed 41)
@@ -755,7 +745,8 @@ async function loadData() {
   // ── 2026 피벗탭 (PIVOT_GID) ──────────────────────────
   try {
     const pivotUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID_2026}/export?format=csv&gid=${PIVOT_GID}`;
-    const pr = parseCSV(await fetch(pivotUrl).then(r => r.ok ? r.text() : Promise.reject(r.status)));
+    const _pc = new AbortController(); const _pt = setTimeout(() => _pc.abort(), 15000);
+    const pr = parseCSV(await fetch(pivotUrl, { signal: _pc.signal }).then(r => { clearTimeout(_pt); return r.ok ? r.text() : Promise.reject(r.status); }));
 
     // A1 = 기준월, A2 = 기준일 (데이터 마지막 날짜)
     const pivM  = parseInt(String((pr[0]  || [])[0] || '').trim());
@@ -965,7 +956,7 @@ function mkChart(id, cfg) {
 // ═══════════════════════════════════════════════════════
 //  NAV / PAGE SWITCHING
 // ═══════════════════════════════════════════════════════
-const PAGE_TITLES = {kpi:'', sales:'매출 현황', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출', inventory:'재고관리'};
+const PAGE_TITLES = {kpi:'', sales:'판매분석', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출', inventory:'재고관리'};
 
 function toggleNavParent(id) {
   const parent = document.getElementById(id);
