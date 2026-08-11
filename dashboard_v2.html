@@ -1114,7 +1114,7 @@ function bindNav() {
   });
 
   // Month selects
-  document.getElementById('selProductsMonth').addEventListener('change', renderProducts);
+  document.getElementById('selProductsMonth')?.addEventListener('change', renderProducts);
 
   // Drilldown close
   document.getElementById('drillClose').addEventListener('click', closeDrilldown);
@@ -1163,12 +1163,9 @@ function updateMetaText() {
   return `데이터 기준: ${n.y}.${String(lm||n.m).padStart(2,'0')}.${String(ld||n.dy).padStart(2,'0')}`;
 }
 
+const EMPTY_PAGES = new Set(['kpi','sales','smartstore','cafe24','products']);
 function renderPage(pg) {
-  if (pg==='kpi')          renderKPI();
-  else if (pg==='sales')   { renderSalesSummary(); }
-  else if (pg==='smartstore') { renderSSHeatmap(); }
-  else if (pg==='cafe24')  { renderC24Heatmap(); }
-  else if (pg==='products') { renderProducts(); renderProductsMonthly(); }  // 채널별 기본 탭
+  if (EMPTY_PAGES.has(pg)) return;  // 비어있는 페이지 — 렌더 스킵
   else if (pg==='inventory') { renderInventory(); }
 }
 
@@ -1197,7 +1194,7 @@ function populateMonthSelects() {
       opts += `<option value="${y}-${m}" ${sel}>${y}.${String(m).padStart(2,'0')}</option>`;
     }
   }
-  document.getElementById('selProductsMonth').innerHTML = opts;
+  const _selPM = document.getElementById('selProductsMonth'); if (_selPM) _selPM.innerHTML = opts;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2593,7 +2590,7 @@ function _sortMonthly(th, colIdx, tableId, rerenderFn) {
 // ═══════════════════════════════════════════════════════
 function _render2rowMatrix(rows, groupKeys, tableId, rerenderFn) {
   const gk = groupKeys[0];
-  const sel = document.getElementById('selProductsMonth').value;
+  const sel = document.getElementById('selProductsMonth')?.value;
   if(!sel) return;
   const [y,m] = sel.split('-').map(Number);
   const filtered = rows.filter(r=>r.year===y&&r.month===m);
