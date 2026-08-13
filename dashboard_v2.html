@@ -365,7 +365,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
     </li>
 
     <!-- 재고관리 -->
-    <li class="nav-parent" id="navParentInv" onclick="toggleNavParent('navParentInv')">
+    <li class="nav-parent" id="navParentInv" onclick="navToInv(invRegion||'domestic')">
       <span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg></span>
       <span class="nav-label">재고관리</span>
       <span class="nav-arrow">▶</span>
@@ -1016,8 +1016,8 @@ function bindNav() {
     });
   });
 
-  // nav-child clicks
-  document.querySelectorAll('.nav-child').forEach(el => {
+  // nav-child clicks (inv-region-child는 자체 onclick 사용, 제외)
+  document.querySelectorAll('.nav-child:not(.inv-region-child)').forEach(el => {
     el.addEventListener('click', () => {
       const pg = el.dataset.page;
       history.replaceState(null, '', '#' + pg);
@@ -1187,10 +1187,15 @@ function invMetaText() {
 
 function navToInv(region) {
   invRegion = region;
+  // 아코디언 항상 열기
+  const invParent = document.getElementById('navParentInv');
+  const invChildren = document.getElementById('navChildrenInv');
+  if (invParent && !invParent.classList.contains('open')) invParent.classList.add('open');
+  if (invChildren && !invChildren.classList.contains('open')) invChildren.classList.add('open');
+  // 사이드바 활성 상태
   document.querySelectorAll('.nav-item,.nav-child,.nav-grandchild').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.inv-region-child').forEach(el =>
     el.classList.toggle('active', el.dataset.region === region));
-  const invParent = document.getElementById('navParentInv');
   if (invParent) invParent.classList.add('active');
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-inventory')?.classList.add('active');
