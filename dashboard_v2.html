@@ -515,12 +515,37 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 
         </div><!-- /invDomesticContent -->
 
-        <!-- 해외 콘텐츠 (준비 중) -->
+        <!-- 해외 콘텐츠 -->
         <div id="invOverseasContent" style="display:none">
-          <div class="card" style="padding:48px;text-align:center;color:#94a3b8">
-            <div style="font-size:36px;margin-bottom:14px">🌐</div>
-            <div style="font-size:15px;font-weight:600;margin-bottom:8px;color:#6b7280">해외 재고관리</div>
-            <div style="font-size:13px">준비 중입니다.</div>
+          <div id="ovr-loading" class="inv-loading" style="display:none">
+            <div class="spinner"></div><span id="ovr-loading-text">해외 재고 데이터 불러오는 중…</span>
+          </div>
+          <div id="ovr-content">
+            <div class="inv-tab-bar">
+              <button class="inv-tab-btn active" data-tab="stock"    onclick="switchOvrTab('stock')">재고 현황</button>
+              <button class="inv-tab-btn"        data-tab="forecast" onclick="switchOvrTab('forecast')">연간 판매예측</button>
+            </div>
+            <!-- 탭 1: 재고 현황 -->
+            <div class="inv-tab-pane active" id="ovrTab-stock">
+              <div class="card" style="padding:0;overflow:hidden">
+                <div class="card-title" style="padding:14px 16px 12px;border-bottom:1px solid #f1f5f9">재고 현황</div>
+                <div id="ovrStockTbl"></div>
+              </div>
+            </div>
+            <!-- 탭 2: 연간 판매예측 -->
+            <div class="inv-tab-pane" id="ovrTab-forecast">
+              <div class="card" style="padding:0;overflow:hidden">
+                <div class="card-title" style="padding:14px 16px 12px;border-bottom:1px solid #f1f5f9">연간 판매예측</div>
+                <div id="ovrForecastTbl"></div>
+              </div>
+              <div class="card">
+                <div class="card-title card-title-row" style="cursor:pointer;user-select:none" onclick="toggleOvrGongu()">
+                  <span>공구 예상 세부내역 (약사별) <span id="ovrGonguCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
+                  <span id="ovrGonguArrow" style="font-size:11px;color:#94a3b8">▲</span>
+                </div>
+                <div id="ovrGonguDetail"></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -573,6 +598,12 @@ const INV_SHEET_ID  = '1hVQZOo3MYhksqhsE6B4TFYUr997HgiDzo27zKVBNx2I';
 const INV_GID_MAIN  = '648340062';
 const INV_GID_GONGU = '1610557715';
 
+// ── 해외 재고 시트 ──
+const OVR_SHEET_ID     = '1HP-DqEUjLYKKrLTbkmQQ6gKp2_2qlbHxM3o6wxyh6Qg';
+const OVR_GID_STOCK    = '148911001';
+const OVR_GID_FORECAST = '295282497';
+const OVR_GID_GONGU    = '396878850';
+
 // Column indices resolved from CSV header row at load time
 let C = {};
 
@@ -602,6 +633,14 @@ let invLoaded    = false;
 let invLoading   = false;
 let invActiveTab = 'status';
 let invRegion    = 'domestic'; // 'domestic' | 'overseas'
+
+let OVR_STOCK_ROWS    = [];
+let OVR_FORECAST_ROWS = [];
+let OVR_GONGU_ROWS    = [];
+let ovrLoaded    = false;
+let ovrLoading   = false;
+let ovrActiveTab = 'stock';
+let ovrGonguOpen = true;
 const ALARM_EXCLUDE = new Set([
   '테라큐민 슈퍼플러스100','테라큐민 맥스60','네이처셋 빌베리 엘더베리',
   '네이처셋 빌베리 엘더베리 츄어블','테라큐민 부스터 100','테라큐민 프라임 70','테라큐민 주걱',
@@ -1216,6 +1255,187 @@ function updateInvRegionDisplay() {
   const ovr = document.getElementById('invOverseasContent');
   if (dom) dom.style.display = invRegion === 'domestic' ? '' : 'none';
   if (ovr) ovr.style.display = invRegion === 'overseas' ? '' : 'none';
+  if (invRegion === 'overseas') renderOverseas();
+}
+
+// ═══════════════════════════════════════════════════════
+//  OVERSEAS — LOAD + RENDER
+// ═══════════════════════════════════════════════════════
+async function loadOverseasData() {
+  const fetchOvr = async (gid) => {
+    const url = `https://docs.google.com/spreadsheets/d/${OVR_SHEET_ID}/export?format=csv&gid=${gid}`;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(timer);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.text();
+  };
+
+  const [stockText, forecastText, gonguText] = await Promise.all([
+    fetchOvr(OVR_GID_STOCK),
+    fetchOvr(OVR_GID_FORECAST),
+    fetchOvr(OVR_GID_GONGU).catch(() => ''),
+  ]);
+
+  // 재고관리 GGKP
+  const sRows = parseCSV(stockText);
+  if (sRows.length > 1) {
+    const hdr = sRows[0].map(h => h.trim());
+    OVR_STOCK_ROWS = sRows.slice(1)
+      .filter(r => r.some(c => c.trim()))
+      .map(r => { const o = {}; hdr.forEach((h, i) => { o[h] = (r[i] ?? '').trim(); }); return o; });
+  }
+
+  // 포캐스트 최종 — 원본 행 그대로 보존 (렌더 시 헤더 탐색)
+  OVR_FORECAST_ROWS = parseCSV(forecastText).filter(r => r.some(c => c.trim()));
+
+  // 공구 예상(약사별)
+  if (gonguText) {
+    const gRows = parseCSV(gonguText);
+    if (gRows.length > 1) {
+      const hdr = gRows[0].map(h => h.trim());
+      OVR_GONGU_ROWS = gRows.slice(1)
+        .filter(r => r.some(c => c.trim()))
+        .map(r => { const o = {}; hdr.forEach((h, i) => { o[h] = (r[i] ?? '').trim(); }); return o; });
+    }
+  }
+
+  ovrLoaded = true;
+  ovrLoading = false;
+}
+
+function renderOverseas() {
+  const loadingEl = document.getElementById('ovr-loading');
+  const contentEl = document.getElementById('ovr-content');
+
+  const renderAll = () => {
+    renderOvrStock();
+    renderOvrForecast();
+    renderOvrGongu();
+  };
+
+  if (ovrLoaded) {
+    loadingEl.style.display = 'none';
+    contentEl.style.display = '';
+    renderAll();
+    return;
+  }
+  if (ovrLoading) return;
+
+  ovrLoading = true;
+  loadingEl.style.display = 'flex';
+  contentEl.style.display = 'none';
+
+  loadOverseasData()
+    .then(() => {
+      loadingEl.style.display = 'none';
+      contentEl.style.display = '';
+      renderAll();
+    })
+    .catch(err => {
+      document.getElementById('ovr-loading-text').innerHTML =
+        `<span style="color:#dc2626">해외 데이터 로드 실패: ${err.message}</span><br>
+         <button onclick="ovrLoading=false;renderOverseas()" style="margin-top:10px;padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer">다시 시도</button>`;
+      ovrLoading = false;
+    });
+}
+
+function renderOvrStock() {
+  const el = document.getElementById('ovrStockTbl');
+  if (!el) return;
+  if (!OVR_STOCK_ROWS.length) {
+    el.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px">재고 데이터 없음</div>';
+    return;
+  }
+  const cols = Object.keys(OVR_STOCK_ROWS[0]).filter(k => k);
+  const thead = `<thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
+  const tbody = OVR_STOCK_ROWS.map(r =>
+    `<tr>${cols.map(c => `<td>${r[c] || '—'}</td>`).join('')}</tr>`
+  ).join('');
+  el.innerHTML = `<div class="tbl-wrap"><table class="inv-table">${thead}<tbody>${tbody}</tbody></table></div>`;
+}
+
+function renderOvrForecast() {
+  const el = document.getElementById('ovrForecastTbl');
+  if (!el) return;
+  if (!OVR_FORECAST_ROWS.length) {
+    el.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px">예측 데이터 없음</div>';
+    return;
+  }
+
+  // 헤더행 탐색: 비어있지 않은 셀이 가장 많은 행
+  let hdrIdx = 0;
+  let hdrScore = 0;
+  OVR_FORECAST_ROWS.forEach((r, i) => {
+    const score = r.filter(c => c.trim()).length;
+    if (score > hdrScore) { hdrScore = score; hdrIdx = i; }
+  });
+
+  const hdr = OVR_FORECAST_ROWS[hdrIdx];
+  const dataRows = OVR_FORECAST_ROWS.slice(hdrIdx + 1).filter(r => r.some(c => c.trim()));
+
+  // 사용된 컬럼만 표시
+  const visIdx = hdr.map((_, i) => i).filter(i =>
+    hdr[i].trim() || dataRows.some(r => (r[i] || '').trim())
+  );
+
+  const pn = v => { const n = parseFloat(String(v).replace(/[,\s]/g, '')); return isNaN(n) ? v : n.toLocaleString(); };
+  const isNum = v => !isNaN(parseFloat(String(v).replace(/[,\s]/g, ''))) && v.trim() !== '';
+
+  const thead = `<thead><tr>${visIdx.map(i => `<th>${hdr[i] || ''}</th>`).join('')}</tr></thead>`;
+  const tbody = dataRows.map(r => {
+    const cells = visIdx.map(i => {
+      const v = (r[i] || '').trim();
+      return `<td${isNum(v) ? ' class="r"' : ''}>${v ? pn(v) : '—'}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+
+  el.innerHTML = `<div class="tbl-wrap"><table class="inv-table">${thead}<tbody>${tbody}</tbody></table></div>`;
+}
+
+function renderOvrGongu() {
+  const el = document.getElementById('ovrGonguDetail');
+  const countEl = document.getElementById('ovrGonguCount');
+  if (!el) return;
+
+  if (!OVR_GONGU_ROWS.length) {
+    el.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:13px">공구 예상 데이터 없음</div>';
+    return;
+  }
+
+  if (countEl) countEl.textContent = `${OVR_GONGU_ROWS.length}건`;
+
+  const cols = Object.keys(OVR_GONGU_ROWS[0]).filter(k => k);
+  const pn = v => { const n = parseFloat(String(v).replace(/[,\s]/g, '')); return isNaN(n) ? v : n.toLocaleString(); };
+  const isNum = v => !isNaN(parseFloat(String(v).replace(/[,\s]/g, ''))) && v.trim() !== '';
+
+  const thead = `<thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
+  const tbody = OVR_GONGU_ROWS.map(r => {
+    const cells = cols.map(c => {
+      const v = r[c] || '';
+      return `<td${isNum(v) ? ' class="r"' : ''}>${v ? pn(v) : '—'}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+
+  el.innerHTML = `<div class="tbl-wrap"><table class="inv-table">${thead}<tbody>${tbody}</tbody></table></div>`;
+
+  // 초기 상태 적용
+  applyOvrGonguState();
+}
+
+function toggleOvrGongu() {
+  ovrGonguOpen = !ovrGonguOpen;
+  applyOvrGonguState();
+}
+
+function applyOvrGonguState() {
+  const detail = document.getElementById('ovrGonguDetail');
+  const arrow  = document.getElementById('ovrGonguArrow');
+  if (detail) detail.style.display = ovrGonguOpen ? '' : 'none';
+  if (arrow)  arrow.textContent    = ovrGonguOpen ? '▲' : '▼';
 }
 
 function updateMetaText() {
@@ -3047,12 +3267,22 @@ function calcSelloutDate(row, gonguRows, today) {
 // ═══════════════════════════════════════════════════════
 function switchInvTab(tab) {
   invActiveTab = tab;
-  document.querySelectorAll('.inv-tab-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.tab === tab);
-  });
-  document.querySelectorAll('.inv-tab-pane').forEach(pane => {
-    pane.classList.toggle('active', pane.id === 'invTab-' + tab);
-  });
+  const cnt = document.getElementById('invDomesticContent');
+  if (!cnt) return;
+  cnt.querySelectorAll('.inv-tab-btn').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.tab === tab));
+  cnt.querySelectorAll('.inv-tab-pane').forEach(pane =>
+    pane.classList.toggle('active', pane.id === 'invTab-' + tab));
+}
+
+function switchOvrTab(tab) {
+  ovrActiveTab = tab;
+  const cnt = document.getElementById('ovr-content');
+  if (!cnt) return;
+  cnt.querySelectorAll('.inv-tab-btn').forEach(btn =>
+    btn.classList.toggle('active', btn.dataset.tab === tab));
+  cnt.querySelectorAll('.inv-tab-pane').forEach(pane =>
+    pane.classList.toggle('active', pane.id === 'ovrTab-' + tab));
 }
 
 // ═══════════════════════════════════════════════════════
