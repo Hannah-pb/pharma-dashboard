@@ -1334,8 +1334,12 @@ function renderOverseas() {
       renderAll();
     })
     .catch(err => {
+      console.error('[해외 재고] 로드 실패:', err);
+      const hint = err.message.includes('401') || err.message.includes('403')
+        ? '<br><small style="color:#6b7280">→ 스프레드시트 공유 설정을 "링크가 있는 모든 사용자 → 뷰어"로 변경해주세요</small>'
+        : '';
       document.getElementById('ovr-loading-text').innerHTML =
-        `<span style="color:#dc2626">해외 데이터 로드 실패: ${err.message}</span><br>
+        `<span style="color:#dc2626">해외 데이터 로드 실패: ${err.message}</span>${hint}<br>
          <button onclick="ovrLoading=false;renderOverseas()" style="margin-top:10px;padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer">다시 시도</button>`;
       ovrLoading = false;
     });
