@@ -338,6 +338,105 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 /* 반응형 */
 @media(max-width:900px){.kd-dom-ovr-grid{grid-template-columns:1fr}.kd-pb-block{flex-direction:column;gap:14px}}
 @media(max-width:600px){.kd-header{flex-direction:column;align-items:flex-start}.kd-pb-left{min-width:unset}.kd-pb-ach{font-size:32px}.kd-cmp-tbl th:nth-child(2),.kd-cmp-tbl td:nth-child(2){display:none}}
+
+/* ══ Overseas Forecast Dashboard ══ */
+.fc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px}
+.fc-title{font-size:16px;font-weight:800;color:#1e293b;margin-bottom:3px}
+.fc-subtitle{font-size:11px;color:#64748b;margin-top:2px}
+.fc-meta-badge{font-size:11px;font-weight:600;color:#475569;background:#f1f5f9;padding:5px 12px;border-radius:6px;white-space:nowrap;align-self:flex-start}
+/* KPI Cards */
+.fc-cards{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.fc-card{background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.06),0 4px 12px rgba(0,0,0,.03)}
+.fc-card-lbl{font-size:10px;font-weight:700;letter-spacing:.05em;color:#64748b;text-transform:uppercase;margin-bottom:6px}
+.fc-card-val{font-size:26px;font-weight:800;color:#1e293b;font-variant-numeric:tabular-nums;line-height:1}
+.fc-card-sub{font-size:11px;color:#94a3b8;margin-top:3px}
+.fc-card.st-critical .fc-card-val{color:#dc2626}
+.fc-card.st-gap .fc-card-val{color:#ea580c}
+.fc-card.st-warning .fc-card-val{color:#d97706}
+/* Status badges */
+.fc-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;white-space:nowrap}
+.fc-badge.CRITICAL{background:#fee2e2;color:#dc2626}
+.fc-badge.GAP{background:#fff7ed;color:#ea580c}
+.fc-badge.WARNING{background:#fef9c3;color:#b45309}
+.fc-badge.NORMAL{background:#f0fdf4;color:#16a34a}
+/* Filters */
+.fc-filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.fc-filter-sep{width:1px;height:20px;background:#e2e8f0;margin:0 2px}
+.fc-status-btn{padding:5px 12px;border-radius:8px;border:1px solid #e2e8f0;background:#fff;font-size:12px;cursor:pointer;color:#475569;font-family:inherit;transition:all .1s;line-height:1.4}
+.fc-status-btn:hover{border-color:#94a3b8}
+.fc-status-btn.active{background:#1e293b;color:#fff;border-color:#1e293b}
+.fc-search{padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;outline:none;font-family:inherit;color:#1e293b;min-width:150px}
+.fc-search:focus{border-color:#3b82f6}
+/* Action Required */
+.fc-action-tbl{width:100%;border-collapse:collapse;font-size:12px}
+.fc-action-tbl th{padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:#64748b;background:#f8fafc;border-bottom:2px solid #e8edf3;white-space:nowrap}
+.fc-action-tbl td{padding:9px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fc-action-tbl tr:last-child td{border-bottom:none}
+.fc-action-tbl tr:hover td{background:#f8fafc}
+/* Forecast Timeline */
+.fc-tbl-outer{overflow-x:auto;border-radius:8px}
+.fc-timeline{border-collapse:collapse;font-size:12px;min-width:max-content;width:100%}
+.fc-timeline th{padding:7px 10px;background:var(--inv-bg-head);color:#64748b;font-size:11px;font-weight:600;border-bottom:2px solid var(--inv-border-col);border-right:1px solid var(--inv-border-col);white-space:nowrap;position:sticky;top:0;z-index:4;text-align:center}
+.fc-timeline td{padding:8px 10px;border-bottom:1px solid #f1f5f9;border-right:1px solid var(--inv-border-col);vertical-align:top;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:12px}
+.fc-timeline th:last-child,.fc-timeline td:last-child{border-right:none}
+/* Sticky columns */
+.fc-timeline .sc-0{position:sticky;left:0;z-index:3;background:#fff}
+.fc-timeline .sc-1{position:sticky;left:180px;z-index:3;background:#fff}
+.fc-timeline th.sc-0,.fc-timeline th.sc-1{z-index:5;background:var(--inv-bg-head)}
+.fc-timeline tr:hover td{background:#fafbfc}
+.fc-timeline tr:hover td.sc-0,.fc-timeline tr:hover td.sc-1{background:#fafbfc}
+.fc-timeline tbody tr.fc-detail-row:hover td{background:transparent}
+/* Cell states */
+.fc-cell-warn{background:#fef9c3!important}
+.fc-cell-crit{background:#fee2e2!important}
+.fc-cell-cur{background:#eff6ff!important}
+/* Cell content */
+.fc-cell-stock{font-weight:600;color:#1e293b;text-align:right;display:block}
+.fc-cell-neg{color:#dc2626!important;font-weight:700}
+.fc-cell-inb{font-size:10px;color:#1d4ed8;margin-top:3px;display:block}
+.fc-cell-ord{font-size:10px;color:#7c3aed;margin-top:1px;display:block}
+.fc-col-cur th{background:#dbeafe!important;color:#1d4ed8!important}
+/* Product name column */
+.fc-prod-name{font-weight:600;color:#1e293b;cursor:pointer;max-width:220px;white-space:normal;line-height:1.4}
+.fc-prod-name:hover{color:#2563eb;text-decoration:underline}
+.fc-prod-brand{font-size:10px;color:#94a3b8;margin-top:2px}
+.fc-prod-status-row{display:flex;align-items:center;gap:6px;margin-top:4px}
+.fc-cur-stock-cell{text-align:right;font-weight:700;color:#1e293b}
+.fc-status-col{text-align:center!important}
+/* Detail panel */
+.fc-detail-row>td{padding:0!important;background:#f8fafc!important;border-bottom:2px solid #e2e8f0!important;border-top:1px solid #e8edf3!important}
+.fc-detail-inner{padding:18px 20px}
+.fc-detail-hrow{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #e8edf3}
+.fc-dh-item{display:flex;flex-direction:column;gap:3px}
+.fc-dh-item .dk{font-size:10px;font-weight:700;letter-spacing:.05em;color:#94a3b8;text-transform:uppercase}
+.fc-dh-item .dv{font-size:13px;font-weight:700;color:#1e293b;font-variant-numeric:tabular-nums}
+.fc-dh-item .dv.bad{color:#dc2626}.fc-dh-item .dv.warn{color:#d97706}.fc-dh-item .dv.ok{color:#16a34a}
+/* Detail table */
+.fc-dtbl-wrap{overflow-x:auto;border-radius:6px;margin-bottom:12px}
+.fc-dtbl{border-collapse:collapse;font-size:12px;min-width:max-content;width:100%}
+.fc-dtbl th{padding:6px 10px;background:var(--inv-bg-head);color:#64748b;font-size:11px;font-weight:600;border-bottom:1px solid var(--inv-border-col);border-right:1px solid var(--inv-border-col);text-align:center;white-space:nowrap;position:sticky;top:0}
+.fc-dtbl td{padding:6px 10px;border-bottom:1px solid #f1f5f9;border-right:1px solid var(--inv-border-col);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.fc-dtbl td:first-child{text-align:left;font-weight:600;color:#475569;background:var(--inv-bg-head);position:sticky;left:0;white-space:nowrap}
+.fc-dtbl th:last-child,.fc-dtbl td:last-child{border-right:none}
+.fc-dtbl tr.fc-drow-ending td{font-weight:700;border-top:1px solid #e2e8f0}
+.fc-dtbl td.fc-dt-neg{color:#dc2626;font-weight:700}
+.fc-dtbl td.fc-dt-warn{background:#fef9c3}
+.fc-dtbl td.fc-dt-cur{background:#eff6ff!important}
+/* Chart */
+.fc-chart-wrap{height:180px;position:relative;margin-top:4px}
+.fc-ch-toggle{font-size:11px;color:#3b82f6;cursor:pointer;user-select:none;margin-top:10px;display:inline-flex;align-items:center;gap:4px}
+.fc-ch-detail{margin-top:8px;overflow-x:auto}
+.fc-ch-tbl{border-collapse:collapse;font-size:11px;white-space:nowrap}
+.fc-ch-tbl th{padding:4px 8px;background:#f8fafc;color:#64748b;font-weight:600;border:1px solid #e8edf3;text-align:center}
+.fc-ch-tbl td{padding:4px 8px;border:1px solid #f1f5f9;text-align:right;font-variant-numeric:tabular-nums}
+.fc-ch-tbl td:first-child{text-align:left;font-weight:500;color:#475569}
+/* Legend */
+.fc-legend{display:flex;gap:12px;font-size:11px;color:#64748b;flex-wrap:wrap}
+.fc-legend-item{display:flex;align-items:center;gap:4px}
+.fc-legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+.fc-empty{padding:32px;text-align:center;color:#94a3b8;font-size:13px}
+@media(max-width:900px){.fc-cards{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.fc-cards{grid-template-columns:1fr 1fr}.fc-header{flex-direction:column;gap:8px}}
 </style>
 </head>
 <body>
@@ -523,7 +622,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
           <div id="ovr-content">
             <div class="inv-tab-bar">
               <button class="inv-tab-btn active" data-tab="stock"    onclick="switchOvrTab('stock')">재고 현황</button>
-              <button class="inv-tab-btn"        data-tab="forecast" onclick="switchOvrTab('forecast')">연간 판매예측</button>
+              <button class="inv-tab-btn"        data-tab="forecast" onclick="switchOvrTab('forecast')">판매 예측</button>
             </div>
             <!-- 탭 1: 재고 현황 -->
             <div class="inv-tab-pane active" id="ovrTab-stock">
@@ -532,19 +631,9 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
                 <div id="ovrStockTbl"></div>
               </div>
             </div>
-            <!-- 탭 2: 연간 판매예측 -->
+            <!-- 탭 2: 판매 예측 Dashboard -->
             <div class="inv-tab-pane" id="ovrTab-forecast">
-              <div class="card" style="padding:0;overflow:hidden">
-                <div class="card-title" style="padding:14px 16px 12px;border-bottom:1px solid #f1f5f9">연간 판매예측</div>
-                <div id="ovrForecastTbl"></div>
-              </div>
-              <div class="card">
-                <div class="card-title card-title-row" style="cursor:pointer;user-select:none" onclick="toggleOvrGongu()">
-                  <span>공구 예상 세부내역 (약사별) <span id="ovrGonguCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
-                  <span id="ovrGonguArrow" style="font-size:11px;color:#94a3b8">▲</span>
-                </div>
-                <div id="ovrGonguDetail"></div>
-              </div>
+              <div id="ovrForecastDash"></div>
             </div>
           </div>
         </div>
@@ -641,6 +730,21 @@ let ovrLoaded    = false;
 let ovrLoading   = false;
 let ovrActiveTab = 'stock';
 let ovrGonguOpen = true;
+
+// Forecast dashboard state
+let ovrProducts  = [];
+let ovrFcFilter  = { status: 'all', search: '' };
+let ovrFcExpanded = null; // product name currently expanded
+
+// Sample / fallback data
+const OVR_SAMPLE_DATA = [
+  { brand:'YDY', name:'Berberine Phytosome with R-lipoic Acid', initialInventory:9211,
+    months:[{month:'2026-08',sales:681,inbound:0,plannedOrder:0},{month:'2026-09',sales:3701,inbound:0,plannedOrder:0},{month:'2026-10',sales:2681,inbound:0,plannedOrder:0},{month:'2026-11',sales:681,inbound:30000,plannedOrder:0},{month:'2026-12',sales:12681,inbound:0,plannedOrder:0},{month:'2027-01',sales:7681,inbound:0,plannedOrder:0},{month:'2027-02',sales:7681,inbound:30000,plannedOrder:0},{month:'2027-03',sales:3681,inbound:0,plannedOrder:0},{month:'2027-04',sales:10681,inbound:0,plannedOrder:0},{month:'2027-05',sales:7681,inbound:0,plannedOrder:0},{month:'2027-06',sales:8681,inbound:0,plannedOrder:0}] },
+  { brand:'YDY', name:'All Active BQ10 with Quatrefolic', initialInventory:1941,
+    months:[{month:'2026-08',sales:5307,inbound:15000,plannedOrder:0},{month:'2026-09',sales:1827,inbound:20000,plannedOrder:0},{month:'2026-10',sales:8307,inbound:0,plannedOrder:0},{month:'2026-11',sales:6807,inbound:0,plannedOrder:0},{month:'2026-12',sales:5807,inbound:0,plannedOrder:0},{month:'2027-01',sales:807,inbound:0,plannedOrder:0},{month:'2027-02',sales:13307,inbound:0,plannedOrder:0},{month:'2027-03',sales:1807,inbound:0,plannedOrder:0},{month:'2027-04',sales:4807,inbound:0,plannedOrder:0},{month:'2027-05',sales:4307,inbound:0,plannedOrder:0}] },
+  { brand:'YDY', name:'Chelated Magnesium with K2', initialInventory:6378,
+    months:[{month:'2026-08',sales:5490,inbound:0,plannedOrder:0},{month:'2026-09',sales:2290,inbound:0,plannedOrder:0},{month:'2026-10',sales:1490,inbound:0,plannedOrder:0},{month:'2026-11',sales:490,inbound:20000,plannedOrder:0},{month:'2026-12',sales:1690,inbound:0,plannedOrder:0},{month:'2027-01',sales:1490,inbound:0,plannedOrder:0},{month:'2027-02',sales:5490,inbound:0,plannedOrder:0},{month:'2027-03',sales:1690,inbound:0,plannedOrder:0},{month:'2027-04',sales:1490,inbound:0,plannedOrder:0},{month:'2027-05',sales:490,inbound:0,plannedOrder:0},{month:'2027-06',sales:1690,inbound:0,plannedOrder:0}] },
+];
 const ALARM_EXCLUDE = new Set([
   '테라큐민 슈퍼플러스100','테라큐민 맥스60','네이처셋 빌베리 엘더베리',
   '네이처셋 빌베리 엘더베리 츄어블','테라큐민 부스터 100','테라큐민 프라임 70','테라큐민 주걱',
@@ -675,7 +779,7 @@ document.addEventListener('DOMContentLoaded', () => {
 //  DATA LOADING  (CSV fetch — 2025/2026 두 시트 병렬 로드)
 // ═══════════════════════════════════════════════════════
 async function loadData() {
-  document.getElementById('loadingText').textContent = '데이터 불러오는 중… (25년/26년 동시 로드)';
+  document.getElementById('loadingText').textContent = '데이터 로딩 중';
 
   const fetchCSV = async (sheetId) => {
     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${GID}`;
@@ -1312,7 +1416,6 @@ function renderOverseas() {
   const renderAll = () => {
     renderOvrStock();
     renderOvrForecast();
-    renderOvrGongu();
   };
 
   if (ovrLoaded) {
@@ -1335,9 +1438,7 @@ function renderOverseas() {
     })
     .catch(err => {
       console.error('[해외 재고] 로드 실패:', err);
-      const hint = err.message.includes('401') || err.message.includes('403')
-        ? '<br><small style="color:#6b7280">→ 스프레드시트 공유 설정을 "링크가 있는 모든 사용자 → 뷰어"로 변경해주세요</small>'
-        : '';
+      const hint = '<br><small style="color:#6b7280">→ 스프레드시트 공유 설정을 "링크가 있는 모든 사용자 → 뷰어"로 변경해주세요</small>';
       document.getElementById('ovr-loading-text').innerHTML =
         `<span style="color:#dc2626">해외 데이터 로드 실패: ${err.message}</span>${hint}<br>
          <button onclick="ovrLoading=false;renderOverseas()" style="margin-top:10px;padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer">다시 시도</button>`;
@@ -1360,87 +1461,368 @@ function renderOvrStock() {
   el.innerHTML = `<div class="tbl-wrap"><table class="inv-table">${thead}<tbody>${tbody}</tbody></table></div>`;
 }
 
-function renderOvrForecast() {
-  const el = document.getElementById('ovrForecastTbl');
-  if (!el) return;
-  if (!OVR_FORECAST_ROWS.length) {
-    el.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px">예측 데이터 없음</div>';
-    return;
-  }
+// ─────────────────────────────────────────────────────────
+//  OVERSEAS FORECAST DASHBOARD — Utilities
+// ─────────────────────────────────────────────────────────
+const FC_STATUS_ORDER  = {CRITICAL:0,GAP:1,WARNING:2,NORMAL:3};
+const FC_STATUS_LABELS = {CRITICAL:'발주 필요',GAP:'재고 공백',WARNING:'재고 주의',NORMAL:'정상'};
+const FC_ACTION_LABELS = {CRITICAL:'발주 필요',GAP:'입고 전 공백',WARNING:'재고 점검',NORMAL:'정상'};
 
-  // 헤더행 탐색: 비어있지 않은 셀이 가장 많은 행
-  let hdrIdx = 0;
-  let hdrScore = 0;
-  OVR_FORECAST_ROWS.forEach((r, i) => {
-    const score = r.filter(c => c.trim()).length;
-    if (score > hdrScore) { hdrScore = score; hdrIdx = i; }
+function fcFmtN(v) { return (v===null||v===undefined||v===0)?'—':(typeof v==='number'?v.toLocaleString():v); }
+function fcProdKey(name) { return String(name).replace(/[^a-zA-Z0-9가-힣]/g,'_').substring(0,30); }
+function ovrCurMonth() { const n=getNow(); return `${n.y}-${String(n.m).padStart(2,'0')}`; }
+function fmtFcMonth(m) {
+  const match=String(m).match(/(\d{4})[^\d]?0?(\d{1,2})/);
+  if(!match) return m;
+  const [,y,mo]=match; const n=getNow();
+  return parseInt(y)===n.y?`${parseInt(mo)}월`:`'${String(y).slice(2)}.${String(mo).padStart(2,'0')}`;
+}
+
+function calcProductForecast(product) {
+  let inv = product.initialInventory || 0;
+  return (product.months||[]).map(m => {
+    const ending = inv + (m.inbound||0) + (m.plannedOrder||0) - (m.sales||0);
+    const row = {month:m.month,sales:m.sales||0,inbound:m.inbound||0,plannedOrder:m.plannedOrder||0,channels:m.channels||{},beginInventory:inv,endingInventory:ending};
+    inv = ending; return row;
+  });
+}
+
+function getOvrProductStatus(forecast) {
+  const hasStockout = forecast.some(f=>f.endingInventory<0);
+  if (!hasStockout) {
+    return forecast.some(f=>f.endingInventory>=0&&f.sales>0&&f.endingInventory<f.sales)?'WARNING':'NORMAL';
+  }
+  const idx = forecast.findIndex(f=>f.endingInventory<0);
+  return forecast.slice(idx+1).some(f=>f.inbound>0||f.plannedOrder>0)?'GAP':'CRITICAL';
+}
+
+function getOvrFirstShortageMonth(forecast, status) {
+  if (status==='CRITICAL'||status==='GAP') return forecast.find(f=>f.endingInventory<0)?.month||null;
+  if (status==='WARNING') return forecast.find(f=>f.endingInventory>=0&&f.sales>0&&f.endingInventory<f.sales)?.month||null;
+  return null;
+}
+
+function getOvrNextInbound(forecast) {
+  const cur=ovrCurMonth();
+  const fut=forecast.filter(f=>f.month>=cur&&f.inbound>0);
+  return fut.length?{month:fut[0].month,qty:fut[0].inbound}:null;
+}
+
+function parseOvrForecastToProducts(rows) {
+  if (!rows||!rows.length) return [];
+  let hdrIdx=0,hdrScore=0;
+  rows.forEach((r,i)=>{ const s=r.filter(c=>c.trim()).length; if(s>hdrScore){hdrScore=s;hdrIdx=i;} });
+  const hdr=rows[hdrIdx].map(h=>h.trim());
+  const dataRows=rows.slice(hdrIdx+1).filter(r=>r.some(c=>c.trim()));
+  const pn=v=>{const n=parseFloat(String(v||'').replace(/[,\s]/g,''));return isNaN(n)?0:n;};
+  const fc=(...kwds)=>{for(const k of kwds){const i=hdr.findIndex(h=>h.includes(k));if(i>=0)return i;}return -1;};
+  const brandIdx=fc('브랜드'),nameIdx=fc('제품명','상품명','품목명'),monthIdx=fc('월','기간');
+  const salesIdx=fc('예상판매','예상 판매'),gonguIdx=fc('공구'),iherbIdx=fc('아이허브');
+  const amazonIdx=fc('아마존'),naverIdx=fc('네이버'),stockIdx=fc('기초재고','기초 재고');
+  const inboundIdx=fc('입고예정','입고 예정'),orderIdx=fc('발주예상','발주 예상');
+  console.log('[포캐스트] cols:',{brand:brandIdx,name:nameIdx,month:monthIdx,sales:salesIdx,stock:stockIdx,inb:inboundIdx,ord:orderIdx});
+  const products=new Map(); let curBrand='',curName='';
+  dataRows.forEach(r=>{
+    const brand=(brandIdx>=0?(r[brandIdx]||''):'').trim();
+    const name=(nameIdx>=0?(r[nameIdx]||''):'').trim();
+    const month=(monthIdx>=0?(r[monthIdx]||''):'').trim();
+    if(brand)curBrand=brand; if(name)curName=name;
+    if(!curName||!month)return;
+    if(!products.has(curName))products.set(curName,{brand:curBrand,name:curName,initialInventory:0,months:[]});
+    const prod=products.get(curName);
+    const sales=salesIdx>=0?pn(r[salesIdx]):(pn(r[gonguIdx])+pn(r[iherbIdx])+pn(r[amazonIdx])+pn(r[naverIdx]));
+    const stock=stockIdx>=0?pn(r[stockIdx]):0;
+    const inb=inboundIdx>=0?pn(r[inboundIdx]):0;
+    const ord=orderIdx>=0?pn(r[orderIdx]):0;
+    if(prod.months.length===0&&stock>0)prod.initialInventory=stock;
+    const ch={};
+    if(gonguIdx>=0)ch['공구']=pn(r[gonguIdx]);
+    if(iherbIdx>=0)ch['아이허브']=pn(r[iherbIdx]);
+    if(amazonIdx>=0)ch['아마존']=pn(r[amazonIdx]);
+    if(naverIdx>=0)ch['네이버']=pn(r[naverIdx]);
+    prod.months.push({month,sales,inbound:inb,plannedOrder:ord,channels:ch});
+  });
+  return Array.from(products.values()).filter(p=>p.months.length>0);
+}
+
+// ─────────────────────────────────────────────────────────
+//  Main render
+// ─────────────────────────────────────────────────────────
+function renderOvrForecast() {
+  const el = document.getElementById('ovrForecastDash');
+  if (!el) return;
+
+  let products = parseOvrForecastToProducts(OVR_FORECAST_ROWS);
+  const usingSample = products.length === 0;
+  if (usingSample) products = OVR_SAMPLE_DATA;
+  ovrProducts = products;
+
+  const items = products.map(p => {
+    const forecast=calcProductForecast(p), status=getOvrProductStatus(forecast);
+    return {product:p,forecast,status,shortage:getOvrFirstShortageMonth(forecast,status),nextInb:getOvrNextInbound(forecast)};
+  });
+  items.sort((a,b)=>{
+    const os=FC_STATUS_ORDER[a.status]-FC_STATUS_ORDER[b.status];
+    if(os!==0)return os;
+    return (a.shortage&&b.shortage)?a.shortage.localeCompare(b.shortage):0;
   });
 
-  const hdr = OVR_FORECAST_ROWS[hdrIdx];
-  const dataRows = OVR_FORECAST_ROWS.slice(hdrIdx + 1).filter(r => r.some(c => c.trim()));
+  const filtered = items.filter(it=>{
+    if(ovrFcFilter.status!=='all'&&it.status!==ovrFcFilter.status)return false;
+    if(ovrFcFilter.search){const q=ovrFcFilter.search.toLowerCase();return it.product.name.toLowerCase().includes(q)||it.product.brand.toLowerCase().includes(q);}
+    return true;
+  });
 
-  // 사용된 컬럼만 표시
-  const visIdx = hdr.map((_, i) => i).filter(i =>
-    hdr[i].trim() || dataRows.some(r => (r[i] || '').trim())
-  );
+  const cnt={CRITICAL:0,GAP:0,WARNING:0,NORMAL:0};
+  items.forEach(it=>cnt[it.status]++);
+  const curM=ovrCurMonth(), n=getNow();
 
-  const pn = v => { const n = parseFloat(String(v).replace(/[,\s]/g, '')); return isNaN(n) ? v : n.toLocaleString(); };
-  const isNum = v => !isNaN(parseFloat(String(v).replace(/[,\s]/g, ''))) && v.trim() !== '';
+  // Header
+  const H=`<div class="fc-header">
+    <div>
+      <div class="fc-title">해외 재고 Forecast</div>
+      <div class="fc-subtitle">예상 판매량 기준 재고 소진 및 발주 필요 시점${usingSample?'&nbsp;<span style="font-size:10px;font-weight:700;color:#f59e0b">· 샘플 데이터</span>':''}</div>
+    </div>
+    <div class="fc-meta-badge">${n.y}.${String(n.m).padStart(2,'0')} 기준</div>
+  </div>`;
 
-  const thead = `<thead><tr>${visIdx.map(i => `<th>${hdr[i] || ''}</th>`).join('')}</tr></thead>`;
-  const tbody = dataRows.map(r => {
-    const cells = visIdx.map(i => {
-      const v = (r[i] || '').trim();
-      return `<td${isNum(v) ? ' class="r"' : ''}>${v ? pn(v) : '—'}</td>`;
+  // KPI Cards
+  const CARDS=`<div class="fc-cards">
+    <div class="fc-card"><div class="fc-card-lbl">전체 관리 상품</div><div class="fc-card-val">${items.length}</div><div class="fc-card-sub">SKU</div></div>
+    <div class="fc-card${cnt.CRITICAL?' st-critical':''}"><div class="fc-card-lbl">발주 필요</div><div class="fc-card-val">${cnt.CRITICAL}</div><div class="fc-card-sub">SKU</div></div>
+    <div class="fc-card${cnt.GAP?' st-gap':''}"><div class="fc-card-lbl">재고 공백</div><div class="fc-card-val">${cnt.GAP}</div><div class="fc-card-sub">SKU</div></div>
+    <div class="fc-card${cnt.WARNING?' st-warning':''}"><div class="fc-card-lbl">재고 주의</div><div class="fc-card-val">${cnt.WARNING}</div><div class="fc-card-sub">SKU</div></div>
+  </div>`;
+
+  // Filters
+  const sOpts=['all','CRITICAL','GAP','WARNING','NORMAL'];
+  const sLabels={all:'전체',CRITICAL:'발주 필요',GAP:'재고 공백',WARNING:'재고 주의',NORMAL:'정상'};
+  const FILTERS=`<div class="fc-filters">
+    ${sOpts.map(s=>`<button class="fc-status-btn${ovrFcFilter.status===s?' active':''}" onclick="ovrFcSetFilter('${s}')">${sLabels[s]}</button>`).join('')}
+    <div class="fc-filter-sep"></div>
+    <input class="fc-search" type="text" placeholder="상품명 검색…" value="${ovrFcFilter.search.replace(/"/g,'&quot;')}" oninput="ovrFcSearch(this.value)">
+  </div>`;
+
+  // Action Required
+  const aItems=filtered.filter(it=>it.status!=='NORMAL');
+  const ACTION=(aItems.length===0)
+    ?`<div class="fc-empty">확인이 필요한 상품이 없습니다.</div>`
+    :`<div style="overflow-x:auto"><table class="fc-action-tbl">
+        <thead><tr><th>상태</th><th>상품명</th><th style="text-align:right">현재 재고</th><th>예상 부족 시점</th><th>다음 입고</th><th>추가 발주</th><th>판단</th></tr></thead>
+        <tbody>${aItems.map(it=>{
+          const sv=it.forecast.find(f=>f.month===it.shortage)?.endingInventory;
+          const ss=it.shortage?(it.status==='WARNING'&&sv!==undefined
+            ?`${fmtFcMonth(it.shortage)} <span style="font-weight:400;color:#94a3b8">/ ${sv.toLocaleString()}</span>`
+            :fmtFcMonth(it.shortage)):'—';
+          const ni=it.nextInb?`<span style="color:#1d4ed8">${fmtFcMonth(it.nextInb.month)} / ${it.nextInb.qty.toLocaleString()}</span>`:'—';
+          const sc={CRITICAL:'#dc2626',GAP:'#ea580c',WARNING:'#b45309'}[it.status]||'#475569';
+          return `<tr>
+            <td><span class="fc-badge ${it.status}">${FC_STATUS_LABELS[it.status]}</span></td>
+            <td style="font-weight:600;color:#1e293b;max-width:200px;white-space:normal">${it.product.name}</td>
+            <td style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">${it.product.initialInventory.toLocaleString()}</td>
+            <td style="font-weight:600;color:${sc}">${ss}</td>
+            <td>${ni}</td><td style="color:#7c3aed">—</td>
+            <td style="font-weight:600;color:#475569">${FC_ACTION_LABELS[it.status]}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table></div>`;
+
+  // Timeline
+  const allMonths=[]; const mSet=new Set();
+  items.forEach(it=>it.forecast.forEach(f=>{if(!mSet.has(f.month)){mSet.add(f.month);allMonths.push(f.month);}}));
+  allMonths.sort();
+  const TIMELINE=buildFcTimeline(filtered,allMonths,curM);
+
+  const LEGEND=`<div class="fc-legend">
+    <div class="fc-legend-item"><div class="fc-legend-dot" style="background:#fef9c3;border:1px solid #ca8a04"></div>재고 주의</div>
+    <div class="fc-legend-item"><div class="fc-legend-dot" style="background:#fee2e2;border:1px solid #dc2626"></div>재고 부족</div>
+    <div class="fc-legend-item"><div class="fc-legend-dot" style="background:#dbeafe;border:1px solid #3b82f6"></div>현재 월</div>
+    <div class="fc-legend-item" style="color:#1d4ed8">▲ 입고</div>
+    <div class="fc-legend-item" style="color:#7c3aed">◆ 발주</div>
+  </div>`;
+
+  el.innerHTML = H+CARDS+FILTERS
+    +`<div class="card" style="margin-bottom:14px">
+         <div class="card-title card-title-row" style="margin-bottom:${aItems.length?'12px':'4px'}">
+           확인 필요 상품<span style="font-size:11px;font-weight:400;color:#94a3b8">${aItems.length}건</span>
+         </div>${ACTION}</div>`
+    +`<div class="card" style="padding:0;overflow:hidden">
+         <div style="padding:14px 16px 10px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+           <div style="font-size:13px;font-weight:600;color:#1e293b">전체 상품 Forecast</div>${LEGEND}
+         </div>
+         <div class="fc-tbl-outer">${TIMELINE}</div>
+       </div>`;
+}
+
+function buildFcTimeline(items, allMonths, curM) {
+  if (!items.length) return '<div class="fc-empty">조건에 맞는 상품이 없습니다.</div>';
+  const colCount = allMonths.length + 3;
+  const thead=`<thead><tr>
+    <th class="sc-0" style="text-align:left;min-width:200px">상품명</th>
+    <th class="sc-1" style="text-align:right;min-width:90px">현재 재고</th>
+    ${allMonths.map(m=>`<th${m===curM?' style="background:#dbeafe!important;color:#1d4ed8!important"':''}>${fmtFcMonth(m)}</th>`).join('')}
+    <th style="text-align:center;min-width:80px">상태</th>
+  </tr></thead>`;
+
+  const tbody=items.map(it=>{
+    const key=fcProdKey(it.product.name);
+    const fMap=new Map(it.forecast.map(f=>[f.month,f]));
+    const cells=allMonths.map(m=>{
+      const f=fMap.get(m);
+      if(!f)return`<td style="background:#f8fafc;color:#d1d5db;text-align:center;font-size:11px">—</td>`;
+      const isNeg=f.endingInventory<0, isWarn=!isNeg&&f.sales>0&&f.endingInventory<f.sales, isCur=m===curM;
+      let cls=isCur?'fc-cell-cur':''; if(isNeg)cls='fc-cell-crit'; else if(isWarn)cls='fc-cell-warn';
+      const nc=isNeg?' fc-cell-neg':'';
+      return`<td class="${cls}" style="text-align:right">
+        <span class="fc-cell-stock${nc}">${f.endingInventory.toLocaleString()}</span>
+        ${f.inbound>0?`<span class="fc-cell-inb">▲ ${f.inbound.toLocaleString()}</span>`:''}
+        ${f.plannedOrder>0?`<span class="fc-cell-ord">◆ ${f.plannedOrder.toLocaleString()}</span>`:''}
+      </td>`;
     }).join('');
-    return `<tr>${cells}</tr>`;
+    return`<tr class="fc-timeline-row" style="cursor:pointer" onclick="toggleFcDetail(this)" data-prod="${it.product.name.replace(/"/g,'&quot;')}">
+      <td class="sc-0" style="min-width:200px">
+        <div class="fc-prod-name">${it.product.name}</div>
+        <div class="fc-prod-brand">${it.product.brand}</div>
+      </td>
+      <td class="sc-1 fc-cur-stock-cell" style="min-width:90px">${it.product.initialInventory.toLocaleString()}</td>
+      ${cells}
+      <td class="fc-status-col"><span class="fc-badge ${it.status}">${FC_STATUS_LABELS[it.status]}</span></td>
+    </tr>
+    <tr class="fc-detail-row" id="fcdr-${key}" style="display:none">
+      <td colspan="${colCount}">${buildFcDetailInner(it,key)}</td>
+    </tr>`;
   }).join('');
 
-  el.innerHTML = `<div class="tbl-wrap"><table class="inv-table">${thead}<tbody>${tbody}</tbody></table></div>`;
+  return`<table class="fc-timeline">${thead}<tbody>${tbody}</tbody></table>`;
 }
 
-function renderOvrGongu() {
-  const el = document.getElementById('ovrGonguDetail');
-  const countEl = document.getElementById('ovrGonguCount');
-  if (!el) return;
+function buildFcDetailInner(it, key) {
+  const {product,forecast,status,shortage,nextInb}=it;
+  const curM=ovrCurMonth();
+  const sv=shortage?forecast.find(f=>f.month===shortage)?.endingInventory:null;
+  const shortageDisplay=shortage
+    ?(status==='WARNING'&&sv!==null?`${fmtFcMonth(shortage)} (잔여 ${sv.toLocaleString()})`:fmtFcMonth(shortage))
+    :'없음';
+  const statusCls={CRITICAL:'bad',GAP:'warn',WARNING:'warn',NORMAL:'ok'}[status];
 
-  if (!OVR_GONGU_ROWS.length) {
-    el.innerHTML = '<div style="padding:16px;color:#94a3b8;font-size:13px">공구 예상 데이터 없음</div>';
-    return;
-  }
+  const hdrItems=[
+    ['브랜드',product.brand],
+    ['현재 재고',product.initialInventory.toLocaleString()],
+    ['상태',`<span class="fc-badge ${status}">${FC_STATUS_LABELS[status]}</span>`],
+    ['예상 부족 시점',`<span class="${statusCls}">${shortageDisplay}</span>`],
+    ['다음 입고',nextInb?`<span style="color:#1d4ed8">${fmtFcMonth(nextInb.month)} / ${nextInb.qty.toLocaleString()}</span>`:'없음'],
+  ].map(([k,v])=>`<div class="fc-dh-item"><div class="dk">${k}</div><div class="dv">${v}</div></div>`).join('');
 
-  if (countEl) countEl.textContent = `${OVR_GONGU_ROWS.length}건`;
-
-  const cols = Object.keys(OVR_GONGU_ROWS[0]).filter(k => k);
-  const pn = v => { const n = parseFloat(String(v).replace(/[,\s]/g, '')); return isNaN(n) ? v : n.toLocaleString(); };
-  const isNum = v => !isNaN(parseFloat(String(v).replace(/[,\s]/g, ''))) && v.trim() !== '';
-
-  const thead = `<thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
-  const tbody = OVR_GONGU_ROWS.map(r => {
-    const cells = cols.map(c => {
-      const v = r[c] || '';
-      return `<td${isNum(v) ? ' class="r"' : ''}>${v ? pn(v) : '—'}</td>`;
+  const ROWS=[
+    {lbl:'예상 판매',k:'sales',color:''},
+    {lbl:'입고 예정',k:'inbound',color:'#1d4ed8'},
+    {lbl:'발주 예상',k:'plannedOrder',color:'#7c3aed'},
+    {lbl:'예상 잔여재고',k:'endingInventory',isResult:true},
+  ];
+  const dthead=`<thead><tr>
+    <th style="text-align:left;min-width:100px">구분</th>
+    ${forecast.map(f=>`<th${f.month===curM?' class="fc-dt-cur"':''}>${fmtFcMonth(f.month)}</th>`).join('')}
+  </tr></thead>`;
+  const dtbody=ROWS.map(r=>{
+    const cells=forecast.map(f=>{
+      const v=f[r.k];
+      const isNeg=r.isResult&&v<0, isWarn=r.isResult&&v>=0&&f.sales>0&&v<f.sales, isCur=f.month===curM;
+      let cls=''; if(isNeg)cls+=' fc-dt-neg'; if(isWarn)cls+=' fc-dt-warn'; if(isCur)cls+=' fc-dt-cur';
+      return`<td class="${cls.trim()}" style="${r.color?`color:${r.color}`:''}">${v===0?'—':v.toLocaleString()}</td>`;
     }).join('');
-    return `<tr>${cells}</tr>`;
+    return`<tr${r.isResult?' class="fc-drow-ending"':''}><td>${r.lbl}</td>${cells}</tr>`;
   }).join('');
 
-  el.innerHTML = `<div class="tbl-wrap"><table class="inv-table">${thead}<tbody>${tbody}</tbody></table></div>`;
+  const hasChannels=forecast.some(f=>Object.values(f.channels).some(v=>v>0));
+  const chHtml=hasChannels?buildFcChannelDetail(forecast):'';
+  const chartId=`fcChart-${key}`;
 
-  // 초기 상태 적용
-  applyOvrGonguState();
+  return`<div class="fc-detail-inner">
+    <div class="fc-detail-hrow">${hdrItems}</div>
+    <div class="fc-dtbl-wrap"><table class="fc-dtbl">${dthead}<tbody>${dtbody}</tbody></table></div>
+    <div class="fc-chart-wrap"><canvas id="${chartId}"></canvas></div>
+    ${chHtml}
+  </div>`;
 }
 
-function toggleOvrGongu() {
-  ovrGonguOpen = !ovrGonguOpen;
-  applyOvrGonguState();
+function buildFcChannelDetail(forecast) {
+  const channels=[...new Set(forecast.flatMap(f=>Object.keys(f.channels).filter(ch=>f.channels[ch]>0)))];
+  if(!channels.length)return'';
+  const ths=forecast.map(f=>`<th>${fmtFcMonth(f.month)}</th>`).join('');
+  const rows=channels.map(ch=>{
+    const cells=forecast.map(f=>`<td>${(f.channels[ch]||0)>0?(f.channels[ch]).toLocaleString():'—'}</td>`).join('');
+    return`<tr><td>${ch}</td>${cells}</tr>`;
+  }).join('');
+  return`<span class="fc-ch-toggle" onclick="fcToggleChannel(this)">▶ 채널별 예상판매 상세</span>
+  <div class="fc-ch-detail" style="display:none"><table class="fc-ch-tbl">
+    <thead><tr><th>채널</th>${ths}</tr></thead><tbody>${rows}</tbody>
+  </table></div>`;
 }
 
-function applyOvrGonguState() {
-  const detail = document.getElementById('ovrGonguDetail');
-  const arrow  = document.getElementById('ovrGonguArrow');
-  if (detail) detail.style.display = ovrGonguOpen ? '' : 'none';
-  if (arrow)  arrow.textContent    = ovrGonguOpen ? '▲' : '▼';
+function renderFcChart(chartId, forecast) {
+  destroyChart(chartId);
+  const el=document.getElementById(chartId);
+  if(!el)return;
+  mkChart(chartId,{
+    type:'line',
+    data:{labels:forecast.map(f=>fmtFcMonth(f.month)),datasets:[{
+      label:'예상 잔여재고',
+      data:forecast.map(f=>f.endingInventory),
+      borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.05)',
+      fill:true,tension:0.2,
+      pointRadius:forecast.map(f=>f.inbound>0||f.plannedOrder>0?6:3),
+      pointBackgroundColor:forecast.map(f=>f.endingInventory<0?'#dc2626':f.inbound>0?'#1d4ed8':f.plannedOrder>0?'#7c3aed':'#3b82f6'),
+      pointBorderColor:forecast.map(f=>f.endingInventory<0?'#dc2626':f.inbound>0?'#1d4ed8':f.plannedOrder>0?'#7c3aed':'#3b82f6'),
+      pointBorderWidth:2,
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{
+        label:ctx=>`잔여재고: ${ctx.parsed.y.toLocaleString()}`,
+        afterLabel:ctx=>{const f=forecast[ctx.dataIndex];const l=[];
+          if(f.inbound>0)l.push(`▲ 입고 ${f.inbound.toLocaleString()}`);
+          if(f.plannedOrder>0)l.push(`◆ 발주 ${f.plannedOrder.toLocaleString()}`);
+          l.push(`예상 판매: ${f.sales.toLocaleString()}`);return l;}
+      }}},
+      scales:{
+        x:{grid:{color:'#f1f5f9'},ticks:{font:{size:10},color:'#64748b'}},
+        y:{grid:{color:ctx=>ctx.tick.value===0?'rgba(220,38,38,0.45)':'#f1f5f9',lineWidth:ctx=>ctx.tick.value===0?2:1},
+           ticks:{font:{size:10},color:'#64748b',callback:v=>v>=1000?Math.round(v/1000)+'k':v}}
+      }
+    }
+  });
 }
+
+function toggleFcDetail(row) {
+  const prodName=row.dataset.prod;
+  if(!prodName)return;
+  const key=fcProdKey(prodName);
+  const detailRow=document.getElementById('fcdr-'+key);
+  if(!detailRow)return;
+  const isOpen=detailRow.style.display!=='none';
+  document.querySelectorAll('.fc-detail-row').forEach(r=>r.style.display='none');
+  destroyChart('fcChart-'+key);
+  if(!isOpen){
+    detailRow.style.display='';
+    ovrFcExpanded=prodName;
+    const prod=ovrProducts.find(p=>p.name===prodName);
+    if(prod){const forecast=calcProductForecast(prod);setTimeout(()=>renderFcChart('fcChart-'+key,forecast),20);}
+  } else { ovrFcExpanded=null; }
+}
+
+function fcToggleChannel(el) {
+  const tgt=el.nextElementSibling; if(!tgt)return;
+  const hidden=tgt.style.display==='none';
+  tgt.style.display=hidden?'':'none';
+  el.textContent=(hidden?'▼':'▶')+' 채널별 예상판매 상세';
+}
+
+function ovrFcSetFilter(status) { ovrFcFilter.status=status; ovrFcExpanded=null; renderOvrForecast(); }
+function ovrFcSearch(q) { ovrFcFilter.search=q; ovrFcExpanded=null; renderOvrForecast(); }
+
+// stubs (legacy calls removed)
+function renderOvrGongu() {}
+function toggleOvrGongu() {}
+function applyOvrGonguState() {}
 
 function updateMetaText() {
   const n = getNow();
