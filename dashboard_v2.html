@@ -1510,39 +1510,55 @@ function getOvrNextInbound(forecast) {
 
 function parseOvrForecastToProducts(rows) {
   if (!rows||!rows.length) return [];
-  let hdrIdx=0,hdrScore=0;
-  rows.forEach((r,i)=>{ const s=r.filter(c=>c.trim()).length; if(s>hdrScore){hdrScore=s;hdrIdx=i;} });
-  const hdr=rows[hdrIdx].map(h=>h.trim());
-  const dataRows=rows.slice(hdrIdx+1).filter(r=>r.some(c=>c.trim()));
   const pn=v=>{const n=parseFloat(String(v||'').replace(/[,\s]/g,''));return isNaN(n)?0:n;};
-  const fc=(...kwds)=>{for(const k of kwds){const i=hdr.findIndex(h=>h.includes(k));if(i>=0)return i;}return -1;};
-  const brandIdx=fc('브랜드'),nameIdx=fc('제품명','상품명','품목명'),monthIdx=fc('월','기간');
-  const salesIdx=fc('예상판매','예상 판매'),gonguIdx=fc('공구'),iherbIdx=fc('아이허브');
-  const amazonIdx=fc('아마존'),naverIdx=fc('네이버'),stockIdx=fc('기초재고','기초 재고');
-  const inboundIdx=fc('입고예정','입고 예정'),orderIdx=fc('발주예상','발주 예상');
-  console.log('[포캐스트] cols:',{brand:brandIdx,name:nameIdx,month:monthIdx,sales:salesIdx,stock:stockIdx,inb:inboundIdx,ord:orderIdx});
-  const products=new Map(); let curBrand='',curName='';
-  dataRows.forEach(r=>{
-    const brand=(brandIdx>=0?(r[brandIdx]||''):'').trim();
-    const name=(nameIdx>=0?(r[nameIdx]||''):'').trim();
-    const month=(monthIdx>=0?(r[monthIdx]||''):'').trim();
-    if(brand)curBrand=brand; if(name)curName=name;
-    if(!curName||!month)return;
-    if(!products.has(curName))products.set(curName,{brand:curBrand,name:curName,initialInventory:0,months:[]});
-    const prod=products.get(curName);
-    const sales=salesIdx>=0?pn(r[salesIdx]):(pn(r[gonguIdx])+pn(r[iherbIdx])+pn(r[amazonIdx])+pn(r[naverIdx]));
-    const stock=stockIdx>=0?pn(r[stockIdx]):0;
-    const inb=inboundIdx>=0?pn(r[inboundIdx]):0;
-    const ord=orderIdx>=0?pn(r[orderIdx]):0;
-    if(prod.months.length===0&&stock>0)prod.initialInventory=stock;
-    const ch={};
-    if(gonguIdx>=0)ch['공구']=pn(r[gonguIdx]);
-    if(iherbIdx>=0)ch['아이허브']=pn(r[iherbIdx]);
-    if(amazonIdx>=0)ch['아마존']=pn(r[amazonIdx]);
-    if(naverIdx>=0)ch['네이버']=pn(r[naverIdx]);
-    prod.months.push({month,sales,inbound:inb,plannedOrder:ord,channels:ch});
+
+  // 헤더행: col[0] === '브랜드' 인 행
+  let hdrIdx=-1;
+  for(let i=0;i<rows.length;i++){if((rows[i][0]||'').trim()==='브랜드'){hdrIdx=i;break;}}
+  if(hdrIdx<0){console.warn('[포캐스트] 헤더행 못 찾음');return[];}
+
+  // 월 컬럼 추출 (format: "2026-8월", "2026-9월" …)
+  const hdr=rows[hdrIdx];
+  const monthRe=/(\d{4})-(\d+)월/;
+  const monthCols=[];
+  hdr.forEach((cell,ci)=>{
+    const m=(cell||'').trim().match(monthRe);
+    if(m)monthCols.push({month:`${m[1]}-${String(m[2]).padStart(2,'0')}`,colIdx:ci});
   });
-  return Array.from(products.values()).filter(p=>p.months.length>0);
+  if(monthCols.length===0){console.warn('[포캐스트] 월 컬럼 없음');return[];}
+  console.log('[포캐스트] 헤더idx:',hdrIdx,'월 컬럼:',monthCols.map(m=>m.month));
+
+  const CHANNEL_NAMES=new Set(['공구','아이허브','아마존','네이버','iHerb','Amazon']);
+  const METRIC_MAP={'예상 판매':'sales','기초 재고':'stock','입고 예정':'inbound','발주 예상':'order'};
+
+  const products=new Map(); let curBrand='',curName='';
+  rows.slice(hdrIdx+1).forEach(r=>{
+    const brand=(r[0]||'').trim(), name=(r[1]||'').trim(), metric=(r[2]||'').trim();
+    if(brand)curBrand=brand; if(name)curName=name;
+    if(!curName||!metric)return;
+
+    if(!products.has(curName)){
+      products.set(curName,{brand:curBrand,name:curName,initialInventory:0,
+        months:monthCols.map(mc=>({month:mc.month,sales:0,inbound:0,plannedOrder:0,channels:{}}))});
+    }
+    const prod=products.get(curName);
+    const mk=METRIC_MAP[metric];
+
+    if(mk==='stock'){
+      const v=pn(r[monthCols[0]?.colIdx]);
+      if(v>0)prod.initialInventory=v;
+    } else if(mk==='sales'){
+      monthCols.forEach((mc,i)=>{prod.months[i].sales=pn(r[mc.colIdx]);});
+    } else if(mk==='inbound'){
+      monthCols.forEach((mc,i)=>{prod.months[i].inbound=pn(r[mc.colIdx]);});
+    } else if(mk==='order'){
+      monthCols.forEach((mc,i)=>{prod.months[i].plannedOrder=pn(r[mc.colIdx]);});
+    } else if(CHANNEL_NAMES.has(metric)){
+      monthCols.forEach((mc,i)=>{const v=pn(r[mc.colIdx]);if(v>0)prod.months[i].channels[metric]=v;});
+    }
+  });
+
+  return Array.from(products.values()).filter(p=>p.months.some(m=>m.sales>0||m.inbound>0));
 }
 
 // ─────────────────────────────────────────────────────────
@@ -1577,22 +1593,7 @@ function renderOvrForecast() {
   items.forEach(it=>cnt[it.status]++);
   const curM=ovrCurMonth(), n=getNow();
 
-  // Header
-  const H=`<div class="fc-header">
-    <div>
-      <div class="fc-title">해외 재고 Forecast</div>
-      <div class="fc-subtitle">예상 판매량 기준 재고 소진 및 발주 필요 시점${usingSample?'&nbsp;<span style="font-size:10px;font-weight:700;color:#f59e0b">· 샘플 데이터</span>':''}</div>
-    </div>
-    <div class="fc-meta-badge">${n.y}.${String(n.m).padStart(2,'0')} 기준</div>
-  </div>`;
-
-  // KPI Cards
-  const CARDS=`<div class="fc-cards">
-    <div class="fc-card"><div class="fc-card-lbl">전체 관리 상품</div><div class="fc-card-val">${items.length}</div><div class="fc-card-sub">SKU</div></div>
-    <div class="fc-card${cnt.CRITICAL?' st-critical':''}"><div class="fc-card-lbl">발주 필요</div><div class="fc-card-val">${cnt.CRITICAL}</div><div class="fc-card-sub">SKU</div></div>
-    <div class="fc-card${cnt.GAP?' st-gap':''}"><div class="fc-card-lbl">재고 공백</div><div class="fc-card-val">${cnt.GAP}</div><div class="fc-card-sub">SKU</div></div>
-    <div class="fc-card${cnt.WARNING?' st-warning':''}"><div class="fc-card-lbl">재고 주의</div><div class="fc-card-val">${cnt.WARNING}</div><div class="fc-card-sub">SKU</div></div>
-  </div>`;
+  // (헤더/KPI 카드 제거됨)
 
   // Filters
   const sOpts=['all','CRITICAL','GAP','WARNING','NORMAL'];
@@ -1641,14 +1642,14 @@ function renderOvrForecast() {
     <div class="fc-legend-item" style="color:#7c3aed">◆ 발주</div>
   </div>`;
 
-  el.innerHTML = H+CARDS+FILTERS
+  el.innerHTML = FILTERS
     +`<div class="card" style="margin-bottom:14px">
          <div class="card-title card-title-row" style="margin-bottom:${aItems.length?'12px':'4px'}">
            확인 필요 상품<span style="font-size:11px;font-weight:400;color:#94a3b8">${aItems.length}건</span>
          </div>${ACTION}</div>`
     +`<div class="card" style="padding:0;overflow:hidden">
          <div style="padding:14px 16px 10px;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-           <div style="font-size:13px;font-weight:600;color:#1e293b">전체 상품 Forecast</div>${LEGEND}
+           <div style="font-size:13px;font-weight:600;color:#1e293b">전체 상품 상세</div>${LEGEND}
          </div>
          <div class="fc-tbl-outer">${TIMELINE}</div>
        </div>`;
