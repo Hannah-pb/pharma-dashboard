@@ -787,9 +787,13 @@ async function loadData() {
     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${GID}`;
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 20000);
-    const resp = await fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(timer));
-    if (!resp.ok) throw new Error(`HTTP ${resp.status} (${sheetId})`);
-    return resp.text();
+    try {
+      const resp = await fetch(url, { signal: ctrl.signal });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status} (${sheetId})`);
+      return await resp.text();
+    } finally {
+      clearTimeout(timer);
+    }
   };
 
   const [text25, text26] = await Promise.all([
@@ -851,7 +855,9 @@ async function loadData() {
   try {
     const rocketUrl  = `https://docs.google.com/spreadsheets/d/${SHEET_ID_2026}/export?format=csv&gid=${ROCKET_GID}`;
     const _rc = new AbortController(); const _rt = setTimeout(() => _rc.abort(), 15000);
-    const rocketText = await fetch(rocketUrl, { signal: _rc.signal }).then(r => { clearTimeout(_rt); return r.ok ? r.text() : Promise.reject(r.status); });
+    const rocketText = await (async () => {
+      try { const r = await fetch(rocketUrl, { signal: _rc.signal }); return r.ok ? await r.text() : Promise.reject(r.status); } finally { clearTimeout(_rt); }
+    })();
     const rr = parseCSV(rocketText);
     const hdrRow  = rr[24] || []; // row 25 (0-indexed 24)
     const dataRow = rr[41] || []; // row 42 (0-indexed 41)
@@ -924,7 +930,9 @@ async function loadData() {
   try {
     const pivotUrl = `https://docs.google.com/spreadsheets/d/${SHEET_ID_2026}/export?format=csv&gid=${PIVOT_GID}`;
     const _pc = new AbortController(); const _pt = setTimeout(() => _pc.abort(), 15000);
-    const pr = parseCSV(await fetch(pivotUrl, { signal: _pc.signal }).then(r => { clearTimeout(_pt); return r.ok ? r.text() : Promise.reject(r.status); }));
+    const pr = parseCSV(await (async () => {
+      try { const r = await fetch(pivotUrl, { signal: _pc.signal }); return r.ok ? await r.text() : Promise.reject(r.status); } finally { clearTimeout(_pt); }
+    })());
 
     // A1 = 기준월, A2 = 기준일 (데이터 마지막 날짜)
     const pivM  = parseInt(String((pr[0]  || [])[0] || '').trim());
@@ -1374,10 +1382,13 @@ async function loadOverseasData() {
     const url = `https://docs.google.com/spreadsheets/d/${OVR_SHEET_ID}/export?format=csv&gid=${gid}`;
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 15000);
-    const r = await fetch(url, { signal: ctrl.signal });
-    clearTimeout(timer);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.text();
+    try {
+      const r = await fetch(url, { signal: ctrl.signal });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return await r.text();
+    } finally {
+      clearTimeout(timer);
+    }
   };
 
   const [stockText, forecastText, gonguText] = await Promise.all([
@@ -3569,9 +3580,15 @@ function closeDrilldown() {
 async function loadInventoryData() {
   const fetchInvCSV = async (gid) => {
     const url = `https://docs.google.com/spreadsheets/d/${INV_SHEET_ID}/export?format=csv&gid=${gid}`;
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`재고 시트 로드 실패 — HTTP ${resp.status}`);
-    return resp.text();
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20000);
+    try {
+      const resp = await fetch(url, { signal: ctrl.signal });
+      if (!resp.ok) throw new Error(`재고 시트 로드 실패 — HTTP ${resp.status}`);
+      return await resp.text();
+    } finally {
+      clearTimeout(timer);
+    }
   };
 
   const [mainText, gonguText] = await Promise.all([
