@@ -723,8 +723,10 @@ let invLoading   = false;
 let invActiveTab = 'status';
 let invRegion    = 'domestic'; // 'domestic' | 'overseas'
 
+let OVR_STOCK_HDR     = [];
 let OVR_STOCK_ROWS    = [];
 let OVR_FORECAST_ROWS = [];
+let OVR_GONGU_HDR     = [];
 let OVR_GONGU_ROWS    = [];
 let ovrLoaded    = false;
 let ovrLoading   = false;
@@ -783,7 +785,9 @@ async function loadData() {
 
   const fetchCSV = async (sheetId) => {
     const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${GID}`;
-    const resp = await fetch(url);
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20000);
+    const resp = await fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(timer));
     if (!resp.ok) throw new Error(`HTTP ${resp.status} (${sheetId})`);
     return resp.text();
   };
@@ -1386,22 +1390,36 @@ async function loadOverseasData() {
   const sRows = parseCSV(stockText);
   if (sRows.length > 1) {
     const hdr = sRows[0].map(h => h.trim());
+    OVR_STOCK_HDR = hdr;
     OVR_STOCK_ROWS = sRows.slice(1)
       .filter(r => r.some(c => c.trim()))
-      .map(r => { const o = {}; hdr.forEach((h, i) => { o[h] = (r[i] ?? '').trim(); }); return o; });
+      .map(r => { const o = { _raw: r }; hdr.forEach((h, i) => { o[h] = (r[i] ?? '').trim(); }); return o; });
   }
 
   // 포캐스트 최종 — 원본 행 그대로 보존 (렌더 시 헤더 탐색)
   OVR_FORECAST_ROWS = parseCSV(forecastText).filter(r => r.some(c => c.trim()));
 
-  // 공구 예상(약사별)
+  // 공구 예상(약사별) — _raw 보존 + 브랜드/제품명 fill-down
   if (gonguText) {
     const gRows = parseCSV(gonguText);
     if (gRows.length > 1) {
       const hdr = gRows[0].map(h => h.trim());
+      OVR_GONGU_HDR = hdr;
+      console.log('[해외공구] 헤더:', hdr);
+      const fc = (...kws) => { for(const k of kws){const i=hdr.findIndex(h=>h.includes(k));if(i>=0)return i;} return -1; };
+      const gnameIdx  = fc('제품명','품목명','상품명');
+      const gbrandIdx = fc('브랜드');
+      let gBrand='', gName='';
       OVR_GONGU_ROWS = gRows.slice(1)
         .filter(r => r.some(c => c.trim()))
-        .map(r => { const o = {}; hdr.forEach((h, i) => { o[h] = (r[i] ?? '').trim(); }); return o; });
+        .map(r => {
+          const brand=(r[gbrandIdx>=0?gbrandIdx:0]||'').trim();
+          const name =(r[gnameIdx >=0?gnameIdx :1]||'').trim();
+          if(brand)gBrand=brand; if(name)gName=name;
+          const o = { _raw: r, _brand: gBrand, _name: gName };
+          hdr.forEach((h, i) => { o[h] = (r[i] ?? '').trim(); });
+          return o;
+        });
     }
   }
 
@@ -1453,11 +1471,59 @@ function renderOvrStock() {
     el.innerHTML = '<div style="padding:24px;text-align:center;color:#94a3b8;font-size:13px">재고 데이터 없음</div>';
     return;
   }
-  const cols = Object.keys(OVR_STOCK_ROWS[0]).filter(k => k);
-  const thead = `<thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>`;
-  const tbody = OVR_STOCK_ROWS.map(r =>
-    `<tr>${cols.map(c => `<td>${r[c] || '—'}</td>`).join('')}</tr>`
-  ).join('');
+
+  const hdr = OVR_STOCK_HDR;
+  const pn = v => { const n = parseFloat(String(v||'').replace(/[,\s]/g,'')); return isNaN(n) ? 0 : n; };
+  const fc = (...kwds) => { for (const k of kwds) { const i = hdr.findIndex(h => h.includes(k)); if (i >= 0) return i; } return -1; };
+
+  // 컬럼 인덱스 (헤더명 우선, 없으면 열 번호 사용)
+  const idxBrand   = fc('브랜드');
+  const idxProd    = fc('품목명', '제품명');
+  const idxStock   = fc('고수량') >= 0 ? fc('고수량') : 4;          // E열
+  const allocIdxs  = [7, 8, 9, 10, 11];                             // H~L열
+  const idxOrder   = fc('발주수량', '발주');
+  const idxInbound = fc('입고예정일', '입고 예정일', '입고일');
+
+  // 할당수량 컬럼명 (헤더에서 추출해 표시)
+  const allocNames = allocIdxs.map(i => hdr[i] || '').filter(Boolean);
+
+  // 품목명 있는 행만 표시
+  const rows = OVR_STOCK_ROWS.filter(r => (r._raw[idxProd] || '').trim());
+
+  const showOrder   = idxOrder >= 0;
+  const showInbound = idxInbound >= 0;
+
+  const thead = `<thead><tr>
+    <th style="text-align:left;min-width:80px">브랜드</th>
+    <th style="text-align:left;min-width:180px">품목명</th>
+    <th class="r">고수량</th>
+    <th class="r">할당수량<div style="font-size:9px;font-weight:400;color:#94a3b8;line-height:1.4;margin-top:2px">${allocNames.join('+') || 'H-L열'}</div></th>
+    ${showOrder   ? '<th class="r">발주수량</th>'  : ''}
+    ${showInbound ? '<th style="min-width:100px">입고예정일</th>' : ''}
+  </tr></thead>`;
+
+  const tbody = rows.map(r => {
+    const raw     = r._raw;
+    const brand   = (raw[idxBrand]  || '').trim();
+    const prod    = (raw[idxProd]   || '').trim();
+    const stock   = pn(raw[idxStock]);
+    const alloc   = allocIdxs.reduce((s, i) => s + pn(raw[i]), 0);
+    const order   = showOrder   ? pn(raw[idxOrder])   : null;
+    const inbound = showInbound ? (raw[idxInbound] || '').trim() : '';
+
+    const overAlloc = alloc > 0 && stock > 0 && alloc > stock;
+    const allocStyle = overAlloc ? ' style="color:#dc2626;font-weight:700"' : '';
+
+    return `<tr>
+      <td style="color:#64748b;font-size:12px">${brand || '—'}</td>
+      <td style="font-weight:600;color:#1e293b">${prod || '—'}</td>
+      <td class="r">${stock ? stock.toLocaleString() : '—'}</td>
+      <td class="r"${allocStyle}>${alloc ? alloc.toLocaleString() : '—'}</td>
+      ${showOrder   ? `<td class="r">${order ? order.toLocaleString() : '—'}</td>` : ''}
+      ${showInbound ? `<td>${inbound || '—'}</td>` : ''}
+    </tr>`;
+  }).join('');
+
   el.innerHTML = `<div class="tbl-wrap"><table class="inv-table">${thead}<tbody>${tbody}</tbody></table></div>`;
 }
 
@@ -1474,8 +1540,8 @@ function ovrCurMonth() { const n=getNow(); return `${n.y}-${String(n.m).padStart
 function fmtFcMonth(m) {
   const match=String(m).match(/(\d{4})[^\d]?0?(\d{1,2})/);
   if(!match) return m;
-  const [,y,mo]=match; const n=getNow();
-  return parseInt(y)===n.y?`${parseInt(mo)}월`:`'${String(y).slice(2)}.${String(mo).padStart(2,'0')}`;
+  const [,y,mo]=match;
+  return `${String(y).slice(2)}년${String(mo).padStart(2,'0')}월`;
 }
 
 function calcProductForecast(product) {
@@ -1577,11 +1643,7 @@ function renderOvrForecast() {
     const forecast=calcProductForecast(p), status=getOvrProductStatus(forecast);
     return {product:p,forecast,status,shortage:getOvrFirstShortageMonth(forecast,status),nextInb:getOvrNextInbound(forecast)};
   });
-  items.sort((a,b)=>{
-    const os=FC_STATUS_ORDER[a.status]-FC_STATUS_ORDER[b.status];
-    if(os!==0)return os;
-    return (a.shortage&&b.shortage)?a.shortage.localeCompare(b.shortage):0;
-  });
+  // 시트 원본 순서 유지 (정렬 없음)
 
   const filtered = items.filter(it=>{
     if(ovrFcFilter.status!=='all'&&it.status!==ovrFcFilter.status)return false;
@@ -1735,7 +1797,7 @@ function buildFcDetailInner(it, key) {
   }).join('');
 
   const hasChannels=forecast.some(f=>Object.values(f.channels).some(v=>v>0));
-  const chHtml=hasChannels?buildFcChannelDetail(forecast):'';
+  const chHtml=hasChannels?buildFcChannelDetail(forecast,product.name):'';
   const chartId=`fcChart-${key}`;
 
   return`<div class="fc-detail-inner">
@@ -1746,13 +1808,68 @@ function buildFcDetailInner(it, key) {
   </div>`;
 }
 
-function buildFcChannelDetail(forecast) {
+function buildGonguPharmacistSection(productName, forecastMonths) {
+  if (!OVR_GONGU_ROWS.length) return '';
+  const hdr = OVR_GONGU_HDR;
+  const pn = v => { const n=parseFloat(String(v||'').replace(/[,\s]/g,'')); return isNaN(n)?0:n; };
+  const fc = (...kws) => { for(const k of kws){const i=hdr.findIndex(h=>h.includes(k));if(i>=0)return i;} return -1; };
+
+  const idxPhar = fc('닉네임','약사명','약사','진행 약사','담당');
+
+  // 월 컬럼 매핑 (gongu시트: "2026-8월" → "2026-08" 정규화)
+  const monthRe = /(\d{4})-(\d+)월/;
+  const gonguMonthMap = {};
+  hdr.forEach((h, i) => {
+    const mm = h.trim().match(monthRe);
+    if (mm) gonguMonthMap[`${mm[1]}-${String(mm[2]).padStart(2,'0')}`] = i;
+  });
+
+  // 제품명 매칭 (fill-down된 _name 사용)
+  const pName = productName.trim();
+  const matchedRows = OVR_GONGU_ROWS.filter(r => {
+    const rn = (r._name || '').trim();
+    return rn && (rn === pName || pName.includes(rn) || rn.includes(pName) ||
+      (rn.length > 6 && pName.substring(0,8) === rn.substring(0,8)));
+  });
+  if (!matchedRows.length || idxPhar < 0) return '';
+
+  // 약사 행만 (약사 컬럼 값 있는 행)
+  const pharRows = matchedRows.filter(r => (r._raw[idxPhar]||'').trim());
+  if (!pharRows.length) return '';
+
+  // 예측 월과 교집합
+  const validMonths = forecastMonths.filter(m => gonguMonthMap[m] !== undefined);
+  if (!validMonths.length) return '';
+
+  const ths = validMonths.map(m => `<th>${fmtFcMonth(m)}</th>`).join('');
+  const trs = pharRows.map(r => {
+    const phar = (r._raw[idxPhar]||'').trim();
+    const cells = validMonths.map(m => {
+      const v = pn(r._raw[gonguMonthMap[m]]);
+      return `<td>${v ? v.toLocaleString() : '—'}</td>`;
+    }).join('');
+    return `<tr><td style="padding-left:10px;color:#7c3aed;font-weight:600">${phar}</td>${cells}</tr>`;
+  }).join('');
+
+  return `<div style="margin-top:4px;border-left:3px solid #e9d5ff;padding-left:6px">
+    <div style="font-size:10px;color:#7c3aed;font-weight:700;padding:4px 0 2px">└ 약사별 예상수량</div>
+    <table class="fc-ch-tbl" style="font-size:11px">
+      <thead><tr><th style="text-align:left">약사</th>${ths}</tr></thead>
+      <tbody>${trs}</tbody>
+    </table>
+  </div>`;
+}
+
+function buildFcChannelDetail(forecast, productName) {
   const channels=[...new Set(forecast.flatMap(f=>Object.keys(f.channels).filter(ch=>f.channels[ch]>0)))];
   if(!channels.length)return'';
+  const forecastMonths=forecast.map(f=>f.month);
   const ths=forecast.map(f=>`<th>${fmtFcMonth(f.month)}</th>`).join('');
   const rows=channels.map(ch=>{
     const cells=forecast.map(f=>`<td>${(f.channels[ch]||0)>0?(f.channels[ch]).toLocaleString():'—'}</td>`).join('');
-    return`<tr><td>${ch}</td>${cells}</tr>`;
+    const gonguSection=ch==='공구'?buildGonguPharmacistSection(productName,forecastMonths):'';
+    const gonguRow=gonguSection?`<tr><td colspan="${forecast.length+1}" style="padding:0;border:none;background:#faf5ff">${gonguSection}</td></tr>`:'';
+    return`<tr><td style="font-weight:600">${ch}</td>${cells}</tr>${gonguRow}`;
   }).join('');
   return`<span class="fc-ch-toggle" onclick="fcToggleChannel(this)">▶ 채널별 예상판매 상세</span>
   <div class="fc-ch-detail" style="display:none"><table class="fc-ch-tbl">
