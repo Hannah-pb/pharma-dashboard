@@ -669,6 +669,8 @@ const SHEET_ID_2025 = '1R2r3mTrTf699JKXA9mBvTWs8Ro9JQarOh-ArrFd6uDQ';
 const GID = '1605737796';
 // 하위 호환용 (SHEET_ID 단독 참조 없음)
 const SHEET_ID = SHEET_ID_2026;
+// BigQuery 매출 데이터 — Google Apps Script Web App (daring-augury-506000-f0.sales_raw.core_sales)
+const BQ_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxQ4LpIIPdV6rNwa6VNhHUe-_oN82XfTh6im997vjC-FQXFamU1L1x__YgAS5Liv29J/exec';
 const ANN_TARGET      = {};             // { total, gongu, nonGongu, ilban, etc } — 시트 B4:C8 로드
 const MONTHLY_TARGETS = {};             // 월별 목표 — 시트 row 52에서 로드 (공구 외 기준)
 const DAILY_TARGETS   = {};             // 일평균 목표 — 시트 row 58에서 로드
@@ -796,60 +798,42 @@ async function loadData() {
     }
   };
 
-  const [text25, text26] = await Promise.all([
-    fetchCSV(SHEET_ID_2025),
-    fetchCSV(SHEET_ID_2026),
-  ]);
+  // ── BigQuery 매출 데이터 (GAS Web App 경유) ──────────────
+  document.getElementById('loadingText').textContent = '매출 데이터 로딩 중 (BigQuery)';
+  const _bqCtrl = new AbortController();
+  const _bqTimer = setTimeout(() => _bqCtrl.abort(), 35000);
+  let _bqData;
+  try {
+    const _bqResp = await fetch(BQ_ENDPOINT, { signal: _bqCtrl.signal });
+    if (!_bqResp.ok) throw new Error(`BQ proxy HTTP ${_bqResp.status}`);
+    _bqData = await _bqResp.json();
+  } finally {
+    clearTimeout(_bqTimer);
+  }
+  if (_bqData.error) throw new Error(`BigQuery 오류: ${_bqData.error}`);
 
-  const rows25 = parseCSV(text25);
-  const rows26 = parseCSV(text26);
-  if (rows25.length < 2 && rows26.length < 2) throw new Error('두 시트 모두 데이터가 비어있습니다.');
+  const _ps = v => String(v ?? '').trim();
+  const _pn = v => { const n = parseFloat(String(v ?? '').replace(/[,\s₩]/g,'')); return isNaN(n) ? 0 : n; };
+  const _pi = v => { const n = parseInt(String(v ?? ''), 10); return isNaN(n) ? 0 : n; };
 
-  // 헤더는 26년 기준으로 사용 (25년도 동일 구조)
-  const headerRows = rows26.length >= 2 ? rows26 : rows25;
-  const hdr = headerRows[0].map(h => h.replace(/\n/g,' ').trim());
-  const col = name => hdr.indexOf(name);
-  C = {
-    CH:      col('대표채널명'),
-    DIST:    col('구분 (*주의)'),
-    BRAND:   col('브랜드'),
-    YEAR:    col('연'),
-    MONTH:   col('월'),
-    DAY:     col('일'),
-    WEEK:    col('주차'),
-    PROD:    col('대표품목명'),
-    QTY:     col('수량'),
-    REV:     col('실결제금액'),
-    FQTY:    col('최종 수량'),
-    CATEGORY:col('건기/뷰티'),   // AD열: 건기식 / 뷰티 구분
-  };
+  // BQ 컬럼명: 구분(*주의)→구분, 건기/뷰티→건기_뷰티, 최종 수량 유지
+  ROWS = (_bqData.rows || []).map(r => ({
+    ch:       _ps(r['대표채널명']),
+    dist:     _ps(r['구분']),
+    brand:    _ps(r['브랜드']),
+    year:     _pi(r['연']),
+    month:    _pi(r['월']),
+    day:      _pi(r['일']),
+    week:     _pi(r['주차']),
+    prod:     _ps(r['대표품목명']),
+    qty:      _pi(r['수량']),
+    rev:      _pn(r['실결제금액']),
+    fqty:     _pi(r['최종 수량']),
+    category: _ps(r['건기_뷰티']),
+  })).filter(r => r.year > 0 && r.month > 0 && r.ch !== '' && r.rev !== 0);
 
-  // 두 시트 데이터를 합침 (각각 헤더 1행 제거)
-  const allRows = [
-    ...(rows25.length >= 2 ? rows25.slice(1) : []),
-    ...(rows26.length >= 2 ? rows26.slice(1) : []),
-  ];
-
-  ROWS = allRows
-    .filter(r => r.length > C.PROD)
-    .map(r => ({
-      ch:       toStr(r[C.CH]),
-      dist:     toStr(r[C.DIST]),
-      brand:    toStr(r[C.BRAND]),
-      year:     toInt(r[C.YEAR]),
-      month:    toInt(r[C.MONTH]),
-      day:      toInt(r[C.DAY]),
-      week:     toInt(r[C.WEEK]),
-      prod:     toStr(r[C.PROD]),
-      qty:      toInt(r[C.QTY]),
-      rev:      toNum(r[C.REV]),
-      fqty:     toInt(r[C.FQTY]),
-      category: toStr(r[C.CATEGORY]),
-    }))
-    // 건기식만 사용 (AD열 = '건기식')
-    .filter(r => r.year > 0 && r.month > 0 && r.ch !== '' && r.rev !== 0 && r.category === '건기식');
-
-  if (ROWS.length === 0) throw new Error('데이터 0건 — 시트 공유 설정 또는 필터를 확인하세요.');
+  console.log(`[BQ 로드] ${ROWS.length}건`);
+  if (ROWS.length === 0) throw new Error('BigQuery 데이터 0건 — core_sales 테이블을 확인하세요.');
 
   // 로켓그로스 로딩 (2026 요약탭 row25=헤더, row42=로켓그로스)
   try {
@@ -1400,11 +1384,16 @@ async function loadOverseasData() {
   // 재고관리 GGKP
   const sRows = parseCSV(stockText);
   if (sRows.length > 1) {
-    const hdr = sRows[0].map(h => h.trim());
+    // 헤더 행 탐색: "브랜드" 또는 "품목명" 셀이 있는 첫 번째 행
+    let sHdrIdx = sRows.findIndex(r => r.some(c => c.trim() === '브랜드' || c.trim() === '품목명' || c.trim() === '제품명'));
+    if (sHdrIdx < 0) sHdrIdx = 0; // fallback: 첫 행
+    const hdr = sRows[sHdrIdx].map(h => h.trim());
     OVR_STOCK_HDR = hdr;
-    OVR_STOCK_ROWS = sRows.slice(1)
+    console.log('[해외재고] 헤더idx:', sHdrIdx, '헤더:', hdr);
+    OVR_STOCK_ROWS = sRows.slice(sHdrIdx + 1)
       .filter(r => r.some(c => c.trim()))
       .map(r => { const o = { _raw: r }; hdr.forEach((h, i) => { o[h] = (r[i] ?? '').trim(); }); return o; });
+    console.log('[해외재고] 파싱 행 수:', OVR_STOCK_ROWS.length);
   }
 
   // 포캐스트 최종 — 원본 행 그대로 보존 (렌더 시 헤더 탐색)
@@ -1498,8 +1487,11 @@ function renderOvrStock() {
   // 할당수량 컬럼명 (헤더에서 추출해 표시)
   const allocNames = allocIdxs.map(i => hdr[i] || '').filter(Boolean);
 
-  // 품목명 있는 행만 표시
-  const rows = OVR_STOCK_ROWS.filter(r => (r._raw[idxProd] || '').trim());
+  console.log('[해외재고 렌더] 헤더:', hdr, 'idxBrand:', idxBrand, 'idxProd:', idxProd, 'idxStock:', idxStock);
+  // 품목명 있는 행만 표시 (idxProd=-1이면 전체 비어있으므로 fallback 처리)
+  const rows = idxProd >= 0
+    ? OVR_STOCK_ROWS.filter(r => (r._raw[idxProd] || '').trim())
+    : OVR_STOCK_ROWS.filter(r => r._raw.some(c => (c||'').trim()));
 
   const showOrder   = idxOrder >= 0;
   const showInbound = idxInbound >= 0;
