@@ -717,6 +717,10 @@ let drillData  = null;
 let ssMonthYear  = 2026;
 let c24MonthYear = 2026;
 
+// BigQuery 매출 로딩 상태 (KPI/판매분석 탭 진입 시 지연 로딩)
+let bqLoaded  = false;
+let bqLoading = null; // Promise | null (null 이면 미시작 또는 재시도 가능)
+
 // 재고관리 상태
 let INV_ROWS   = [];
 let GONGU_ROWS = [];
@@ -772,19 +776,62 @@ document.addEventListener('DOMContentLoaded', () => {
     populateMonthSelects();
     const initHash = window.location.hash.slice(1);
     switchPage(PAGE_TITLES[initHash] != null && initHash ? initHash : 'kpi');
-    // BQ 로드 실패 시 비차단 경고 표시
-    if (window._bqLoadError) {
-      const w = document.createElement('div');
-      w.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#fef2f2;color:#dc2626;font-size:12px;padding:8px 16px;z-index:9999;display:flex;align-items:center;gap:12px;border-bottom:1px solid #fca5a5';
-      w.innerHTML = `⚠️ 매출 데이터 로드 실패 (BigQuery): ${window._bqLoadError} &nbsp;<button onclick="this.parentNode.remove()" style="background:none;border:none;cursor:pointer;font-size:16px;color:#dc2626">×</button>`;
-      document.body.prepend(w);
-    }
   }).catch(err => {
     document.getElementById('loadingText').innerHTML =
       `<span style="color:#dc2626">로드 실패: ${err.message}</span><br>
        <button onclick="location.reload()" style="margin-top:10px;padding:8px 16px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer">다시 시도</button>`;
   });
 });
+
+// ═══════════════════════════════════════════════════════
+//  BIGQUERY 지연 로딩 (KPI / 판매분석 탭 진입 시에만 호출)
+// ═══════════════════════════════════════════════════════
+function loadBQData() {
+  if (bqLoaded) return Promise.resolve();
+  if (bqLoading) return bqLoading;
+  bqLoading = (async () => {
+    try {
+      const ctrl  = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 35000);
+      let data;
+      try {
+        const resp = await fetch(BQ_ENDPOINT, { signal: ctrl.signal });
+        if (!resp.ok) throw new Error(`BQ proxy HTTP ${resp.status}`);
+        data = await resp.json();
+      } finally {
+        clearTimeout(timer);
+      }
+      if (data.error) throw new Error(`BigQuery SQL 오류: ${data.error}`);
+
+      const _ps = v => String(v ?? '').trim();
+      const _pn = v => { const n = parseFloat(String(v ?? '').replace(/[,\s₩]/g,'')); return isNaN(n) ? 0 : n; };
+      const _pi = v => { const n = parseInt(String(v ?? ''), 10); return isNaN(n) ? 0 : n; };
+
+      ROWS = (data.rows || []).map(r => ({
+        ch:       _ps(r['대표채널명']),
+        dist:     _ps(r['구분']),
+        brand:    _ps(r['브랜드']),
+        year:     _pi(r['연']),
+        month:    _pi(r['월']),
+        day:      _pi(r['일']),
+        week:     _pi(r['주차']),
+        prod:     _ps(r['대표품목명']),
+        qty:      _pi(r['수량']),
+        rev:      _pn(r['실결제금액']),
+        fqty:     _pi(r['최종 수량']),
+        category: _ps(r['건기_뷰티']),
+      })).filter(r => r.year > 0 && r.month > 0 && r.ch !== '' && r.rev !== 0);
+
+      bqLoaded = true;
+      console.log(`[BQ 로드] ${ROWS.length}건`);
+    } catch (err) {
+      console.error('[BQ 로드 실패]', err);
+      bqLoading = null; // 실패 시 재시도 허용
+      throw err;
+    }
+  })();
+  return bqLoading;
+}
 
 // ═══════════════════════════════════════════════════════
 //  DATA LOADING  (CSV fetch — 2025/2026 두 시트 병렬 로드)
@@ -804,48 +851,6 @@ async function loadData() {
       clearTimeout(timer);
     }
   };
-
-  // ── BigQuery 매출 데이터 (GAS Web App 경유) ──────────────
-  document.getElementById('loadingText').textContent = '매출 데이터 로딩 중 (BigQuery)';
-  try {
-    const _bqCtrl = new AbortController();
-    const _bqTimer = setTimeout(() => _bqCtrl.abort(), 35000);
-    let _bqData;
-    try {
-      const _bqResp = await fetch(BQ_ENDPOINT, { signal: _bqCtrl.signal });
-      if (!_bqResp.ok) throw new Error(`BQ proxy HTTP ${_bqResp.status}`);
-      _bqData = await _bqResp.json();
-    } finally {
-      clearTimeout(_bqTimer);
-    }
-    if (_bqData.error) throw new Error(`BigQuery SQL 오류: ${_bqData.error}`);
-
-    const _ps = v => String(v ?? '').trim();
-    const _pn = v => { const n = parseFloat(String(v ?? '').replace(/[,\s₩]/g,'')); return isNaN(n) ? 0 : n; };
-    const _pi = v => { const n = parseInt(String(v ?? ''), 10); return isNaN(n) ? 0 : n; };
-
-    // BQ 컬럼명: 구분(*주의)→구분, 건기/뷰티→건기_뷰티, 최종 수량 유지
-    ROWS = (_bqData.rows || []).map(r => ({
-      ch:       _ps(r['대표채널명']),
-      dist:     _ps(r['구분']),
-      brand:    _ps(r['브랜드']),
-      year:     _pi(r['연']),
-      month:    _pi(r['월']),
-      day:      _pi(r['일']),
-      week:     _pi(r['주차']),
-      prod:     _ps(r['대표품목명']),
-      qty:      _pi(r['수량']),
-      rev:      _pn(r['실결제금액']),
-      fqty:     _pi(r['최종 수량']),
-      category: _ps(r['건기_뷰티']),
-    })).filter(r => r.year > 0 && r.month > 0 && r.ch !== '' && r.rev !== 0);
-
-    console.log(`[BQ 로드] ${ROWS.length}건`);
-  } catch (bqErr) {
-    console.error('[BQ 로드 실패]', bqErr);
-    window._bqLoadError = bqErr.message;
-    ROWS = []; // 매출 데이터 없이 다른 탭은 계속 작동
-  }
 
   // 로켓그로스 로딩 (2026 요약탭 row25=헤더, row42=로켓그로스)
   try {
@@ -1964,9 +1969,29 @@ function updateMetaText() {
   return `데이터 기준: ${n.y}.${String(lm||n.m).padStart(2,'0')}.${String(ld||n.dy).padStart(2,'0')}`;
 }
 
-const EMPTY_PAGES = new Set(['kpi','sales','smartstore','cafe24','products']);
+const EMPTY_PAGES = new Set(['smartstore','cafe24','products']);
 function renderPage(pg) {
-  if (EMPTY_PAGES.has(pg)) return;  // 비어있는 페이지 — 렌더 스킵
+  if (pg === 'kpi' || pg === 'sales') {
+    // BigQuery 지연 로딩: 처음 방문 시에만 fetch, 이후 캐시
+    loadBQData()
+      .then(() => {
+        if (pg === 'kpi')   renderKPI();
+        else                renderSalesSummary();
+      })
+      .catch(err => {
+        const body = document.querySelector('#page-' + pg + ' .page-body');
+        if (body) body.innerHTML =
+          `<div style="padding:30px;color:#dc2626;text-align:center">
+            ⚠️ 매출 데이터 로드 실패: ${err.message}
+            <br><button onclick="bqLoading=null;renderPage('${pg}')"
+              style="margin-top:12px;padding:8px 18px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer">
+              다시 시도
+            </button>
+          </div>`;
+      });
+    return;
+  }
+  if (EMPTY_PAGES.has(pg)) return;
   else if (pg==='inventory') { renderInventory(); }
 }
 
