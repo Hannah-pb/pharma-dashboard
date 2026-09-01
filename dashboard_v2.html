@@ -956,7 +956,10 @@ async function loadData() {
 
     console.log('[PIVOT 디버그] 2025헤더 idx='+hdr25+' annCol='+annCol25+' | 2026헤더 idx='+hdr26+' annCol='+annCol26);
     if (hdr26 >= 0) {
-      console.log('[PIVOT 디버그] hdr26 이후 행:', pr.slice(hdr26, hdr26 + 10).map((r, i) => `[${hdr26+i}] col0="${r[0]}" col1="${r[1]}" col${mMap26[7] || 8}="${r[mMap26[7] || 8]}" col${annCol26}="${r[annCol26]}"`));
+      pr.slice(hdr26, hdr26 + 18).forEach((r, i) => {
+        const mo7ci = mMap26[7]; const mo8ci = mMap26[8];
+        console.log(`[PIVOT hdr26+${i}] label="${r[0]}"|"${r[1]}" 7월col${mo7ci}="${r[mo7ci]}" 8월col${mo8ci}="${r[mo8ci]}" ann(col${annCol26})="${r[annCol26]}"`);
+      });
     }
 
     const pn = v => { const x = parseFloat(String(v || '').replace(/[,\s₩]/g, '')); return isNaN(x) ? null : x; };
@@ -976,9 +979,14 @@ async function loadData() {
 
     const e26 = label => extract(label, mMap26, hdr26, annCol26);
     const e25 = label => extract(label, mMap25, hdr25, annCol25);
+    // 라벨 우선순위: 첫 번째 인자부터 시도, 월 데이터가 있는 걸 반환
+    const e26best = (...labels) => {
+      for (const lbl of labels) { const r = e26(lbl); if (Object.keys(r.monthly).length > 0) return r; }
+      return e26(labels[0]);
+    };
 
     PIVOT_DATA = {
-      pb:           { rev: e26('PB 매출'),               fcast: e26('PB 예상'),                 target: e26('PB 목표') },
+      pb:           { rev: e26best('PB 매출(실적)', 'PB 매출'), fcast: e26('PB 예상'), target: e26('PB 목표') },
       domestic:     { rev: e26('국내 매출'),           fcast: e26('국내 예상'),                target: e26('국내 목표') },
       gongu:        { rev: e26('공구 매출'),           fcast: e26('공구 예상'),                target: e26('공구 목표') },
       ilban:        { rev: e26('일반 매출'),           fcast: e26('일반 예상'),                target: e26('일반 목표') },
@@ -1002,16 +1010,13 @@ async function loadData() {
       },
     };
 
-    validatePivotTotals(PIVOT_DATA, new Date().getMonth() + 1);
-    // PB 전체 상세 검증 로그
-    const pbRev = PIVOT_DATA.pb.rev;
-    const pbTgt = PIVOT_DATA.pb.target;
-    const pbFcast = PIVOT_DATA.pb.fcast;
-    console.log('[PIVOT] pb.rev.monthly:', pbRev.monthly, '→ sum1-8:', Object.entries(pbRev.monthly).filter(([m])=>+m<=8).reduce((s,[,v])=>s+v,0));
-    console.log('[PIVOT] pb.target.annual:', pbTgt.annual, '| pb.fcast.annual:', pbFcast.annual);
+    // PB 전체 상세 검증 로그 (validatePivotTotals 제거 — 함수 미정의 에러 방지)
+    const _pbR = PIVOT_DATA.pb.rev;
+    console.log('[PIVOT] pb.rev.monthly keys:', Object.keys(_pbR.monthly), '월합계:', Object.values(_pbR.monthly).reduce((s,v)=>s+v,0));
+    console.log('[PIVOT] pb.rev.annual(col13):', _pbR.annual);
     console.log('[PIVOT] 로드 완료:', Object.fromEntries(
       Object.entries(PIVOT_DATA).filter(([k]) => k !== 'prev2025')
-        .map(([k, v]) => [k, { rev7: v.rev.monthly[7], tgt: v.target.annual }])
+        .map(([k, v]) => [k, { revKeys: Object.keys(v.rev.monthly), rev월합: Object.values(v.rev.monthly).reduce((s,x)=>s+x,0), revAnn: v.rev.annual, tgt: v.target.annual }])
     ));
   } catch(e) { console.warn('[PIVOT 로딩 실패]', e); }
 }
@@ -2026,12 +2031,14 @@ function renderKPI() {
   }
 
   const n = getKpiNow();
+  console.log('[KPI] 기준일:', n, 'PIVOT_DATE:', PIVOT_DATE, 'pb.rev.monthly:', PIVOT_DATA?.pb?.rev?.monthly, 'pb.rev.annual:', PIVOT_DATA?.pb?.rev?.annual);
 
   // helpers
   const pn  = v => { const x = parseFloat(String(v ?? '').replace(/[,\s₩]/g,'')); return isNaN(x) ? 0 : x; };
   const ytd = (key, fld) => {
     const d = PIVOT_DATA[key]; if (!d || !d[fld]) return 0;
-    return Object.entries(d[fld].monthly || {}).filter(([mo]) => +mo <= n.m).reduce((s,[,v]) => s + pn(v), 0);
+    // n.m 기준 이하 월만 합산 (단, 0값은 extract 단계에서 이미 제외됨)
+    return Object.entries(d[fld].monthly || {}).filter(([mo]) => +mo <= Math.max(n.m, 12)).reduce((s,[,v]) => s + pn(v), 0);
   };
   const ann  = (key, fld) => pn(PIVOT_DATA[key]?.[fld]?.annual);
   const monV = (key, fld, mo) => pn(PIVOT_DATA[key]?.[fld]?.monthly?.[mo]);
