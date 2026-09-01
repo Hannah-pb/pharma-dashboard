@@ -2037,10 +2037,9 @@ function renderKPI() {
 
   // helpers
   const pn  = v => { const x = parseFloat(String(v ?? '').replace(/[,\s₩]/g,'')); return isNaN(x) ? 0 : x; };
-  const ytd = (key, fld) => {
+  const ytd = (key, fld, maxMo = n.m) => {
     const d = PIVOT_DATA[key]; if (!d || !d[fld]) return 0;
-    // n.m 기준 이하 월만 합산 (단, 0값은 extract 단계에서 이미 제외됨)
-    return Object.entries(d[fld].monthly || {}).filter(([mo]) => +mo <= Math.max(n.m, 12)).reduce((s,[,v]) => s + pn(v), 0);
+    return Object.entries(d[fld].monthly || {}).filter(([mo]) => +mo <= maxMo).reduce((s,[,v]) => s + pn(v), 0);
   };
   const ann  = (key, fld) => pn(PIVOT_DATA[key]?.[fld]?.annual);
   const monV = (key, fld, mo) => pn(PIVOT_DATA[key]?.[fld]?.monthly?.[mo]);
@@ -2056,11 +2055,11 @@ function renderKPI() {
   // KPI values
   const pbRev=rev('pb'),pbTgt=ytd('pb','target'),pbAnnT=ann('pb','target'),pbAnnF=ann('pb','fcast');
   const domRev=rev('domestic'),domTgt=ytd('domestic','target'),domAnnT=ann('domestic','target'),domAnnF=ann('domestic','fcast');
-  const gRev=rev('gongu'),gTgt=ytd('gongu','target'),gAnnT=ann('gongu','target'),gFcast=ytd('gongu','fcast');
-  const iRev=rev('ilban'),iTgt=ytd('ilban','target'),iAnnT=ann('ilban','target'),iFcast=ytd('ilban','fcast');
+  const gRev=rev('gongu'),gTgt=ytd('gongu','target'),gAnnT=ann('gongu','target'),gAnnF=ann('gongu','fcast');
+  const iRev=rev('ilban'),iTgt=ytd('ilban','target'),iAnnT=ann('ilban','target'),iAnnF=ann('ilban','fcast');
   const oRev=rev('overseas'),oTgt=ytd('overseas','target'),oAnnT=ann('overseas','target'),oAnnF=ann('overseas','fcast');
-  const ogRev=rev('overseasGongu'),ogTgt=ytd('overseasGongu','target'),ogAnnT=ann('overseasGongu','target'),ogFcast=ytd('overseasGongu','fcast');
-  const oiRev=rev('overseasIlban'),oiTgt=ytd('overseasIlban','target'),oiAnnT=ann('overseasIlban','target'),oiFcast=ytd('overseasIlban','fcast');
+  const ogRev=rev('overseasGongu'),ogTgt=ytd('overseasGongu','target'),ogAnnT=ann('overseasGongu','target'),ogAnnF=ann('overseasGongu','fcast');
+  const oiRev=rev('overseasIlban'),oiTgt=ytd('overseasIlban','target'),oiAnnT=ann('overseasIlban','target'),oiAnnF=ann('overseasIlban','fcast');
 
   const pbPace  = pbTgt  > 0 ? pbRev  / pbTgt  * 100 : null;
   const domPace = domTgt > 0 ? domRev / domTgt * 100 : null;
@@ -2086,28 +2085,38 @@ function renderKPI() {
     </div>`;
   };
 
-  // KPI card
+  // KPI card — bar1: YTD 실적 vs YTD 목표 / bar2: 예상 연마감 vs 연간 목표
   const kpiTile = (label, rev, tgt, annT, annF, pace, tier3=false) => {
-    const annPct  = annT > 0 ? rev  / annT * 100 : null;
+    const ytdPct  = tgt  > 0 ? rev  / tgt  * 100 : null;
+    const ytdW    = tgt  > 0 ? bpct(rev, tgt).toFixed(1)  : '0';
+    const ytdCls  = pctCls(ytdPct);
+    const goodYtd = ytdPct !== null && ytdPct >= 100;
     const fPct    = annT > 0 && annF > 0 ? annF / annT * 100 : null;
-    const fillW   = annT > 0 ? bpct(rev, annT).toFixed(1) : '0';
-    const fExtra  = fPct !== null && annPct !== null ? Math.max(0, fPct - annPct).toFixed(1) : '0';
-    const paceCls = pctCls(pace);
-    const goodBar = pace !== null && pace >= 100;
+    const fW      = annT > 0 && annF > 0 ? bpct(annF, annT).toFixed(1) : '0';
+    const fCls    = pctCls(fPct);
     const bv      = fmtB(rev);
     return `<div class="kpi${tier3?' tier3':''}">
       <div class="kpi-label">${label}</div>
       <div class="kpi-value num">${bv??'—'}<sup>억</sup></div>
       <div class="kpi-progress">
-        ${pace !== null ? `<div class="kpi-pace ${paceCls}">${ml} 목표대비 <b class="num">${pace.toFixed(1)}%</b></div>` : ''}
-        <div class="kpi-progress-track">
-          <div class="kpi-progress-fill" style="width:${fillW}%${goodBar?';background:#0ca30c':''}"></div>
-          ${+fExtra > 0 ? `<div class="kpi-progress-fill-forecast" style="left:${fillW}%;width:${fExtra}%"></div>` : ''}
-        </div>
-        <div class="kpi-progress-caption">
-          <span>${annPct !== null ? `연간 ${annPct.toFixed(1)}%` : '—'}</span>
-          <span class="fc">${fPct !== null ? `예상 ${fPct.toFixed(1)}% · ${fmt(annF)}/${fmt(annT)}` : ''}</span>
-        </div>
+        ${ytdPct !== null ? `
+          <div class="kpi-pace ${ytdCls}">${ml} 목표대비 <b class="num">${ytdPct.toFixed(1)}%</b></div>
+          <div class="kpi-progress-track">
+            <div class="kpi-progress-fill" style="width:${ytdW}%${goodYtd?';background:#0ca30c':''}"></div>
+          </div>
+          <div class="kpi-progress-caption">
+            <span class="num">${fmt(rev)}</span>
+            <span class="fc num">목표 ${fmt(tgt)}</span>
+          </div>` : '<div class="kpi-pace">목표 미설정</div>'}
+        ${fPct !== null ? `
+          <div class="kpi-pace ${fCls}" style="margin-top:5px">예상 연마감 <b class="num">${fPct.toFixed(1)}%</b></div>
+          <div class="kpi-progress-track">
+            <div class="kpi-progress-fill" style="width:${fW}%;opacity:.55"></div>
+          </div>
+          <div class="kpi-progress-caption">
+            <span class="num">${fmt(annF)}</span>
+            <span class="fc num">목표 ${fmt(annT)}</span>
+          </div>` : ''}
       </div>
     </div>`;
   };
@@ -2225,15 +2234,15 @@ function renderKPI() {
       <div class="tier2-col">
         ${kpiTile('국내 매출', domRev, domTgt, domAnnT, domAnnF, domPace)}
         <div class="tier3-row">
-          ${kpiTile('공구', gRev, gTgt, gAnnT, gFcast, gPace, true)}
-          ${kpiTile('일반', iRev, iTgt, iAnnT, iFcast, iPace, true)}
+          ${kpiTile('공구', gRev, gTgt, gAnnT, gAnnF, gPace, true)}
+          ${kpiTile('일반', iRev, iTgt, iAnnT, iAnnF, iPace, true)}
         </div>
       </div>
       <div class="tier2-col">
         ${kpiTile('해외 매출', oRev, oTgt, oAnnT, oAnnF, oPace)}
         <div class="tier3-row">
-          ${kpiTile('해외 공구', ogRev, ogTgt, ogAnnT, ogFcast, ogPace, true)}
-          ${kpiTile('해외 일반', oiRev, oiTgt, oiAnnT, oiFcast, oiPace, true)}
+          ${kpiTile('해외 공구', ogRev, ogTgt, ogAnnT, ogAnnF, ogPace, true)}
+          ${kpiTile('해외 일반', oiRev, oiTgt, oiAnnT, oiAnnF, oiPace, true)}
         </div>
       </div>
     </section>
