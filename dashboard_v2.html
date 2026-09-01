@@ -933,13 +933,15 @@ async function loadData() {
     }
     console.log('[PIVOT] A1/A2 기준일:', PIVOT_DATE);
 
-    // 전체 CSV에서 월 헤더행 모두 찾기 (1~12 숫자 10개 이상인 행)
+    // 전체 CSV에서 월 헤더행 찾기
+    // parseInt("1,234,567")=1 오탐 방지 → Number()로 정수 엄격 파싱 (쉼표 포함 값은 NaN)
+    const isMonthInt = s => { const n = Number(String(s).trim()); return Number.isInteger(n) && n >= 1 && n <= 12; };
     const allHdrs = [];
     pr.forEach((row, i) => {
-      const nums = row.slice(1, 14).map(c => parseInt(String(c).trim())).filter(n => n >= 1 && n <= 12);
+      const nums = row.slice(1, 14).filter(c => isMonthInt(c));
       if (nums.length >= 10) {
         const map = {};
-        row.forEach((cell, ci) => { const m = parseInt(String(cell).trim()); if (m >= 1 && m <= 12) map[m] = ci; });
+        row.forEach((cell, ci) => { if (isMonthInt(cell)) map[Number(String(cell).trim())] = ci; });
         const annCol = (map[12] !== undefined) ? map[12] + 1 : 13;
         allHdrs.push({ map, hdrIdx: i, annCol });
       }
@@ -2048,14 +2050,17 @@ function renderKPI() {
   const bpct   = (v, t) => t > 0 ? Math.min(100, v / t * 100) : 0;
   const ml = `1~${n.m}월`;
 
+  // rev은 monthly 합계 vs 연간합계 컬럼 중 더 큰 값 사용 (일부 월이 CSV에서 0으로 export될 경우 대비)
+  const rev = (key) => { const s = ytd(key,'rev'), a = ann(key,'rev'); const v = (a > 0 && a > s) ? a : s; console.log(`[KPI rev] ${key}: ytd=${s} ann=${a} → ${v}`); return v; };
+
   // KPI values
-  const pbRev=ytd('pb','rev'),pbTgt=ytd('pb','target'),pbAnnT=ann('pb','target'),pbAnnF=ann('pb','fcast');
-  const domRev=ytd('domestic','rev'),domTgt=ytd('domestic','target'),domAnnT=ann('domestic','target'),domAnnF=ann('domestic','fcast');
-  const gRev=ytd('gongu','rev'),gTgt=ytd('gongu','target'),gAnnT=ann('gongu','target'),gFcast=ytd('gongu','fcast');
-  const iRev=ytd('ilban','rev'),iTgt=ytd('ilban','target'),iAnnT=ann('ilban','target'),iFcast=ytd('ilban','fcast');
-  const oRev=ytd('overseas','rev'),oTgt=ytd('overseas','target'),oAnnT=ann('overseas','target'),oAnnF=ann('overseas','fcast');
-  const ogRev=ytd('overseasGongu','rev'),ogTgt=ytd('overseasGongu','target'),ogAnnT=ann('overseasGongu','target'),ogFcast=ytd('overseasGongu','fcast');
-  const oiRev=ytd('overseasIlban','rev'),oiTgt=ytd('overseasIlban','target'),oiAnnT=ann('overseasIlban','target'),oiFcast=ytd('overseasIlban','fcast');
+  const pbRev=rev('pb'),pbTgt=ytd('pb','target'),pbAnnT=ann('pb','target'),pbAnnF=ann('pb','fcast');
+  const domRev=rev('domestic'),domTgt=ytd('domestic','target'),domAnnT=ann('domestic','target'),domAnnF=ann('domestic','fcast');
+  const gRev=rev('gongu'),gTgt=ytd('gongu','target'),gAnnT=ann('gongu','target'),gFcast=ytd('gongu','fcast');
+  const iRev=rev('ilban'),iTgt=ytd('ilban','target'),iAnnT=ann('ilban','target'),iFcast=ytd('ilban','fcast');
+  const oRev=rev('overseas'),oTgt=ytd('overseas','target'),oAnnT=ann('overseas','target'),oAnnF=ann('overseas','fcast');
+  const ogRev=rev('overseasGongu'),ogTgt=ytd('overseasGongu','target'),ogAnnT=ann('overseasGongu','target'),ogFcast=ytd('overseasGongu','fcast');
+  const oiRev=rev('overseasIlban'),oiTgt=ytd('overseasIlban','target'),oiAnnT=ann('overseasIlban','target'),oiFcast=ytd('overseasIlban','fcast');
 
   const pbPace  = pbTgt  > 0 ? pbRev  / pbTgt  * 100 : null;
   const domPace = domTgt > 0 ? domRev / domTgt * 100 : null;
