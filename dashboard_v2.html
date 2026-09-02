@@ -4521,7 +4521,7 @@ async function renderMonthlyReport(ym) {
   });
   addP(domAll,'cur'); addP(domPrev,'prev'); addP(domPrev2,'prev2'); addP(domYr,'prevYr');
   const prodData = Object.values(pMap);
-  mrState = { prodData, p, totCur, safe, fb };
+  mrState = { prodData, p, totCur, safe, fb, bqOk };
 
   // ─────────── iHerb ───────────
   const ihubCurR  = IHUB_ROWS.filter(r => r.year===p.cur.y  && r.month===p.cur.m);
@@ -4548,10 +4548,23 @@ async function renderMonthlyReport(ym) {
   </table></div>
 </div>`;
 
+  // ─────────── BQ 경고 배너 ───────────
+  const bqWarnHtml = !bqOk ? `
+<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:.8rem;color:#92400e;display:flex;align-items:center;gap:8px">
+  <span style="font-size:1rem">⚠️</span>
+  <span>상세 판매 데이터(BigQuery)를 불러오지 못했습니다. 합계는 PIVOT_DATA 기준으로 표시되며, 상품·채널 상세 데이터는 제한됩니다.</span>
+</div>` : '';
+  const ihubWarnHtml = !ihubOk ? `
+<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:.8rem;color:#92400e;display:flex;align-items:center;gap:8px">
+  <span style="font-size:1rem">⚠️</span>
+  <span>iHerb 데이터를 불러오지 못했습니다. iHerb 제품별 현황이 표시되지 않습니다.</span>
+</div>` : '';
+  const bqSectionWarn = !bqOk ? `<div style="text-align:center;color:#94a3b8;padding:20px;font-size:.82rem">⚠️ BigQuery 데이터 없음 — 상세 내역 표시 불가</div>` : '';
+
   // ─────────── DOM 조립 ───────────
   const brandList  = [...new Set(prodData.map(r=>r.brand).filter(Boolean))].sort();
   const chListFull = [...new Set(prodData.map(r=>r.ch).filter(Boolean))].sort();
-  body.innerHTML = heroHtml + hierHtml + top5Html + chHtml + `
+  body.innerHTML = bqWarnHtml + ihubWarnHtml + heroHtml + hierHtml + (bqOk ? top5Html : `<div class="mr-top5-wrap"><div class="mr-top5-card" style="grid-column:1/-1">${bqSectionWarn}</div></div>`) + (bqOk ? chHtml : `<div class="card" style="margin-bottom:16px"><div class="card-title">채널별 매출 분석 (국내)</div>${bqSectionWarn}</div>`) + `
 <div class="card" style="margin-bottom:16px">
   <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
     <span>상품별 매출 상세 (국내)</span>
@@ -4573,7 +4586,7 @@ async function renderMonthlyReport(ym) {
       ${brandList.map(b=>`<option value="${b}" ${mrProdFilter.brand===b?'selected':''}>${b}</option>`).join('')}
     </select>
   </div>
-  <div id="mrProdTableWrap">${buildMrProdTable(prodData, mrProdFilter, p, totCur, safe, fb)}</div>
+  <div id="mrProdTableWrap">${bqOk ? buildMrProdTable(prodData, mrProdFilter, p, totCur, safe, fb) : bqSectionWarn}</div>
 </div>` + ihubHtml;
 }
 
@@ -4627,19 +4640,19 @@ function buildMrProdTable(prodData, filter, p, totCur, safe, fb) {
 
 function mrFc(key, val) {
   mrProdFilter[key] = val; mrProdFilter.page = 0;
-  if (mrState) document.getElementById('mrProdTableWrap').innerHTML =
+  if (mrState && mrState.bqOk) document.getElementById('mrProdTableWrap').innerHTML =
     buildMrProdTable(mrState.prodData, mrProdFilter, mrState.p, mrState.totCur, mrState.safe, mrState.fb);
 }
 function mrSort(col) {
   if (mrProdFilter.sortCol === col) mrProdFilter.sortDir = mrProdFilter.sortDir==='desc' ? 'asc' : 'desc';
   else { mrProdFilter.sortCol = col; mrProdFilter.sortDir = 'desc'; }
   mrProdFilter.page = 0;
-  if (mrState) document.getElementById('mrProdTableWrap').innerHTML =
+  if (mrState && mrState.bqOk) document.getElementById('mrProdTableWrap').innerHTML =
     buildMrProdTable(mrState.prodData, mrProdFilter, mrState.p, mrState.totCur, mrState.safe, mrState.fb);
 }
 function mrPage(pg) {
   mrProdFilter.page = pg;
-  if (mrState) document.getElementById('mrProdTableWrap').innerHTML =
+  if (mrState && mrState.bqOk) document.getElementById('mrProdTableWrap').innerHTML =
     buildMrProdTable(mrState.prodData, mrProdFilter, mrState.p, mrState.totCur, mrState.safe, mrState.fb);
 }
 </script>
