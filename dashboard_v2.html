@@ -1562,6 +1562,23 @@ function renderOverseas() {
     });
 }
 
+// 재고관리 GGKP 탭(E열 재고수량)을 품목명(D열) 기준으로 조회하는 맵
+function getOvrStockMap() {
+  const map = new Map();
+  if (!OVR_STOCK_ROWS.length) return map;
+  const hdr = OVR_STOCK_HDR;
+  const pn = v => { const n = parseFloat(String(v||'').replace(/[,\s]/g,'')); return isNaN(n) ? 0 : n; };
+  const fc = (...kwds) => { for (const k of kwds) { const i = hdr.findIndex(h => h.includes(k)); if (i >= 0) return i; } return -1; };
+  const idxProd  = 3;                                       // D열 (영어 품목명)
+  const idxStock = fc('고수량') >= 0 ? fc('고수량') : 4;    // E열
+  OVR_STOCK_ROWS.forEach(r => {
+    const name = (r._raw[idxProd] || '').trim();
+    if (!name) return;
+    map.set(name.toLowerCase(), pn(r._raw[idxStock]));
+  });
+  return map;
+}
+
 function renderOvrStock() {
   const el = document.getElementById('ovrStockTbl');
   if (!el) return;
@@ -1722,7 +1739,15 @@ function parseOvrForecastToProducts(rows) {
     }
   });
 
-  return Array.from(products.values()).filter(p=>p.months.some(m=>m.sales>0||m.inbound>0));
+  // 현재 재고 = 재고관리 GGKP 탭 E열(재고수량) 기준으로 반영
+  const stockMap = getOvrStockMap();
+  const result = Array.from(products.values()).filter(p=>p.months.some(m=>m.sales>0||m.inbound>0));
+  result.forEach(p=>{
+    const qty = stockMap.get(p.name.toLowerCase());
+    if (qty !== undefined) p.initialInventory = qty;
+    else console.warn('[포캐스트] GGKP 재고 미매칭:', p.name);
+  });
+  return result;
 }
 
 // ─────────────────────────────────────────────────────────
