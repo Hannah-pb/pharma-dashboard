@@ -1592,6 +1592,7 @@ function renderOvrStock() {
   const fc = (...kwds) => { for (const k of kwds) { const i = hdr.findIndex(h => h.includes(k)); if (i >= 0) return i; } return -1; };
 
   // 컬럼 인덱스 (헤더명 우선, 없으면 열 번호 사용)
+  const idxSku     = 0;                                             // A열 (품번)
   const idxBrand   = fc('브랜드');
   const idxProd    = 3;                                             // D열 (영어 품목명)
   const idxStock   = fc('고수량') >= 0 ? fc('고수량') : 4;          // E열
@@ -1600,10 +1601,8 @@ function renderOvrStock() {
   const idxInbound = fc('입고예정일', '입고 예정일', '입고일');
 
   console.log('[해외재고 렌더] 헤더:', hdr, 'idxBrand:', idxBrand, 'idxProd:', idxProd, 'idxStock:', idxStock);
-  // 품목명 있는 행만 표시 (idxProd=-1이면 전체 비어있으므로 fallback 처리)
-  const rows = idxProd >= 0
-    ? OVR_STOCK_ROWS.filter(r => (r._raw[idxProd] || '').trim())
-    : OVR_STOCK_ROWS.filter(r => r._raw.some(c => (c||'').trim()));
+  // 품번(A열)이 공란인 행은 제외
+  const rows = OVR_STOCK_ROWS.filter(r => (r._raw[idxSku] || '').trim());
 
   const showOrder   = idxOrder >= 0;
   const showInbound = idxInbound >= 0;
