@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
@@ -4230,27 +4230,46 @@ function renderOrderTimeline() {
 // ═══════════════════════════════════════════════════════
 //  월 마감 보고
 // ═══════════════════════════════════════════════════════
+let mrLoadStatus = null; // { bqOk, ihubOk }
+
 async function loadMonthlyReportData() {
-  if (mrLoaded) return;
+  if (mrLoaded) return mrLoadStatus;
   if (mrLoading) return mrLoading;
   mrLoading = (async () => {
-    await loadBQData();
-    const url = `https://docs.google.com/spreadsheets/d/${IHUB_SHEET_ID}/export?format=csv&gid=${IHUB_GID}`;
-    const csv = await fetch(url).then(r => r.ok ? r.text() : Promise.reject('iHerb 로드 실패 ' + r.status));
-    IHUB_ROWS = parseCSV(csv).slice(1).map(r => {
-      const ds = String(r[0] || '').trim();
-      const parts = ds.split('-').map(Number);
-      return {
-        year: parts[0]||0, month: parts[1]||0, day: parts[2]||0,
-        prod: String(r[13]||'').trim() || '기타',
-        sku:  String(r[12]||'').trim(),
-        qty:  parseFloat(r[9]) || 0,
-        rev:  parseFloat(String(r[11]||'').replace(/,/g,'')) || 0,
-        channel: '아이허브', domestic_overseas: '해외'
-      };
-    }).filter(r => r.year > 0 && r.month > 0 && r.rev !== 0);
+    let bqOk = true, ihubOk = true;
+
+    // BQ — 실패해도 계속 진행
+    try { await loadBQData(); }
+    catch(e) {
+      bqOk = false;
+      console.warn('[MR] BQ 로드 실패:', e.message || e);
+    }
+
+    // iHerb CSV — 실패해도 계속 진행
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${IHUB_SHEET_ID}/export?format=csv&gid=${IHUB_GID}`;
+      const csv = await fetch(url).then(r => r.ok ? r.text() : Promise.reject('HTTP ' + r.status));
+      IHUB_ROWS = parseCSV(csv).slice(1).map(r => {
+        const ds = String(r[0] || '').trim();
+        const parts = ds.split('-').map(Number);
+        return {
+          year: parts[0]||0, month: parts[1]||0, day: parts[2]||0,
+          prod: String(r[13]||'').trim() || '기타',
+          sku:  String(r[12]||'').trim(),
+          qty:  parseFloat(r[9]) || 0,
+          rev:  parseFloat(String(r[11]||'').replace(/,/g,'')) || 0,
+          channel: '아이허브', domestic_overseas: '해외'
+        };
+      }).filter(r => r.year > 0 && r.month > 0 && r.rev !== 0);
+    } catch(e) {
+      ihubOk = false;
+      console.warn('[MR] iHerb 로드 실패:', e.message || e);
+    }
+
     mrLoaded = true;
-    console.log(`[MR] BQ ${ROWS.length}건, iHerb ${IHUB_ROWS.length}건 로드완료`);
+    mrLoadStatus = { bqOk, ihubOk };
+    console.log(`[MR] 로드완료 BQ:${bqOk}(${ROWS.length}건) iHerb:${ihubOk}(${IHUB_ROWS.length}건)`);
+    return mrLoadStatus;
   })();
   return mrLoading;
 }
@@ -4268,16 +4287,20 @@ async function renderMonthlyReport(ym) {
   if (!spinner || !body) return;
   spinner.style.display = ''; errEl.style.display = 'none'; body.innerHTML = '';
 
-  try { await loadMonthlyReportData(); }
-  catch(e) {
-    spinner.style.display = 'none'; errEl.style.display = '';
-    errEl.innerHTML = `<div style="padding:30px;color:#dc2626;text-align:center">⚠️ 데이터 로드 실패: ${e}<br><button onclick="mrLoaded=false;mrLoading=null;renderMonthlyReport('')" style="margin-top:12px;padding:8px 18px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer">다시 시도</button></div>`;
-    return;
-  }
+  const status = await loadMonthlyReportData().catch(() => ({ bqOk:false, ihubOk:false }));
+  const bqOk   = status?.bqOk   !== false;
+  const ihubOk = status?.ihubOk !== false;
 
-  // 기준월 셀렉터 채우기
-  const availMonths = [...new Set(ROWS.map(r => `${r.year}-${String(r.month).padStart(2,'0')}`))]
-    .filter(m => m.length === 7).sort().reverse();
+  // 기준월 셀렉터: BQ 없으면 PIVOT_DATA 기반 월 목록
+  let availMonths;
+  if (bqOk && ROWS.length > 0) {
+    availMonths = [...new Set(ROWS.map(r => `${r.year}-${String(r.month).padStart(2,'0')}`))]
+      .filter(m => m.length === 7).sort().reverse();
+  } else {
+    const pivYr  = PIVOT_DATE?.y || new Date().getFullYear();
+    const pivMos = Object.keys(PIVOT_DATA?.pb?.rev?.monthly || {}).map(Number).filter(n=>n>=1&&n<=12).sort((a,b)=>b-a);
+    availMonths  = pivMos.length > 0 ? pivMos.map(mo=>`${pivYr}-${String(mo).padStart(2,'0')}`) : [];
+  }
   if (!ym || !availMonths.includes(ym)) {
     ym = availMonths[0] || '';
     selectedReportMonth = ym;
@@ -4325,17 +4348,18 @@ async function renderMonthlyReport(ym) {
   const domPrev  = F(ROWS, p.prev);
   const domPrev2 = F(ROWS, p.prev2);
   const domYr    = F(ROWS, p.prevYr);
-  const domGongu  = S(domAll.filter(r => r.dist==='3.공동구매'));
-  const domIlban  = S(domAll.filter(r => r.dist!=='3.공동구매'));
-  const domCh     = S(domAll.filter(r => r.dist!=='3.공동구매' && MR_CH.includes(r.ch)));
+  // BQ 실패 시 PIVOT_DATA로 국내 합계 fallback
+  const domGongu  = bqOk ? S(domAll.filter(r => r.dist==='3.공동구매')) : piv('gongu', p.cur.m);
+  const domIlban  = bqOk ? S(domAll.filter(r => r.dist!=='3.공동구매')) : piv('ilban', p.cur.m);
+  const domCh     = bqOk ? S(domAll.filter(r => r.dist!=='3.공동구매' && MR_CH.includes(r.ch))) : piv('channel', p.cur.m);
   const domGita   = domIlban - domCh;
-  const domTotal  = S(domAll);
-  const domGonguP = S(domPrev.filter(r => r.dist==='3.공동구매'));
-  const domIlbanP = S(domPrev.filter(r => r.dist!=='3.공동구매'));
-  const domChP    = S(domPrev.filter(r => r.dist!=='3.공동구매' && MR_CH.includes(r.ch)));
+  const domTotal  = bqOk ? S(domAll) : piv('domestic', p.cur.m);
+  const domGonguP = bqOk ? S(domPrev.filter(r => r.dist==='3.공동구매')) : piv('gongu', p.prev.m);
+  const domIlbanP = bqOk ? S(domPrev.filter(r => r.dist!=='3.공동구매')) : piv('ilban', p.prev.m);
+  const domChP    = bqOk ? S(domPrev.filter(r => r.dist!=='3.공동구매' && MR_CH.includes(r.ch))) : piv('channel', p.prev.m);
   const domGitaP  = domIlbanP - domChP;
-  const domTotalP = S(domPrev);
-  const domTotalYr= S(domYr);
+  const domTotalP = bqOk ? S(domPrev) : piv('domestic', p.prev.m);
+  const domTotalYr= bqOk ? S(domYr)  : 0;
 
   // ── 해외 집계 ──
   const ovrTotal  = piv('overseas',      p.cur.m);
