@@ -848,7 +848,11 @@ document.addEventListener('DOMContentLoaded', () => {
   loadData().then((result) => {
     document.getElementById('loading').classList.add('hidden');
     populateMonthSelects();
-    const initHash = window.location.hash.slice(1);
+    let initHash = window.location.hash.slice(1);
+    if (initHash === 'inventory-domestic' || initHash === 'inventory-overseas') {
+      invRegion = initHash.slice('inventory-'.length);
+      initHash = 'inventory';
+    }
     switchPage(PAGE_TITLES[initHash] != null && initHash ? initHash : 'kpi');
   }).catch(err => {
     document.getElementById('loadingText').innerHTML =
@@ -1395,7 +1399,7 @@ function bindSidebar() {
 }
 
 function switchPage(pg) {
-  history.replaceState(null, '', '#' + pg);
+  history.replaceState(null, '', pg === 'inventory' ? '#inventory-' + invRegion : '#' + pg);
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active', el.dataset.page===pg));
   document.querySelectorAll('.nav-child').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-grandchild').forEach(el=>el.classList.toggle('active', el.dataset.page===pg));
@@ -1434,7 +1438,7 @@ function navToInv(region) {
   document.getElementById('pageHeader').style.display = '';
   document.getElementById('pageTitle').textContent = '재고관리';
   document.getElementById('pageMeta').textContent = invMetaText();
-  history.replaceState(null, '', '#inventory');
+  history.replaceState(null, '', '#inventory-' + region);
   renderInventory();
   if (invLoaded) updateInvRegionDisplay();
 }
@@ -1443,6 +1447,7 @@ function switchInvRegion(region) {
   invRegion = region;
   document.querySelectorAll('.inv-region-child').forEach(el =>
     el.classList.toggle('active', el.dataset.region === region));
+  history.replaceState(null, '', '#inventory-' + region);
   updateInvRegionDisplay();
 }
 
