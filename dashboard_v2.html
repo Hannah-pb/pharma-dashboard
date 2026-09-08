@@ -427,7 +427,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .fc-empty{padding:32px;text-align:center;color:#94a3b8;font-size:13px}
 @media(max-width:900px){.fc-cards{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:600px){.fc-cards{grid-template-columns:1fr 1fr}.fc-header{flex-direction:column;gap:8px}}
-/* ── 월 마감 보고 ── */
+/* ── 월 매출 현황 ── */
 .mr-ctrl-bar{display:flex;align-items:center;gap:12px;margin-bottom:20px;flex-wrap:wrap}
 .mr-ctrl-label{font-size:.8rem;font-weight:600;color:#475569}
 #mrMonthSel{padding:6px 12px;border:1px solid #e2e8f0;border-radius:8px;font-size:.88rem;cursor:pointer;background:#fff}
@@ -501,17 +501,16 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       <span class="nav-label">KPI 대시보드</span>
     </li>
 
-    <!-- 판매분석 -->
-    <li class="nav-item" data-page="sales">
+    <!-- 판매분석 (하위 메뉴 포함) -->
+    <li class="nav-parent" id="navParentSales" onclick="toggleNavParent('navParentSales')">
       <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
       <span class="nav-label">판매분석</span>
+      <span class="nav-arrow">▾</span>
     </li>
-
-    <!-- 월 마감 보고 -->
-    <li class="nav-item" data-page="monthly-report">
-      <span class="nav-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg></span>
-      <span class="nav-label">월 마감 보고</span>
-    </li>
+    <div class="nav-children open" id="navChildrenSales">
+      <div class="nav-child sales-child" data-page="sales">채널·상품 분석</div>
+      <div class="nav-child sales-child" data-page="monthly-report">월 매출 현황</div>
+    </div>
 
     <!-- 재고관리 -->
     <li class="nav-parent" id="navParentInv" onclick="navToInv(invRegion||'domestic')">
@@ -556,7 +555,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
     <div class="page-body"></div>
   </div>
 
-  <!-- ── 월 마감 보고 ── -->
+  <!-- ── 월 매출 현황 ── -->
   <div id="page-monthly-report" class="page">
     <div class="page-body">
       <div class="mr-ctrl-bar">
@@ -759,7 +758,7 @@ const OVR_GID_STOCK    = '148911001';
 const OVR_GID_FORECAST = '295282497';
 const OVR_GID_GONGU    = '396878850';
 
-// ── iHerb 해외 판매 시트 (월 마감 보고용) ──
+// ── iHerb 해외 판매 시트 (월 매출 현황용) ──
 const IHUB_SHEET_ID = '1tre8iSG89MwJAZJJjuCVtUsxC8HwSJvzW8s3ZzABgbk';
 const IHUB_GID      = '2112980645';
 let   IHUB_ROWS     = [];
@@ -1228,7 +1227,7 @@ function mkChart(id, cfg) {
 // ═══════════════════════════════════════════════════════
 //  NAV / PAGE SWITCHING
 // ═══════════════════════════════════════════════════════
-const PAGE_TITLES = {kpi:'', sales:'판매분석', 'monthly-report':'월 마감 보고', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출', inventory:'재고관리'};
+const PAGE_TITLES = {kpi:'', sales:'채널·상품 분석', 'monthly-report':'월 매출 현황', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출', inventory:'재고관리'};
 
 function toggleNavParent(id) {
   const parent = document.getElementById(id);
@@ -1267,6 +1266,11 @@ function bindNav() {
       document.querySelectorAll('.nav-great-grandchild').forEach(c=>c.classList.remove('active'));
       el.classList.add('active');
       document.querySelectorAll('.nav-item').forEach(c=>c.classList.remove('active'));
+      document.querySelectorAll('.nav-parent').forEach(c=>c.classList.remove('active'));
+      if (el.classList.contains('sales-child')) {
+        const sp = document.getElementById('navParentSales');
+        if (sp) sp.classList.add('active');
+      }
       document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
       document.getElementById('page-'+pg).classList.add('active');
       const _title1 = PAGE_TITLES[pg] != null ? PAGE_TITLES[pg] : el.textContent.trim();
@@ -1403,6 +1407,13 @@ function switchPage(pg) {
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active', el.dataset.page===pg));
   document.querySelectorAll('.nav-child').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-grandchild').forEach(el=>el.classList.toggle('active', el.dataset.page===pg));
+  // 판매분석 하위 페이지
+  if (pg === 'sales' || pg === 'monthly-report') {
+    const salesParent = document.getElementById('navParentSales');
+    if (salesParent) salesParent.classList.add('active');
+    document.querySelectorAll('.sales-child').forEach(el=>
+      el.classList.toggle('active', el.dataset.page===pg));
+  }
   if (pg === 'inventory') {
     const invParent = document.getElementById('navParentInv');
     if (invParent) invParent.classList.add('active');
@@ -4232,7 +4243,7 @@ function renderOrderTimeline() {
 }
 
 // ═══════════════════════════════════════════════════════
-//  월 마감 보고
+//  월 매출 현황
 // ═══════════════════════════════════════════════════════
 let mrLoadStatus = null; // { bqOk, ihubOk }
 
@@ -4296,14 +4307,25 @@ async function renderMonthlyReport(ym) {
   const ihubOk = status?.ihubOk !== false;
 
   // 기준월 셀렉터: BQ 없으면 PIVOT_DATA 기반 월 목록
+  // 마감된 월만 선택 가능 (이번 달 이후 제외)
+  const _now = new Date();
+  // 이번 달이 아직 진행 중이므로 지난달(getMonth()=0-indexed → 이번달-1)까지만
+  const cutoffYm = `${_now.getFullYear()}-${String(_now.getMonth()).padStart(2,'0')}`;
+  // getMonth()가 0이면(1월) 전년 12월: cutoff = 'YYYY-00' → 비교상 전년 12월 포함 위해 보정
+  const _cutoff = _now.getMonth() === 0
+    ? `${_now.getFullYear()-1}-12`
+    : `${_now.getFullYear()}-${String(_now.getMonth()).padStart(2,'0')}`;
+
   let availMonths;
   if (bqOk && ROWS.length > 0) {
     availMonths = [...new Set(ROWS.map(r => `${r.year}-${String(r.month).padStart(2,'0')}`))]
-      .filter(m => m.length === 7).sort().reverse();
+      .filter(m => m.length === 7 && m <= _cutoff).sort().reverse();
   } else {
     const pivYr  = PIVOT_DATE?.y || new Date().getFullYear();
     const pivMos = Object.keys(PIVOT_DATA?.pb?.rev?.monthly || {}).map(Number).filter(n=>n>=1&&n<=12).sort((a,b)=>b-a);
-    availMonths  = pivMos.length > 0 ? pivMos.map(mo=>`${pivYr}-${String(mo).padStart(2,'0')}`) : [];
+    availMonths  = pivMos.length > 0
+      ? pivMos.map(mo=>`${pivYr}-${String(mo).padStart(2,'0')}`).filter(m => m <= _cutoff)
+      : [];
   }
   if (!ym || !availMonths.includes(ym)) {
     ym = availMonths[0] || '';
