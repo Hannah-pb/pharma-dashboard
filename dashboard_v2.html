@@ -358,9 +358,11 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .fc-search{padding:6px 10px;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;outline:none;font-family:inherit;color:#1e293b;min-width:150px}
 .fc-search:focus{border-color:#3b82f6}
 /* Action Required */
-.fc-action-tbl{width:100%;border-collapse:collapse;font-size:12px}
-.fc-action-tbl th{padding:8px 12px;text-align:left;font-size:11px;font-weight:600;color:#64748b;background:#f8fafc;border-bottom:2px solid #e8edf3;white-space:nowrap}
-.fc-action-tbl td{padding:9px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;font-variant-numeric:tabular-nums;white-space:nowrap}
+.fc-action-tbl{width:100%;border-collapse:collapse;font-size:12px;border:1px solid #e8edf3}
+.fc-action-tbl th{padding:8px 12px;text-align:center;font-size:11px;font-weight:600;color:#64748b;background:#f8fafc;border-bottom:2px solid #e8edf3;border-right:1px solid #e8edf3;white-space:nowrap}
+.fc-action-tbl th:last-child{border-right:none}
+.fc-action-tbl td{padding:9px 12px;text-align:left;border-bottom:1px solid #f1f5f9;border-right:1px solid #f1f5f9;vertical-align:middle;font-variant-numeric:tabular-nums}
+.fc-action-tbl td:last-child{border-right:none}
 .fc-action-tbl tr:last-child td{border-bottom:none}
 .fc-action-tbl tr:hover td{background:#f8fafc}
 /* Forecast Timeline */
@@ -1845,24 +1847,47 @@ function renderOvrForecast() {
 
   // Action Required
   const aItems=filtered.filter(it=>it.status!=='NORMAL');
+  const SAFETY_STOCK = 5000;
+  // 안전재고(5,000개) 미만 최초 도달 월
+  const getSafetyMonth = forecast => forecast.find(f => f.endingInventory < SAFETY_STOCK)?.month || null;
+  // 미래 입고 일정 전체 (forecast 기반)
+  const getFutureInbounds = (forecast) => {
+    const cur = ovrCurMonth();
+    return forecast.filter(f => f.month >= cur && f.inbound > 0).map(f => ({month: f.month, qty: f.inbound}));
+  };
+  const fmtInbCell = (inbounds) => {
+    if (!inbounds.length) return '<span style="color:#94a3b8">—</span>';
+    if (inbounds.length === 1) {
+      const f = inbounds[0];
+      return `<div style="font-weight:700;font-size:12px;color:#1d4ed8">${f.qty.toLocaleString()}개</div><div style="font-size:11px;color:#64748b;margin-top:2px">${fmtFcMonth(f.month)}</div>`;
+    }
+    const tot = inbounds.reduce((s,f)=>s+f.qty,0);
+    const badges = inbounds.map((f,i)=>`
+      <div style="display:flex;align-items:flex-start;gap:5px;margin-top:3px">
+        <span style="background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:1px 6px;font-weight:700;font-size:10px;flex-shrink:0;margin-top:1px">${i+1}차</span>
+        <div>
+          <div style="font-size:12px;color:#1e293b">${f.qty.toLocaleString()}개</div>
+          <div style="font-size:11px;color:#64748b">${fmtFcMonth(f.month)}</div>
+        </div>
+      </div>`).join('');
+    return `<div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:4px">합계 ${tot.toLocaleString()}개</div>${badges}`;
+  };
+
   const ACTION=(aItems.length===0)
     ?`<div class="fc-empty">확인이 필요한 상품이 없습니다.</div>`
     :`<div style="overflow-x:auto"><table class="fc-action-tbl">
-        <thead><tr><th>상태</th><th>상품명</th><th style="text-align:right">현재 재고</th><th>예상 부족 시점</th><th>다음 입고</th><th>추가 발주</th><th>판단</th></tr></thead>
+        <thead><tr><th>상태</th><th>상품명</th><th>현재 재고</th><th>예상 부족 시점<br><span style="font-weight:400;color:#94a3b8;font-size:10px">안전재고 5,000개</span></th><th>입고 예정</th></tr></thead>
         <tbody>${aItems.map(it=>{
-          const sv=it.forecast.find(f=>f.month===it.shortage)?.endingInventory;
-          const ss=it.shortage?(it.status==='WARNING'&&sv!==undefined
-            ?`${fmtFcMonth(it.shortage)} <span style="font-weight:400;color:#94a3b8">/ ${sv.toLocaleString()}</span>`
-            :fmtFcMonth(it.shortage)):'—';
-          const ni=it.nextInb?`<span style="color:#1d4ed8">${fmtFcMonth(it.nextInb.month)} / ${it.nextInb.qty.toLocaleString()}</span>`:'—';
-          const sc={CRITICAL:'#dc2626',GAP:'#ea580c',WARNING:'#b45309'}[it.status]||'#475569';
+          const safetyM = getSafetyMonth(it.forecast);
+          const sc = {CRITICAL:'#dc2626',GAP:'#ea580c',WARNING:'#b45309'}[it.status]||'#475569';
+          const ss = safetyM ? `<span style="font-weight:600;color:${sc}">${fmtFcMonth(safetyM)}</span>` : '<span style="color:#94a3b8">—</span>';
+          const futInb = getFutureInbounds(it.forecast);
           return `<tr>
             <td><span class="fc-badge ${it.status}">${FC_STATUS_LABELS[it.status]}</span></td>
             <td style="font-weight:600;color:#1e293b;max-width:200px;white-space:normal">${it.product.name}</td>
-            <td style="text-align:right;font-weight:700;font-variant-numeric:tabular-nums">${it.product.initialInventory.toLocaleString()}</td>
-            <td style="font-weight:600;color:${sc}">${ss}</td>
-            <td>${ni}</td><td style="color:#7c3aed">—</td>
-            <td style="font-weight:600;color:#475569">${FC_ACTION_LABELS[it.status]}</td>
+            <td style="font-weight:700;font-variant-numeric:tabular-nums">${it.product.initialInventory.toLocaleString()}</td>
+            <td>${ss}</td>
+            <td>${fmtInbCell(futInb)}</td>
           </tr>`;
         }).join('')}</tbody>
       </table></div>`;
@@ -1953,10 +1978,11 @@ function buildFcDetailInner(it, key) {
     ['다음 입고',nextInb?`<span style="color:#1d4ed8">${fmtFcMonth(nextInb.month)} / ${nextInb.qty.toLocaleString()}</span>`:'없음'],
   ].map(([k,v])=>`<div class="fc-dh-item"><div class="dk">${k}</div><div class="dv">${v}</div></div>`).join('');
 
+  const ORDER_SAFETY = 3000;
   const ROWS=[
     {lbl:'예상 판매',k:'sales',color:''},
     {lbl:'입고 예정',k:'inbound',color:'#1d4ed8'},
-    {lbl:'발주 예상',k:'plannedOrder',color:'#7c3aed'},
+    {lbl:'발주 필요',k:'plannedOrder',isOrder:true},
     {lbl:'예상 잔여재고',k:'endingInventory',isResult:true},
   ];
   const dthead=`<thead><tr>
@@ -1966,7 +1992,16 @@ function buildFcDetailInner(it, key) {
   const dtbody=ROWS.map(r=>{
     const cells=forecast.map(f=>{
       const v=f[r.k];
-      const isNeg=r.isResult&&v<0, isWarn=r.isResult&&v>=0&&f.sales>0&&v<f.sales, isCur=f.month===curM;
+      const isCur=f.month===curM;
+      if (r.isOrder) {
+        const needsOrder = f.endingInventory < ORDER_SAFETY;
+        const orderTxt = v > 0 ? `<span style="color:#7c3aed;font-weight:600">${v.toLocaleString()}</span>` : '';
+        const icon = needsOrder && !v
+          ? `<span style="background:#fee2e2;color:#dc2626;border-radius:3px;padding:1px 6px;font-size:10px;font-weight:700">⚠ 필요</span>`
+          : (needsOrder && v ? `<span style="color:#7c3aed;font-weight:600">${v.toLocaleString()}</span> <span style="font-size:10px;color:#dc2626">⚠</span>` : '');
+        return`<td class="${isCur?'fc-dt-cur':''}">${icon || orderTxt || '—'}</td>`;
+      }
+      const isNeg=r.isResult&&v<0, isWarn=r.isResult&&v>=0&&f.sales>0&&v<f.sales;
       let cls=''; if(isNeg)cls+=' fc-dt-neg'; if(isWarn)cls+=' fc-dt-warn'; if(isCur)cls+=' fc-dt-cur';
       return`<td class="${cls.trim()}" style="${r.color?`color:${r.color}`:''}">${v===0?'—':v.toLocaleString()}</td>`;
     }).join('');
@@ -1975,6 +2010,9 @@ function buildFcDetailInner(it, key) {
 
   const hasChannels=forecast.some(f=>Object.values(f.channels).some(v=>v>0));
   const chHtml=hasChannels?buildFcChannelDetail(forecast,product.name):'';
+  const forecastMonths=forecast.map(f=>f.month);
+  const gonguInner=buildGonguPharmacistSection(product.name,forecastMonths);
+  const gonguToggle=gonguInner?`<span class="fc-ch-toggle" style="display:inline-block;margin-top:8px" onclick="fcToggleChannel(this)">▶ 공구 예상판매 상세</span><div class="fc-ch-detail" style="display:none">${gonguInner}</div>`:'';
   const chartId=`fcChart-${key}`;
 
   return`<div class="fc-detail-inner">
@@ -1982,6 +2020,7 @@ function buildFcDetailInner(it, key) {
     <div class="fc-dtbl-wrap"><table class="fc-dtbl">${dthead}<tbody>${dtbody}</tbody></table></div>
     <div class="fc-chart-wrap"><canvas id="${chartId}"></canvas></div>
     ${chHtml}
+    ${gonguToggle}
   </div>`;
 }
 
@@ -2044,9 +2083,7 @@ function buildFcChannelDetail(forecast, productName) {
   const ths=forecast.map(f=>`<th>${fmtFcMonth(f.month)}</th>`).join('');
   const rows=channels.map(ch=>{
     const cells=forecast.map(f=>`<td>${(f.channels[ch]||0)>0?(f.channels[ch]).toLocaleString():'—'}</td>`).join('');
-    const gonguSection=ch==='공구'?buildGonguPharmacistSection(productName,forecastMonths):'';
-    const gonguRow=gonguSection?`<tr><td colspan="${forecast.length+1}" style="padding:0;border:none;background:#faf5ff">${gonguSection}</td></tr>`:'';
-    return`<tr><td style="font-weight:600">${ch}</td>${cells}</tr>${gonguRow}`;
+    return`<tr><td style="font-weight:600">${ch}</td>${cells}</tr>`;
   }).join('');
   return`<span class="fc-ch-toggle" onclick="fcToggleChannel(this)">▶ 채널별 예상판매 상세</span>
   <div class="fc-ch-detail" style="display:none"><table class="fc-ch-tbl">
