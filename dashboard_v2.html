@@ -1512,23 +1512,31 @@ async function loadOverseasData() {
   if (gonguText) {
     const gRows = parseCSV(gonguText);
     if (gRows.length > 1) {
-      const hdr = gRows[0].map(h => h.trim());
+      // 실제 헤더 행 탐색 (브랜드/제품명/진행 약사 등 포함된 행)
+      let gHdrIdx = gRows.findIndex(r =>
+        r.some(c => ['브랜드','제품명','품목명','진행 약사','닉네임'].some(k => String(c).includes(k)))
+      );
+      if (gHdrIdx < 0) gHdrIdx = 0;
+      const hdr = gRows[gHdrIdx].map(h => h.trim());
       OVR_GONGU_HDR = hdr;
-      console.log('[해외공구] 헤더:', hdr);
+      console.log('[해외공구] 헤더idx:', gHdrIdx, '헤더:', hdr);
       const fc = (...kws) => { for(const k of kws){const i=hdr.findIndex(h=>h.includes(k));if(i>=0)return i;} return -1; };
       const gnameIdx  = fc('제품명','품목명','상품명');
       const gbrandIdx = fc('브랜드');
       let gBrand='', gName='';
-      OVR_GONGU_ROWS = gRows.slice(1)
+      OVR_GONGU_ROWS = gRows.slice(gHdrIdx + 1)
         .filter(r => r.some(c => c.trim()))
         .map(r => {
           const brand=(r[gbrandIdx>=0?gbrandIdx:0]||'').trim();
           const name =(r[gnameIdx >=0?gnameIdx :1]||'').trim();
-          if(brand)gBrand=brand; if(name)gName=name;
+          if(brand)gBrand=brand;
+          // 총계 행 이름은 fill-down에서 제외
+          if(name && !name.includes('총계'))gName=name;
           const o = { _raw: r, _brand: gBrand, _name: gName };
           hdr.forEach((h, i) => { o[h] = (r[i] ?? '').trim(); });
           return o;
         });
+      console.log('[해외공구] 파싱 행 수:', OVR_GONGU_ROWS.length, '제품 예시:', OVR_GONGU_ROWS[0]?._name);
     }
   }
 
@@ -2012,7 +2020,7 @@ function buildFcDetailInner(it, key) {
   const chHtml=hasChannels?buildFcChannelDetail(forecast,product.name):'';
   const forecastMonths=forecast.map(f=>f.month);
   const gonguInner=buildGonguPharmacistSection(product.name,forecastMonths);
-  const gonguToggle=gonguInner?`<span class="fc-ch-toggle" style="display:inline-block;margin-top:8px" onclick="fcToggleChannel(this)">▶ 공구 예상판매 상세</span><div class="fc-ch-detail" style="display:none">${gonguInner}</div>`:'';
+  const gonguToggle=`<span class="fc-ch-toggle" style="display:inline-block;margin-top:8px" onclick="fcToggleChannel(this)">▶ 공구 예상판매 상세</span><div class="fc-ch-detail" style="display:none">${gonguInner||'<div style="padding:12px;color:#94a3b8;font-size:12px">해당 제품의 공구 예상 데이터가 없습니다.</div>'}</div>`;
   const chartId=`fcChart-${key}`;
 
   return`<div class="fc-detail-inner">
@@ -2040,21 +2048,26 @@ function buildGonguPharmacistSection(productName, forecastMonths) {
     if (mm) gonguMonthMap[`${mm[1]}-${String(mm[2]).padStart(2,'0')}`] = i;
   });
 
-  // 제품명 매칭 (fill-down된 _name 사용)
+  // 제품명 매칭 (fill-down된 _name 사용, 총계 행 제외)
   const pName = productName.trim();
   const matchedRows = OVR_GONGU_ROWS.filter(r => {
     const rn = (r._name || '').trim();
-    return rn && (rn === pName || pName.includes(rn) || rn.includes(pName) ||
-      (rn.length > 6 && pName.substring(0,8) === rn.substring(0,8)));
+    if (!rn || rn.includes('총계')) return false;
+    return rn === pName || pName.includes(rn) || rn.includes(pName) ||
+      (rn.length > 6 && pName.substring(0,8) === rn.substring(0,8));
   });
   if (!matchedRows.length || idxPhar < 0) return '';
 
-  // 약사 행만 (약사 컬럼 값 있는 행)
-  const pharRows = matchedRows.filter(r => (r._raw[idxPhar]||'').trim());
+  // 약사 행만 (약사 컬럼 값 있는 행, 총계 행 제외)
+  const pharRows = matchedRows.filter(r => {
+    const p = (r._raw[idxPhar]||'').trim();
+    return p && !p.includes('총계') && !p.includes('합계');
+  });
   if (!pharRows.length) return '';
 
-  // 예측 월과 교집합
-  const validMonths = forecastMonths.filter(m => gonguMonthMap[m] !== undefined);
+  // 표시할 월: forecast 교집합 우선, 없으면 gongu 시트 전체 월
+  let validMonths = forecastMonths.filter(m => gonguMonthMap[m] !== undefined);
+  if (!validMonths.length) validMonths = Object.keys(gonguMonthMap).sort();
   if (!validMonths.length) return '';
 
   const ths = validMonths.map(m => `<th>${fmtFcMonth(m)}</th>`).join('');
@@ -2064,16 +2077,13 @@ function buildGonguPharmacistSection(productName, forecastMonths) {
       const v = pn(r._raw[gonguMonthMap[m]]);
       return `<td>${v ? v.toLocaleString() : '—'}</td>`;
     }).join('');
-    return `<tr><td style="padding-left:10px;color:#7c3aed;font-weight:600">${phar}</td>${cells}</tr>`;
+    return `<tr><td style="font-weight:600;color:#7c3aed;white-space:nowrap">${phar}</td>${cells}</tr>`;
   }).join('');
 
-  return `<div style="margin-top:4px;border-left:3px solid #e9d5ff;padding-left:6px">
-    <div style="font-size:10px;color:#7c3aed;font-weight:700;padding:4px 0 2px">└ 약사별 예상수량</div>
-    <table class="fc-ch-tbl" style="font-size:11px">
-      <thead><tr><th style="text-align:left">약사</th>${ths}</tr></thead>
-      <tbody>${trs}</tbody>
-    </table>
-  </div>`;
+  return `<div style="overflow-x:auto"><table class="fc-ch-tbl">
+    <thead><tr><th style="text-align:left;min-width:100px">약사</th>${ths}</tr></thead>
+    <tbody>${trs}</tbody>
+  </table></div>`;
 }
 
 function buildFcChannelDetail(forecast, productName) {
