@@ -1654,27 +1654,32 @@ function renderOvrStock() {
 
     // 발주/입고 셀 조립
     let orderCell = '';
+    const mkOrderLine = (ord, inb, bold) => {
+      const qtyHtml  = ord ? `<span style="font-weight:${bold?700:600};color:#1e293b;font-size:${bold?13:12}px">${ord.toLocaleString()}개</span>` : '';
+      const dateHtml = inb ? `<div style="font-size:11px;color:#64748b;margin-top:1px">${inb}</div>` : '';
+      return qtyHtml + dateHtml;
+    };
+
     if (chasuData.length === 1) {
-      // 1차만 → 한 줄로
+      // 1차만 → 수량 굵게, 날짜 소자 2줄
       const c = chasuData[0];
-      const parts = [c.ord ? `${c.ord.toLocaleString()}개` : '', c.inb].filter(Boolean).join(' / ');
-      orderCell = `<span style="font-size:12px;font-weight:600">${parts}</span>`;
+      orderCell = mkOrderLine(c.ord, c.inb, true);
     } else if (chasuData.length > 1) {
-      // 2차 이상 → 합산 + 뱃지 행
+      // 2차 이상 → 합산 + 차수별 뱃지
       const tot = chasuData.reduce((s, c) => s + c.ord, 0);
-      const totLine = tot ? `<div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:4px">합계 ${tot.toLocaleString()}개</div>` : '';
-      const badges = chasuData.map(c => {
-        const parts = [c.ord ? `${c.ord.toLocaleString()}개` : '', c.inb].filter(Boolean).join(' · ');
-        return `<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#374151;margin-top:2px">
-          <span style="background:#e0e7ff;color:#3730a3;border-radius:4px;padding:1px 5px;font-weight:700;font-size:10px;flex-shrink:0">${c.n}차</span>
-          <span>${parts}</span>
-        </div>`;
-      }).join('');
+      const totLine = tot ? `<div style="font-size:13px;font-weight:700;color:#1e293b;margin-bottom:5px">${tot.toLocaleString()}개</div>` : '';
+      const badges = chasuData.map(c => `
+        <div style="display:flex;align-items:flex-start;gap:5px;margin-top:3px">
+          <span style="background:#f1f5f9;color:#475569;border-radius:4px;padding:1px 6px;font-weight:700;font-size:10px;flex-shrink:0;margin-top:1px">${c.n}차</span>
+          <div>
+            ${c.ord ? `<div style="font-size:12px;color:#1e293b">${c.ord.toLocaleString()}개</div>` : ''}
+            ${c.inb ? `<div style="font-size:11px;color:#64748b">${c.inb}</div>` : ''}
+          </div>
+        </div>`).join('');
       orderCell = totLine + badges;
     } else if (order || inbound) {
       // 차수 컬럼 없고 메인 컬럼만 있는 경우 fallback
-      const parts = [order ? `${order.toLocaleString()}개` : '', inbound].filter(Boolean).join(' / ');
-      orderCell = `<span style="font-size:12px;font-weight:600">${parts}</span>`;
+      orderCell = mkOrderLine(order, inbound, true);
     } else {
       orderCell = '<span style="color:#94a3b8">—</span>';
     }
