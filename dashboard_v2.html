@@ -1643,32 +1643,41 @@ function renderOvrStock() {
     const overAlloc = alloc > 0 && stock > 0 && alloc > stock;
     const allocStyle = overAlloc ? ' style="color:#dc2626;font-weight:700"' : '';
 
-    // 합산 발주/입고 표시
+    // 1차/2차/3차 세부 수집
+    const chasuData = chasu
+      .map(c => ({
+        n:   c.n,
+        ord: c.order   >= 0 ? pn(raw[c.order])              : 0,
+        inb: c.inbound >= 0 ? (raw[c.inbound] || '').trim() : '',
+      }))
+      .filter(c => c.ord || c.inb);
+
+    // 발주/입고 셀 조립
     let orderCell = '';
-    if (order || inbound) {
-      const totalLine = [
-        order   ? `<span style="font-weight:600">${order.toLocaleString()}개</span>` : '',
-        inbound ? `<span style="color:#64748b">${inbound}</span>` : '',
-      ].filter(Boolean).join(' · ');
-      orderCell += `<div style="font-size:12px">${totalLine || '—'}</div>`;
+    if (chasuData.length === 1) {
+      // 1차만 → 한 줄로
+      const c = chasuData[0];
+      const parts = [c.ord ? `${c.ord.toLocaleString()}개` : '', c.inb].filter(Boolean).join(' / ');
+      orderCell = `<span style="font-size:12px;font-weight:600">${parts}</span>`;
+    } else if (chasuData.length > 1) {
+      // 2차 이상 → 합산 + 뱃지 행
+      const tot = chasuData.reduce((s, c) => s + c.ord, 0);
+      const totLine = tot ? `<div style="font-size:12px;font-weight:700;color:#1e293b;margin-bottom:4px">합계 ${tot.toLocaleString()}개</div>` : '';
+      const badges = chasuData.map(c => {
+        const parts = [c.ord ? `${c.ord.toLocaleString()}개` : '', c.inb].filter(Boolean).join(' · ');
+        return `<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:#374151;margin-top:2px">
+          <span style="background:#e0e7ff;color:#3730a3;border-radius:4px;padding:1px 5px;font-weight:700;font-size:10px;flex-shrink:0">${c.n}차</span>
+          <span>${parts}</span>
+        </div>`;
+      }).join('');
+      orderCell = totLine + badges;
+    } else if (order || inbound) {
+      // 차수 컬럼 없고 메인 컬럼만 있는 경우 fallback
+      const parts = [order ? `${order.toLocaleString()}개` : '', inbound].filter(Boolean).join(' / ');
+      orderCell = `<span style="font-size:12px;font-weight:600">${parts}</span>`;
+    } else {
+      orderCell = '<span style="color:#94a3b8">—</span>';
     }
-
-    // 1차/2차/3차 세부
-    const chasuLines = chasu
-      .map(c => {
-        const cOrd = c.order   >= 0 ? pn(raw[c.order])              : null;
-        const cInb = c.inbound >= 0 ? (raw[c.inbound] || '').trim() : '';
-        if (!cOrd && !cInb) return '';
-        const parts = [
-          cOrd ? `${cOrd.toLocaleString()}개` : '',
-          cInb || '',
-        ].filter(Boolean).join(' ');
-        return `<div style="font-size:11px;color:#6b7280;margin-top:2px"><span style="color:#94a3b8;margin-right:3px">${c.n}차</span>${parts}</div>`;
-      })
-      .join('');
-
-    orderCell += chasuLines;
-    if (!orderCell) orderCell = '<span style="color:#94a3b8">—</span>';
 
     return `<tr>
       <td style="color:#64748b;font-size:12px">${brand || '—'}</td>
