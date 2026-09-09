@@ -1605,9 +1605,16 @@ function renderOvrStock() {
   const idxBrand   = fc('브랜드');
   const idxProd    = 3;                                             // D열 (영어 품목명)
   const idxStock   = fc('고수량') >= 0 ? fc('고수량') : 4;          // E열
-  const allocIdxs  = [7, 8, 9, 10, 11];                             // H~L열
+  const idxAlloc   = 7;                                             // H열 (할당수량)
   const idxOrder   = fc('발주수량', '발주');
   const idxInbound = fc('입고예정일', '입고 예정일', '입고일');
+
+  // 1차/2차/3차 발주수량·입고예정일 컬럼
+  const chasu = [1, 2, 3].map(n => ({
+    n,
+    order:   fc(`${n}차발주수량`, `${n}차 발주수량`),
+    inbound: fc(`${n}차입고예정일`, `${n}차 입고예정일`),
+  }));
 
   console.log('[해외재고 렌더] 헤더:', hdr, 'idxBrand:', idxBrand, 'idxProd:', idxProd, 'idxStock:', idxStock);
   // 품번(A열)이 공란인 행은 제외
@@ -1621,8 +1628,7 @@ function renderOvrStock() {
     <th style="text-align:left;min-width:180px">품목명</th>
     <th class="r">재고수량</th>
     <th class="r">할당수량</th>
-    ${showOrder   ? '<th class="r">발주수량</th>'  : ''}
-    ${showInbound ? '<th style="min-width:100px">입고예정일</th>' : ''}
+    <th style="min-width:160px">발주수량 / 입고예정일</th>
   </tr></thead>`;
 
   const tbody = rows.map(r => {
@@ -1630,20 +1636,46 @@ function renderOvrStock() {
     const brand   = (raw[idxBrand]  || '').trim();
     const prod    = (raw[idxProd]   || '').trim();
     const stock   = pn(raw[idxStock]);
-    const alloc   = allocIdxs.reduce((s, i) => s + pn(raw[i]), 0);
+    const alloc   = pn(raw[idxAlloc]);
     const order   = showOrder   ? pn(raw[idxOrder])   : null;
     const inbound = showInbound ? (raw[idxInbound] || '').trim() : '';
 
     const overAlloc = alloc > 0 && stock > 0 && alloc > stock;
     const allocStyle = overAlloc ? ' style="color:#dc2626;font-weight:700"' : '';
 
+    // 합산 발주/입고 표시
+    let orderCell = '';
+    if (order || inbound) {
+      const totalLine = [
+        order   ? `<span style="font-weight:600">${order.toLocaleString()}개</span>` : '',
+        inbound ? `<span style="color:#64748b">${inbound}</span>` : '',
+      ].filter(Boolean).join(' · ');
+      orderCell += `<div style="font-size:12px">${totalLine || '—'}</div>`;
+    }
+
+    // 1차/2차/3차 세부
+    const chasuLines = chasu
+      .map(c => {
+        const cOrd = c.order   >= 0 ? pn(raw[c.order])              : null;
+        const cInb = c.inbound >= 0 ? (raw[c.inbound] || '').trim() : '';
+        if (!cOrd && !cInb) return '';
+        const parts = [
+          cOrd ? `${cOrd.toLocaleString()}개` : '',
+          cInb || '',
+        ].filter(Boolean).join(' ');
+        return `<div style="font-size:11px;color:#6b7280;margin-top:2px"><span style="color:#94a3b8;margin-right:3px">${c.n}차</span>${parts}</div>`;
+      })
+      .join('');
+
+    orderCell += chasuLines;
+    if (!orderCell) orderCell = '<span style="color:#94a3b8">—</span>';
+
     return `<tr>
       <td style="color:#64748b;font-size:12px">${brand || '—'}</td>
       <td style="font-weight:600;color:#1e293b">${prod || '—'}</td>
       <td class="r">${stock ? stock.toLocaleString() : '—'}</td>
       <td class="r"${allocStyle}>${alloc ? alloc.toLocaleString() : '—'}</td>
-      ${showOrder   ? `<td class="r">${order ? order.toLocaleString() : '—'}</td>` : ''}
-      ${showInbound ? `<td>${inbound || '—'}</td>` : ''}
+      <td>${orderCell}</td>
     </tr>`;
   }).join('');
 
