@@ -367,13 +367,13 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .fc-action-tbl tr:hover td{background:#f8fafc}
 /* Forecast Timeline */
 .fc-tbl-outer{overflow-x:auto;border-radius:8px}
-.fc-timeline{border-collapse:collapse;font-size:12px;min-width:max-content;width:100%}
-.fc-timeline th{padding:7px 10px;background:var(--inv-bg-head);color:#64748b;font-size:11px;font-weight:600;border-bottom:2px solid var(--inv-border-col);border-right:1px solid var(--inv-border-col);white-space:nowrap;position:sticky;top:0;z-index:4;text-align:center}
-.fc-timeline td{padding:8px 10px;border-bottom:1px solid #f1f5f9;border-right:1px solid var(--inv-border-col);vertical-align:top;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:12px}
+.fc-timeline{border-collapse:collapse;font-size:11px;table-layout:fixed;width:100%}
+.fc-timeline th{padding:5px 4px;background:var(--inv-bg-head);color:#64748b;font-size:10px;font-weight:600;border-bottom:2px solid var(--inv-border-col);border-right:1px solid var(--inv-border-col);white-space:nowrap;overflow:hidden;position:sticky;top:0;z-index:4;text-align:center}
+.fc-timeline td{padding:5px 4px;border-bottom:1px solid #f1f5f9;border-right:1px solid var(--inv-border-col);vertical-align:top;white-space:nowrap;overflow:hidden;font-variant-numeric:tabular-nums;font-size:11px;text-align:right}
 .fc-timeline th:last-child,.fc-timeline td:last-child{border-right:none}
 /* Sticky columns */
-.fc-timeline .sc-0{position:sticky;left:0;z-index:3;background:#fff}
-.fc-timeline .sc-1{position:sticky;left:180px;z-index:3;background:#fff}
+.fc-timeline .sc-0{position:sticky;left:0;z-index:3;background:#fff;text-align:left!important}
+.fc-timeline .sc-1{position:sticky;left:150px;z-index:3;background:#fff}
 .fc-timeline th.sc-0,.fc-timeline th.sc-1{z-index:5;background:var(--inv-bg-head)}
 .fc-timeline tr:hover td{background:#fafbfc}
 .fc-timeline tr:hover td.sc-0,.fc-timeline tr:hover td.sc-1{background:#fafbfc}
@@ -389,7 +389,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .fc-cell-ord{font-size:10px;color:#7c3aed;margin-top:1px;display:block}
 .fc-col-cur th{background:#dbeafe!important;color:#1d4ed8!important}
 /* Product name column */
-.fc-prod-name{font-weight:600;color:#1e293b;cursor:pointer;max-width:220px;white-space:normal;line-height:1.4}
+.fc-prod-name{font-weight:600;color:#1e293b;cursor:pointer;max-width:145px;white-space:normal;line-height:1.3;font-size:11px;word-break:break-word}
 .fc-prod-name:hover{color:#2563eb;text-decoration:underline}
 .fc-prod-brand{font-size:10px;color:#94a3b8;margin-top:2px}
 .fc-prod-status-row{display:flex;align-items:center;gap:6px;margin-top:4px}
@@ -422,9 +422,9 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .fc-toggles{display:flex;flex-direction:column;align-items:flex-start;gap:0}
 .fc-ch-detail{margin-top:8px;overflow-x:auto}
 .fc-ch-tbl{border-collapse:collapse;font-size:11px;white-space:nowrap}
-.fc-ch-tbl th{padding:4px 8px;background:#f8fafc;color:#64748b;font-weight:600;border:1px solid #e8edf3;text-align:center}
-.fc-ch-tbl td{padding:4px 8px;border:1px solid #f1f5f9;text-align:right;font-variant-numeric:tabular-nums}
-.fc-ch-tbl td:first-child{text-align:left;font-weight:500;color:#475569}
+.fc-ch-tbl th{padding:4px 7px;background:#f8fafc;color:#64748b;font-size:10px;font-weight:600;border:1px solid #e8edf3;text-align:center;white-space:nowrap}
+.fc-ch-tbl td{padding:4px 7px;border:1px solid #f1f5f9;text-align:right;font-size:11px;font-variant-numeric:tabular-nums}
+.fc-ch-tbl td:first-child{text-align:left;font-weight:600;color:#475569;min-width:80px}
 /* Legend */
 .fc-legend{display:flex;gap:12px;font-size:11px;color:#64748b;flex-wrap:wrap}
 .fc-legend-item{display:flex;align-items:center;gap:4px}
@@ -1933,11 +1933,15 @@ function renderOvrForecast() {
 function buildFcTimeline(items, allMonths, curM) {
   if (!items.length) return '<div class="fc-empty">조건에 맞는 상품이 없습니다.</div>';
   const colCount = allMonths.length + 3;
+  // 월 헤더 짧게: "2026-09" → "26/09"
+  const shortMonth = m => { const match=String(m).match(/(\d{4})[^\d](\d{2})/); return match?`${String(match[1]).slice(2)}/${match[2]}`:m; };
+  // colgroup: 상품명 150px, 현재재고 75px, 월 auto (균등), 상태 65px
+  const colgroup=`<colgroup><col style="width:150px"><col style="width:75px">${allMonths.map(()=>'<col>').join('')}<col style="width:65px"></colgroup>`;
   const thead=`<thead><tr>
-    <th class="sc-0" style="text-align:left;min-width:200px">상품명</th>
-    <th class="sc-1" style="text-align:right;min-width:90px">현재 재고</th>
-    ${allMonths.map(m=>`<th${m===curM?' style="background:#dbeafe!important;color:#1d4ed8!important"':''}>${fmtFcMonth(m)}</th>`).join('')}
-    <th style="text-align:center;min-width:80px">상태</th>
+    <th class="sc-0" style="text-align:left">상품명</th>
+    <th class="sc-1" style="text-align:right">현재 재고</th>
+    ${allMonths.map(m=>`<th${m===curM?' style="background:#dbeafe!important;color:#1d4ed8!important"':''}>${shortMonth(m)}</th>`).join('')}
+    <th style="text-align:center">상태</th>
   </tr></thead>`;
 
   const tbody=items.map(it=>{
@@ -1956,11 +1960,11 @@ function buildFcTimeline(items, allMonths, curM) {
       </td>`;
     }).join('');
     return`<tr class="fc-timeline-row" style="cursor:pointer" onclick="toggleFcDetail(this)" data-prod="${it.product.name.replace(/"/g,'&quot;')}">
-      <td class="sc-0" style="min-width:200px">
+      <td class="sc-0">
         <div class="fc-prod-name">${it.product.name}</div>
         <div class="fc-prod-brand">${it.product.brand}</div>
       </td>
-      <td class="sc-1 fc-cur-stock-cell" style="min-width:90px">${it.product.initialInventory.toLocaleString()}</td>
+      <td class="sc-1 fc-cur-stock-cell">${it.product.initialInventory.toLocaleString()}</td>
       ${cells}
       <td class="fc-status-col"><span class="fc-badge ${it.status}">${FC_STATUS_LABELS[it.status]}</span></td>
     </tr>
@@ -1969,7 +1973,7 @@ function buildFcTimeline(items, allMonths, curM) {
     </tr>`;
   }).join('');
 
-  return`<table class="fc-timeline">${thead}<tbody>${tbody}</tbody></table>`;
+  return`<table class="fc-timeline">${colgroup}${thead}<tbody>${tbody}</tbody></table>`;
 }
 
 function buildFcDetailInner(it, key) {
