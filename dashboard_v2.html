@@ -1655,7 +1655,23 @@ function renderOvrStock() {
     const inbound = showInbound ? (raw[idxInbound] || '').trim() : '';
 
     const overAlloc = alloc > 0 && stock > 0 && alloc > stock;
-    const allocStyle = overAlloc ? ' style="color:#dc2626;font-weight:700"' : '';
+    const allocColor = overAlloc ? '#dc2626' : '#1e293b';
+
+    // I~L열 채널별 세부 (0인 것 제외)
+    const allocItems = allocDetail
+      .map(d => ({ label: d.label, val: pn(raw[d.idx]) }))
+      .filter(d => d.val > 0);
+
+    const allocCell = alloc
+      ? `<div style="font-weight:700;font-size:13px;color:${allocColor}">${alloc.toLocaleString()}</div>${
+          allocItems.map(d =>
+            `<div style="display:flex;justify-content:space-between;gap:8px;margin-top:3px">
+              <span style="font-size:11px;color:#64748b;white-space:nowrap">${d.label}</span>
+              <span style="font-size:11px;font-weight:600;color:#475569;font-variant-numeric:tabular-nums">${d.val.toLocaleString()}</span>
+            </div>`
+          ).join('')
+        }`
+      : '<span style="color:#94a3b8">—</span>';
 
     // 1차/2차/3차 세부 수집
     const chasuData = chasu
@@ -1702,7 +1718,7 @@ function renderOvrStock() {
       <td style="color:#64748b;font-size:12px">${brand || '—'}</td>
       <td style="font-weight:600;color:#1e293b">${prod || '—'}</td>
       <td class="r">${stock ? stock.toLocaleString() : '—'}</td>
-      <td class="r"${allocStyle}>${alloc ? alloc.toLocaleString() : '—'}</td>
+      <td style="vertical-align:top;min-width:130px">${allocCell}</td>
       <td>${orderCell}</td>
     </tr>`;
   }).join('');
