@@ -416,7 +416,10 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .fc-dtbl td.fc-dt-cur{background:#eff6ff!important}
 /* Chart */
 .fc-chart-wrap{height:180px;position:relative;margin-top:4px}
-.fc-ch-toggle{font-size:11px;color:#3b82f6;cursor:pointer;user-select:none;margin-top:10px;display:inline-flex;align-items:center;gap:4px}
+.fc-ch-toggle{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:8px;font-size:12px;font-weight:600;color:#475569;cursor:pointer;user-select:none;margin-top:10px;transition:background .15s}
+.fc-ch-toggle:hover{background:#e2e8f0;color:#1e293b}
+.fc-ch-toggle .tgl-arrow{font-size:10px;color:#94a3b8}
+.fc-toggles{display:flex;flex-direction:column;align-items:flex-start;gap:0}
 .fc-ch-detail{margin-top:8px;overflow-x:auto}
 .fc-ch-tbl{border-collapse:collapse;font-size:11px;white-space:nowrap}
 .fc-ch-tbl th{padding:4px 8px;background:#f8fafc;color:#64748b;font-weight:600;border:1px solid #e8edf3;text-align:center}
@@ -2020,15 +2023,14 @@ function buildFcDetailInner(it, key) {
   const chHtml=hasChannels?buildFcChannelDetail(forecast,product.name):'';
   const forecastMonths=forecast.map(f=>f.month);
   const gonguInner=buildGonguPharmacistSection(product.name,forecastMonths);
-  const gonguToggle=`<span class="fc-ch-toggle" style="display:inline-block;margin-top:8px" onclick="fcToggleChannel(this)">▶ 공구 예상판매 상세</span><div class="fc-ch-detail" style="display:none">${gonguInner||'<div style="padding:12px;color:#94a3b8;font-size:12px">해당 제품의 공구 예상 데이터가 없습니다.</div>'}</div>`;
+  const gonguToggle=`<span class="fc-ch-toggle" data-label="공구 예상판매 상세" onclick="fcToggleChannel(this)"><span class="tgl-arrow">▶</span>공구 예상판매 상세</span><div class="fc-ch-detail" style="display:none">${gonguInner||'<div style="padding:12px;color:#94a3b8;font-size:12px">해당 제품의 공구 예상 데이터가 없습니다.</div>'}</div>`;
   const chartId=`fcChart-${key}`;
 
   return`<div class="fc-detail-inner">
     <div class="fc-detail-hrow">${hdrItems}</div>
     <div class="fc-dtbl-wrap"><table class="fc-dtbl">${dthead}<tbody>${dtbody}</tbody></table></div>
     <div class="fc-chart-wrap"><canvas id="${chartId}"></canvas></div>
-    ${chHtml}
-    ${gonguToggle}
+    <div class="fc-toggles">${chHtml}${gonguToggle}</div>
   </div>`;
 }
 
@@ -2048,13 +2050,14 @@ function buildGonguPharmacistSection(productName, forecastMonths) {
     if (mm) gonguMonthMap[`${mm[1]}-${String(mm[2]).padStart(2,'0')}`] = i;
   });
 
-  // 제품명 매칭 (fill-down된 _name 사용, 총계 행 제외)
+  // 제품명 매칭 (fill-down된 _name 사용, 정확한 이름만)
+  const norm = s => s.toLowerCase().replace(/\s+/g,' ').trim();
   const pName = productName.trim();
+  const pNorm = norm(pName);
   const matchedRows = OVR_GONGU_ROWS.filter(r => {
     const rn = (r._name || '').trim();
     if (!rn || rn.includes('총계')) return false;
-    return rn === pName || pName.includes(rn) || rn.includes(pName) ||
-      (rn.length > 6 && pName.substring(0,8) === rn.substring(0,8));
+    return norm(rn) === pNorm;
   });
   if (!matchedRows.length || idxPhar < 0) return '';
 
@@ -2095,7 +2098,7 @@ function buildFcChannelDetail(forecast, productName) {
     const cells=forecast.map(f=>`<td>${(f.channels[ch]||0)>0?(f.channels[ch]).toLocaleString():'—'}</td>`).join('');
     return`<tr><td style="font-weight:600">${ch}</td>${cells}</tr>`;
   }).join('');
-  return`<span class="fc-ch-toggle" onclick="fcToggleChannel(this)">▶ 채널별 예상판매 상세</span>
+  return`<span class="fc-ch-toggle" data-label="채널별 예상판매 상세" onclick="fcToggleChannel(this)"><span class="tgl-arrow">▶</span>채널별 예상판매 상세</span>
   <div class="fc-ch-detail" style="display:none"><table class="fc-ch-tbl">
     <thead><tr><th>채널</th>${ths}</tr></thead><tbody>${rows}</tbody>
   </table></div>`;
@@ -2155,7 +2158,10 @@ function fcToggleChannel(el) {
   const tgt=el.nextElementSibling; if(!tgt)return;
   const hidden=tgt.style.display==='none';
   tgt.style.display=hidden?'':'none';
-  el.textContent=(hidden?'▼':'▶')+' 채널별 예상판매 상세';
+  const label=el.dataset.label||'';
+  const arrow=el.querySelector('.tgl-arrow');
+  if(arrow)arrow.textContent=hidden?'▼':'▶';
+  else el.innerHTML=`<span class="tgl-arrow">${hidden?'▼':'▶'}</span>${label}`;
 }
 
 function ovrFcSetFilter(status) { ovrFcFilter.status=status; ovrFcExpanded=null; renderOvrForecast(); }
