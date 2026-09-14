@@ -4465,23 +4465,21 @@ async function renderMonthlyReport(ym) {
   // 기준월 셀렉터: BQ 없으면 PIVOT_DATA 기반 월 목록
   // 마감된 월만 선택 가능 (이번 달 이후 제외)
   const _now = new Date();
-  // 이번 달이 아직 진행 중이므로 지난달(getMonth()=0-indexed → 이번달-1)까지만
-  const cutoffYm = `${_now.getFullYear()}-${String(_now.getMonth()).padStart(2,'0')}`;
-  // getMonth()가 0이면(1월) 전년 12월: cutoff = 'YYYY-00' → 비교상 전년 12월 포함 위해 보정
-  const _cutoff = _now.getMonth() === 0
-    ? `${_now.getFullYear()-1}-12`
-    : `${_now.getFullYear()}-${String(_now.getMonth()).padStart(2,'0')}`;
+  // 이번 달 포함 (진행 중인 현재 월도 선택 가능)
+  const _cutoff = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}`;
+
+  // 올해 1월~현재 월은 BQ 유무와 무관하게 항상 포함
+  const allYearMonths = Array.from({length: _now.getMonth()+1}, (_, i) =>
+    `${_now.getFullYear()}-${String(i+1).padStart(2,'0')}`
+  ).reverse();
 
   let availMonths;
   if (bqOk && ROWS.length > 0) {
-    availMonths = [...new Set(ROWS.map(r => `${r.year}-${String(r.month).padStart(2,'0')}`))]
-      .filter(m => m.length === 7 && m <= _cutoff).sort().reverse();
+    const bqMos = [...new Set(ROWS.map(r => `${r.year}-${String(r.month).padStart(2,'0')}`))]
+      .filter(m => m.length === 7 && m <= _cutoff);
+    availMonths = [...new Set([...allYearMonths, ...bqMos])].sort().reverse();
   } else {
-    const pivYr  = PIVOT_DATE?.y || new Date().getFullYear();
-    const pivMos = Object.keys(PIVOT_DATA?.pb?.rev?.monthly || {}).map(Number).filter(n=>n>=1&&n<=12).sort((a,b)=>b-a);
-    availMonths  = pivMos.length > 0
-      ? pivMos.map(mo=>`${pivYr}-${String(mo).padStart(2,'0')}`).filter(m => m <= _cutoff)
-      : [];
+    availMonths = allYearMonths;
   }
   if (!ym || !availMonths.includes(ym)) {
     ym = availMonths[0] || '';
@@ -4530,17 +4528,17 @@ async function renderMonthlyReport(ym) {
   const domPrev  = F(ROWS, p.prev);
   const domPrev2 = F(ROWS, p.prev2);
   const domYr    = F(ROWS, p.prevYr);
-  // BQ 실패 시 PIVOT_DATA로 국내 합계 fallback
-  const domGongu  = bqOk ? S(domAll.filter(r => r.dist==='3.공동구매')) : piv('gongu', p.cur.m);
-  const domIlban  = bqOk ? S(domAll.filter(r => r.dist!=='3.공동구매')) : piv('ilban', p.cur.m);
-  const domCh     = bqOk ? S(domAll.filter(r => r.dist!=='3.공동구매' && MR_CH.includes(r.ch))) : piv('channel', p.cur.m);
+  // PIVOT_DATA 우선 (검증된 월별 집계), BQ는 상세 보조용
+  const domGongu  = piv('gongu',    p.cur.m)  || (bqOk ? S(domAll.filter(r => r.dist==='3.공동구매')) : 0);
+  const domIlban  = piv('ilban',    p.cur.m)  || (bqOk ? S(domAll.filter(r => r.dist!=='3.공동구매')) : 0);
+  const domCh     = piv('channel',  p.cur.m)  || (bqOk ? S(domAll.filter(r => r.dist!=='3.공동구매' && MR_CH.includes(r.ch))) : 0);
   const domGita   = domIlban - domCh;
-  const domTotal  = bqOk ? S(domAll) : piv('domestic', p.cur.m);
-  const domGonguP = bqOk ? S(domPrev.filter(r => r.dist==='3.공동구매')) : piv('gongu', p.prev.m);
-  const domIlbanP = bqOk ? S(domPrev.filter(r => r.dist!=='3.공동구매')) : piv('ilban', p.prev.m);
-  const domChP    = bqOk ? S(domPrev.filter(r => r.dist!=='3.공동구매' && MR_CH.includes(r.ch))) : piv('channel', p.prev.m);
+  const domTotal  = piv('domestic', p.cur.m)  || (bqOk ? S(domAll) : 0);
+  const domGonguP = piv('gongu',    p.prev.m) || (bqOk ? S(domPrev.filter(r => r.dist==='3.공동구매')) : 0);
+  const domIlbanP = piv('ilban',    p.prev.m) || (bqOk ? S(domPrev.filter(r => r.dist!=='3.공동구매')) : 0);
+  const domChP    = piv('channel',  p.prev.m) || (bqOk ? S(domPrev.filter(r => r.dist!=='3.공동구매' && MR_CH.includes(r.ch))) : 0);
   const domGitaP  = domIlbanP - domChP;
-  const domTotalP = bqOk ? S(domPrev) : piv('domestic', p.prev.m);
+  const domTotalP = piv('domestic', p.prev.m) || (bqOk ? S(domPrev) : 0);
   const domTotalYr= bqOk ? S(domYr)  : 0;
 
   // ── 해외 집계 (OVR_DATA 우선, fallback: PIVOT_DATA) ──
@@ -4670,7 +4668,10 @@ async function renderMonthlyReport(ym) {
 
   // ─────────── 채널별 테이블 ───────────
   const CH_KEY = {'스마트스토어':'ss','카페24':'c24','쿠팡':'coupang','카카오톡스토어':'kakaoStore'};
-  const chList = [...new Set(domAll.map(r=>r.ch||'기타').filter(Boolean))].sort();
+  // PIVOT_DATA가 있는 채널 + BQ에서 추가로 발견된 채널 합산
+  const pivChs = MR_CH.filter(ch => CH_KEY[ch] && piv(CH_KEY[ch], p.cur.m) > 0);
+  const bqChs  = bqOk ? [...new Set(domAll.map(r=>r.ch||'기타').filter(Boolean))] : [];
+  const chList = [...new Set([...pivChs, ...bqChs])].sort();
   const chHtml = `
 <div class="card" style="margin-bottom:16px">
   <div class="card-title">채널별 매출 분석 (국내)</div>
@@ -4678,9 +4679,11 @@ async function renderMonthlyReport(ym) {
     <thead><tr><th>채널</th><th>${ml}</th><th>목표</th><th>달성률</th><th>전월</th><th>전월비</th><th>전년동월</th><th>전년비</th><th>비중</th></tr></thead>
     <tbody>
       ${chList.map(ch => {
-        const cur    = S(domAll.filter(r=>(r.ch||'기타')===ch));
-        const prev   = S(domPrev.filter(r=>(r.ch||'기타')===ch));
-        const prevYr = S(domYr.filter(r=>(r.ch||'기타')===ch));
+        const pivCur  = CH_KEY[ch] ? piv(CH_KEY[ch], p.cur.m)  : 0;
+        const pivPrev = CH_KEY[ch] ? piv(CH_KEY[ch], p.prev.m) : 0;
+        const cur    = pivCur  || (bqOk ? S(domAll.filter(r=>(r.ch||'기타')===ch))  : 0);
+        const prev   = pivPrev || (bqOk ? S(domPrev.filter(r=>(r.ch||'기타')===ch)) : 0);
+        const prevYr = bqOk ? S(domYr.filter(r=>(r.ch||'기타')===ch)) : 0;
         const t2     = CH_KEY[ch] ? tgt2(CH_KEY[ch], p.cur.m) : null;
         const a2     = ach(cur, t2);
         const share  = totCur>0?(cur/totCur*100).toFixed(1):0;
