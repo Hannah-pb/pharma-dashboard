@@ -4453,8 +4453,9 @@ async function loadMonthlyReportData() {
         const idxProd  = fi('대표품목명');
         const idxQty   = fi('수량');
         const idxRev   = fi('실결제금액');
-        const idxFqty  = fi('최종 수량');
-        const idxCat   = fi('건기');
+        const idxFqty   = fi('최종 수량');
+        const idxCat    = fi('건기');
+        const idxExcl   = fi('매출제외');
 
         const _ps = v => String(v??'').trim();
         const _pn = v => { const n=parseFloat(String(v??'').replace(/[,\s₩]/g,'')); return isNaN(n)?0:n; };
@@ -4473,7 +4474,12 @@ async function loadMonthlyReportData() {
           rev:      _pn(r[idxRev]),
           fqty:     _pi(r[idxFqty]),
           category: _ps(r[idxCat]),
-        })).filter(r => r.year > 0 && r.month > 0 && r.ch !== '' && r.rev !== 0);
+          exclude:  idxExcl >= 0 ? _ps(r[idxExcl]) : '',
+        })).filter(r =>
+          r.year > 0 && r.month > 0 && r.ch !== '' && r.rev !== 0
+          && r.category !== '뷰티'           // 뷰티 제외
+          && r.exclude !== '한독'             // 한독 매출제외
+        );
 
         bqLoaded = true;
         console.log(`[MR] RAW 판매 ${ROWS.length}건 로드 (시트)`);
@@ -4619,6 +4625,21 @@ async function renderMonthlyReport(ym) {
   const totPrev = domTotalP + ovrPrev;
   const totYr   = domTotalYr;
 
+  // ── 예상 마감 금액 (진행 중인 당월만) ──
+  const _nowD = new Date();
+  const isCurrentMo = p.cur.y === _nowD.getFullYear() && p.cur.m === (_nowD.getMonth()+1);
+  let projDom = null, projTot = null, projRatio = null, projMaxDay = null;
+  if (isCurrentMo && bqOk && domAll.length > 0) {
+    const days = domAll.map(r => r.day||0).filter(d => d > 0);
+    projMaxDay = days.length > 0 ? Math.max(...days) : 0;
+    const daysInMo = new Date(p.cur.y, p.cur.m, 0).getDate();
+    if (projMaxDay > 0 && projMaxDay < daysInMo) {
+      projRatio = daysInMo / projMaxDay;
+      projDom   = Math.round(domTotal * projRatio);
+      projTot   = Math.round(totCur * projRatio);
+    }
+  }
+
   // ── 목표 ──
   const tPb    = tgt2('pb',          p.cur.m);
   const tDom   = tgt2('domestic',    p.cur.m);
@@ -4643,17 +4664,19 @@ async function renderMonthlyReport(ym) {
   const ovrMoM   = safe(ovrTotal, ovrPrev);
 
   // ─────────── Hero ───────────
+  const projAchPb = projTot && tPb ? ach(projTot, tPb) : null;
   const heroHtml = `
 <div class="mr-hero">
   <div class="mr-hero-main">
     <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;opacity:.6;margin-bottom:8px">${p.cur.y}년 ${ml} 전체 매출</div>
     <div class="mr-hero-val num">${fb(totCur)}</div>
-    ${tPb ? `<div style="font-size:.78rem;margin-top:6px;opacity:.78">목표 ${fb(tPb)} · ${achPb.html}</div>${pBar(totCur, tPb, achPb.cls)}` : ''}
+    ${projTot ? `<div style="font-size:.88rem;margin-top:6px;opacity:.85">예상 마감 <span style="font-size:1.35rem;font-weight:800">${fb(projTot)}</span><span style="font-size:.7rem;opacity:.65;margin-left:6px">${projMaxDay}일 기준</span></div>` : ''}
+    ${tPb ? `<div style="font-size:.78rem;margin-top:${projTot?4:6}px;opacity:.78">목표 ${fb(tPb)} · ${projAchPb ? `<span style="font-weight:700">예상 ${projAchPb.html}</span>` : achPb.html}</div>${pBar(projTot||totCur, tPb, (projAchPb||achPb).cls)}` : ''}
   </div>
   <div class="mr-hero-kpis">
-    <div class="mr-hero-kpi"><span class="k">목표대비</span><span class="v">${tPb ? achPb.html : '<span style="opacity:.55">—</span>'}</span></div>
-    <div class="mr-hero-kpi"><span class="k">전월비</span><span class="v">${totMoM.html}</span></div>
-    <div class="mr-hero-kpi"><span class="k">전년동월비</span><span class="v">${totYoY.html}</span></div>
+    <div class="mr-hero-kpi"><span class="k">목표대비</span><span class="v">${tPb ? (projAchPb ? projAchPb.html : achPb.html) : '<span style="opacity:.55">—</span>'}</span></div>
+    <div class="mr-hero-kpi"><span class="k">전월비${projTot?'(예상)':''}</span><span class="v">${projTot ? safe(projTot,totPrev).html : totMoM.html}</span></div>
+    <div class="mr-hero-kpi"><span class="k">전년동월비${projTot?'(예상)':''}</span><span class="v">${projTot ? safe(projTot,totYr).html : totYoY.html}</span></div>
     <div class="mr-hero-kpi"><span class="k">국내비중</span><span class="v">${totCur>0?(domTotal/totCur*100).toFixed(0):0}%</span></div>
   </div>
 </div>`;
@@ -4670,13 +4693,15 @@ async function renderMonthlyReport(ym) {
   };
 
   // ─────────── 국내/해외 계층 ───────────
+  const projAchDom = projDom && tDom ? ach(projDom, tDom) : null;
   const hierHtml = `
 <div class="mr-grid2">
   <div class="mr-card dom">
     <div class="mr-card-title">국내 매출</div>
     <div class="mr-card-val num">${fb(domTotal)}</div>
-    ${tDom ? `<div class="mr-card-tgt">목표 ${fb(tDom)} · ${achDom.html}</div>${pBar(domTotal,tDom,achDom.cls)}` : '<div class="mr-card-tgt"></div>'}
-    <div class="mr-card-stats"><span>전월 ${domMoM.html}</span><span>전년동월 ${domYoY.html}</span></div>
+    ${projDom ? `<div style="font-size:.82rem;color:#1e40af;margin-top:2px;margin-bottom:4px">예상 마감 <strong>${fb(projDom)}</strong></div>` : ''}
+    ${tDom ? `<div class="mr-card-tgt">목표 ${fb(tDom)} · ${projAchDom ? `예상 ${projAchDom.html}` : achDom.html}</div>${pBar(projDom||domTotal,tDom,(projAchDom||achDom).cls)}` : '<div class="mr-card-tgt"></div>'}
+    <div class="mr-card-stats"><span>전월${projDom?'(예상)':''} ${projDom?safe(projDom,domTotalP).html:domMoM.html}</span><span>전년동월${projDom?'(예상)':''} ${projDom?safe(projDom,domTotalYr).html:domYoY.html}</span></div>
     <div class="mr-sub-grid">
       ${subCard('공구', domGongu, domGonguP, tGongu, achGongu)}
       ${subCard('일반', domIlban, domIlbanP, tIlban, achIlban)}
