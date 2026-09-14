@@ -764,6 +764,9 @@ const OVR_GID_GONGU    = '396878850';
 // ── 해외 매출 파일 (월 매출 현황용) ──
 const IHUB_SHEET_ID  = '1tre8iSG89MwJAZJJjuCVtUsxC8HwSJvzW8s3ZzABgbk';
 const OVR_2026_GID   = '1352973521'; // 2026 탭: 해외 공구/일반/아이허브 요약
+// ── 국내 판매 raw 탭 (월 매출 현황용 — BQ 대체) ──
+const RAW_SALES_ID   = '1nkKrL8YaudsdjTjIZjDmE5NYoubgcSRIFUObyLiJRlQ';
+const RAW_SALES_GID  = '1605737796';
 let   IHUB_ROWS      = []; // (미사용, 하위호환 유지)
 let   OVR_DATA       = null; // parseOverseasSheet 결과
 let   mrLoaded      = false;
@@ -4419,11 +4422,65 @@ async function loadMonthlyReportData() {
   mrLoading = (async () => {
     let bqOk = true, ihubOk = true;
 
-    // BQ — 실패해도 계속 진행
-    try { await loadBQData(); }
-    catch(e) {
+    // 국내 판매 raw 탭 (BQ 대체) — 실패해도 계속 진행
+    try {
+      if (!bqLoaded) {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), 90000);
+        let csv;
+        try {
+          const resp = await fetch(
+            `https://docs.google.com/spreadsheets/d/${RAW_SALES_ID}/export?format=csv&gid=${RAW_SALES_GID}`,
+            { signal: ctrl.signal }
+          );
+          if (!resp.ok) throw new Error('HTTP ' + resp.status);
+          csv = await resp.text();
+        } finally { clearTimeout(timer); }
+
+        const allRows = parseCSV(csv);
+        if (allRows.length < 2) throw new Error('데이터 없음');
+
+        // 헤더 기반 컬럼 탐지
+        const hdr = allRows[0].map(h => String(h||'').replace(/\n/g,' ').trim());
+        const fi = name => hdr.findIndex(h => h.includes(name));
+        const idxCh    = fi('대표채널명');
+        const idxDist  = fi('구분');
+        const idxBrand = fi('브랜드');
+        const idxYear  = fi('연');
+        const idxMonth = fi('월');
+        const idxDay   = fi('일');
+        const idxWeek  = fi('주차');
+        const idxProd  = fi('대표품목명');
+        const idxQty   = fi('수량');
+        const idxRev   = fi('실결제금액');
+        const idxFqty  = fi('최종 수량');
+        const idxCat   = fi('건기');
+
+        const _ps = v => String(v??'').trim();
+        const _pn = v => { const n=parseFloat(String(v??'').replace(/[,\s₩]/g,'')); return isNaN(n)?0:n; };
+        const _pi = v => { const n=parseInt(String(v??''),10); return isNaN(n)?0:n; };
+
+        ROWS = allRows.slice(1).map(r => ({
+          ch:       _ps(r[idxCh]),
+          dist:     _ps(r[idxDist]),
+          brand:    _ps(r[idxBrand]),
+          year:     _pi(r[idxYear]),
+          month:    _pi(r[idxMonth]),
+          day:      _pi(r[idxDay]),
+          week:     _pi(r[idxWeek]),
+          prod:     _ps(r[idxProd]),
+          qty:      _pi(r[idxQty]),
+          rev:      _pn(r[idxRev]),
+          fqty:     _pi(r[idxFqty]),
+          category: _ps(r[idxCat]),
+        })).filter(r => r.year > 0 && r.month > 0 && r.ch !== '' && r.rev !== 0);
+
+        bqLoaded = true;
+        console.log(`[MR] RAW 판매 ${ROWS.length}건 로드 (시트)`);
+      }
+    } catch(e) {
       bqOk = false;
-      console.warn('[MR] BQ 로드 실패:', e.message || e);
+      console.warn('[MR] RAW 판매 로드 실패:', e.message || e);
     }
 
     // 해외 매출 파일 (2026 탭) — 실패해도 계속 진행
