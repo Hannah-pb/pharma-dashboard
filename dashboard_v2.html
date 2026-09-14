@@ -4528,17 +4528,17 @@ async function renderMonthlyReport(ym) {
   const domPrev  = F(ROWS, p.prev);
   const domPrev2 = F(ROWS, p.prev2);
   const domYr    = F(ROWS, p.prevYr);
-  // PIVOT_DATA 우선 (검증된 월별 집계), BQ는 상세 보조용
-  const domGongu  = piv('gongu',    p.cur.m)  || (bqOk ? S(domAll.filter(r => r.dist==='3.공동구매')) : 0);
-  const domIlban  = piv('ilban',    p.cur.m)  || (bqOk ? S(domAll.filter(r => r.dist!=='3.공동구매')) : 0);
-  const domCh     = piv('channel',  p.cur.m)  || (bqOk ? S(domAll.filter(r => r.dist!=='3.공동구매' && MR_CH.includes(r.ch))) : 0);
+  // BQ 우선 (실거래 상세), BQ 실패 시 PIVOT_DATA fallback
+  const domGongu  = bqOk ? S(domAll.filter(r => r.dist==='3.공동구매'))                              : piv('gongu',    p.cur.m);
+  const domIlban  = bqOk ? S(domAll.filter(r => r.dist!=='3.공동구매'))                              : piv('ilban',    p.cur.m);
+  const domCh     = bqOk ? S(domAll.filter(r => r.dist!=='3.공동구매' && MR_CH.includes(r.ch)))      : piv('channel',  p.cur.m);
   const domGita   = domIlban - domCh;
-  const domTotal  = piv('domestic', p.cur.m)  || (bqOk ? S(domAll) : 0);
-  const domGonguP = piv('gongu',    p.prev.m) || (bqOk ? S(domPrev.filter(r => r.dist==='3.공동구매')) : 0);
-  const domIlbanP = piv('ilban',    p.prev.m) || (bqOk ? S(domPrev.filter(r => r.dist!=='3.공동구매')) : 0);
-  const domChP    = piv('channel',  p.prev.m) || (bqOk ? S(domPrev.filter(r => r.dist!=='3.공동구매' && MR_CH.includes(r.ch))) : 0);
+  const domTotal  = bqOk ? S(domAll)                                                                  : piv('domestic', p.cur.m);
+  const domGonguP = bqOk ? S(domPrev.filter(r => r.dist==='3.공동구매'))                             : piv('gongu',    p.prev.m);
+  const domIlbanP = bqOk ? S(domPrev.filter(r => r.dist!=='3.공동구매'))                             : piv('ilban',    p.prev.m);
+  const domChP    = bqOk ? S(domPrev.filter(r => r.dist!=='3.공동구매' && MR_CH.includes(r.ch)))     : piv('channel',  p.prev.m);
   const domGitaP  = domIlbanP - domChP;
-  const domTotalP = piv('domestic', p.prev.m) || (bqOk ? S(domPrev) : 0);
+  const domTotalP = bqOk ? S(domPrev)                                                                 : piv('domestic', p.prev.m);
   const domTotalYr= bqOk ? S(domYr)  : 0;
 
   // ── 해외 집계 (OVR_DATA 우선, fallback: PIVOT_DATA) ──
@@ -4668,10 +4668,9 @@ async function renderMonthlyReport(ym) {
 
   // ─────────── 채널별 테이블 ───────────
   const CH_KEY = {'스마트스토어':'ss','카페24':'c24','쿠팡':'coupang','카카오톡스토어':'kakaoStore'};
-  // PIVOT_DATA가 있는 채널 + BQ에서 추가로 발견된 채널 합산
-  const pivChs = MR_CH.filter(ch => CH_KEY[ch] && piv(CH_KEY[ch], p.cur.m) > 0);
-  const bqChs  = bqOk ? [...new Set(domAll.map(r=>r.ch||'기타').filter(Boolean))] : [];
-  const chList = [...new Set([...pivChs, ...bqChs])].sort();
+  const chList = bqOk
+    ? [...new Set(domAll.map(r=>r.ch||'기타').filter(Boolean))].sort()
+    : MR_CH.filter(ch => CH_KEY[ch] && piv(CH_KEY[ch], p.cur.m) > 0).sort();
   const chHtml = `
 <div class="card" style="margin-bottom:16px">
   <div class="card-title">채널별 매출 분석 (국내)</div>
@@ -4679,11 +4678,9 @@ async function renderMonthlyReport(ym) {
     <thead><tr><th>채널</th><th>${ml}</th><th>목표</th><th>달성률</th><th>전월</th><th>전월비</th><th>전년동월</th><th>전년비</th><th>비중</th></tr></thead>
     <tbody>
       ${chList.map(ch => {
-        const pivCur  = CH_KEY[ch] ? piv(CH_KEY[ch], p.cur.m)  : 0;
-        const pivPrev = CH_KEY[ch] ? piv(CH_KEY[ch], p.prev.m) : 0;
-        const cur    = pivCur  || (bqOk ? S(domAll.filter(r=>(r.ch||'기타')===ch))  : 0);
-        const prev   = pivPrev || (bqOk ? S(domPrev.filter(r=>(r.ch||'기타')===ch)) : 0);
-        const prevYr = bqOk ? S(domYr.filter(r=>(r.ch||'기타')===ch)) : 0;
+        const cur    = bqOk ? S(domAll.filter(r=>(r.ch||'기타')===ch))  : (CH_KEY[ch] ? piv(CH_KEY[ch], p.cur.m)  : 0);
+        const prev   = bqOk ? S(domPrev.filter(r=>(r.ch||'기타')===ch)) : (CH_KEY[ch] ? piv(CH_KEY[ch], p.prev.m) : 0);
+        const prevYr = bqOk ? S(domYr.filter(r=>(r.ch||'기타')===ch))   : 0;
         const t2     = CH_KEY[ch] ? tgt2(CH_KEY[ch], p.cur.m) : null;
         const a2     = ach(cur, t2);
         const share  = totCur>0?(cur/totCur*100).toFixed(1):0;
@@ -4716,8 +4713,20 @@ async function renderMonthlyReport(ym) {
   const prodData = Object.values(pMap);
   mrState = { prodData, p, totCur, safe, fb, bqOk };
 
-  // ─────────── iHerb (OVR_DATA 기반 KRW) ───────────
+  // ─────────── 해외 매출 상세 (OVR_DATA 기반: 공구 / 일반) ───────────
   const KRW = v => Math.round(v).toLocaleString('ko-KR') + '원';
+  const oG = (key, mo) => (OVR_DATA && p.cur.y===2026 ? (OVR_DATA[key]?.[mo]||0) : 0);
+  // 해외 공구
+  const ovrGonguCur  = oG('gongu', p.cur.m);
+  const ovrGonguPrev = oG('gongu', p.prev.m);
+  // 해외 일반 구성: 스마트스토어 + 아이허브
+  const ovrSsCur     = oG('smartstore', p.cur.m);
+  const ovrSsPrev    = oG('smartstore', p.prev.m);
+  const ovrIhubCur   = oG('ihubKrw', p.cur.m);
+  const ovrIhubPrev  = oG('ihubKrw', p.prev.m);
+  const ovrIlbanCur  = oG('ilban',  p.cur.m);
+  const ovrIlbanPrev = oG('ilban',  p.prev.m);
+  // 아이허브 제품 상세
   let ihProds = [];
   if (OVR_DATA && OVR_DATA.ihubProds && OVR_DATA.ihubProds.length > 0) {
     ihProds = OVR_DATA.ihubProds.map(r => ({
@@ -4726,21 +4735,64 @@ async function renderMonthlyReport(ym) {
       prev: (p.prev.y === 2026 ? r.months?.[p.prev.m] : 0) || 0,
     })).filter(r => r.cur > 0).sort((a,b) => b.cur - a.cur);
   }
-  const ihTotal  = ihProds.reduce((s,r)=>s+r.cur, 0);
-  const ihubHtml = ihProds.length===0 ? '' : `
-<div class="card">
-  <div class="card-title">iHerb 제품별 현황 <span style="font-size:.72rem;color:#94a3b8;margin-left:8px">단위: KRW</span></div>
-  <div class="tbl-wrap"><table class="mr-prod-tbl">
-    <thead><tr><th style="text-align:left">제품명</th><th>${ml}</th><th>전월</th><th>전월비</th><th>비중</th></tr></thead>
-    <tbody>${ihProds.map(r=>`<tr>
-      <td>${r.prod}</td>
-      <td class="num">${KRW(r.cur)}</td>
-      <td class="num">${r.prev>0?KRW(r.prev):'—'}</td>
-      <td>${safe(r.cur,r.prev).html}</td>
-      <td class="num">${ihTotal>0?(r.cur/ihTotal*100).toFixed(1):0}%</td>
-    </tr>`).join('')}</tbody>
-    <tfoot><tr style="font-weight:700;border-top:2px solid #e8edf3"><td>합계</td><td class="num">${KRW(ihTotal)}</td><td colspan="3"></td></tr></tfoot>
+  const hasOvrData = ovrGonguCur > 0 || ovrIlbanCur > 0;
+  const ovrDetailHtml = !hasOvrData ? '' : `
+<div class="card" style="margin-bottom:16px">
+  <div class="card-title">해외 매출 상세</div>
+  <div class="tbl-wrap"><table class="mr-ch-tbl">
+    <thead><tr><th>구분</th><th>${ml}</th><th>전월</th><th>전월비</th><th>비중</th></tr></thead>
+    <tbody>
+      <tr style="font-weight:700;background:#f0f7ff">
+        <td>해외 공구</td>
+        <td class="num">${KRW(ovrGonguCur)}</td>
+        <td class="num">${ovrGonguPrev>0?KRW(ovrGonguPrev):'—'}</td>
+        <td>${safe(ovrGonguCur,ovrGonguPrev).html}</td>
+        <td class="num">${ovrIlbanCur+ovrGonguCur>0?((ovrGonguCur/(ovrIlbanCur+ovrGonguCur))*100).toFixed(1):0}%</td>
+      </tr>
+      <tr style="font-weight:700;background:#f0fdf4">
+        <td>해외 일반</td>
+        <td class="num">${KRW(ovrIlbanCur)}</td>
+        <td class="num">${ovrIlbanPrev>0?KRW(ovrIlbanPrev):'—'}</td>
+        <td>${safe(ovrIlbanCur,ovrIlbanPrev).html}</td>
+        <td class="num">${ovrIlbanCur+ovrGonguCur>0?((ovrIlbanCur/(ovrIlbanCur+ovrGonguCur))*100).toFixed(1):0}%</td>
+      </tr>
+      ${ovrSsCur>0?`<tr style="padding-left:16px">
+        <td style="padding-left:24px;color:#475569">└ 스마트스토어</td>
+        <td class="num">${KRW(ovrSsCur)}</td>
+        <td class="num">${ovrSsPrev>0?KRW(ovrSsPrev):'—'}</td>
+        <td>${safe(ovrSsCur,ovrSsPrev).html}</td>
+        <td class="num">${ovrIlbanCur>0?((ovrSsCur/ovrIlbanCur)*100).toFixed(1):0}%</td>
+      </tr>`:''}
+      ${ovrIhubCur>0?`<tr>
+        <td style="padding-left:24px;color:#475569">└ 아이허브</td>
+        <td class="num">${KRW(ovrIhubCur)}</td>
+        <td class="num">${ovrIhubPrev>0?KRW(ovrIhubPrev):'—'}</td>
+        <td>${safe(ovrIhubCur,ovrIhubPrev).html}</td>
+        <td class="num">${ovrIlbanCur>0?((ovrIhubCur/ovrIlbanCur)*100).toFixed(1):0}%</td>
+      </tr>`:''}
+      <tr style="font-weight:700;border-top:2px solid #e8edf3">
+        <td>해외 합계</td>
+        <td class="num">${KRW(ovrGonguCur+ovrIlbanCur)}</td>
+        <td class="num">${(ovrGonguPrev+ovrIlbanPrev)>0?KRW(ovrGonguPrev+ovrIlbanPrev):'—'}</td>
+        <td>${safe(ovrGonguCur+ovrIlbanCur,ovrGonguPrev+ovrIlbanPrev).html}</td>
+        <td class="num">100%</td>
+      </tr>
+    </tbody>
   </table></div>
+  ${ihProds.length>0?`
+  <div style="margin-top:16px;border-top:1px solid #f1f5f9;padding-top:14px">
+    <div style="font-size:.78rem;font-weight:700;color:#64748b;margin-bottom:8px">아이허브 제품별 상세</div>
+    <div class="tbl-wrap"><table class="mr-prod-tbl">
+      <thead><tr><th style="text-align:left">제품명</th><th>${ml}</th><th>전월</th><th>전월비</th><th>비중</th></tr></thead>
+      <tbody>${ihProds.map(r=>`<tr>
+        <td>${r.prod}</td>
+        <td class="num">${KRW(r.cur)}</td>
+        <td class="num">${r.prev>0?KRW(r.prev):'—'}</td>
+        <td>${safe(r.cur,r.prev).html}</td>
+        <td class="num">${ovrIhubCur>0?((r.cur/ovrIhubCur)*100).toFixed(1):0}%</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+  </div>`:''}
 </div>`;
 
   // ─────────── BQ 경고 배너 ───────────
@@ -4749,17 +4801,17 @@ async function renderMonthlyReport(ym) {
   <span style="font-size:1rem">⚠️</span>
   <span>상세 판매 데이터(BigQuery)를 불러오지 못했습니다. 합계는 PIVOT_DATA 기준으로 표시되며, 상품·채널 상세 데이터는 제한됩니다.</span>
 </div>` : '';
-  const ihubWarnHtml = !ihubOk ? `
+  const ovrWarnHtml = !ihubOk ? `
 <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:.8rem;color:#92400e;display:flex;align-items:center;gap:8px">
   <span style="font-size:1rem">⚠️</span>
-  <span>iHerb 데이터를 불러오지 못했습니다. iHerb 제품별 현황이 표시되지 않습니다.</span>
+  <span>해외 매출 데이터를 불러오지 못했습니다. 해외 상세 현황이 표시되지 않습니다.</span>
 </div>` : '';
   const bqSectionWarn = !bqOk ? `<div style="text-align:center;color:#94a3b8;padding:20px;font-size:.82rem">⚠️ BigQuery 데이터 없음 — 상세 내역 표시 불가</div>` : '';
 
   // ─────────── DOM 조립 ───────────
   const brandList  = [...new Set(prodData.map(r=>r.brand).filter(Boolean))].sort();
   const chListFull = [...new Set(prodData.map(r=>r.ch).filter(Boolean))].sort();
-  body.innerHTML = bqWarnHtml + ihubWarnHtml + heroHtml + hierHtml + (bqOk ? top5Html : `<div class="mr-top5-wrap"><div class="mr-top5-card" style="grid-column:1/-1">${bqSectionWarn}</div></div>`) + (bqOk ? chHtml : `<div class="card" style="margin-bottom:16px"><div class="card-title">채널별 매출 분석 (국내)</div>${bqSectionWarn}</div>`) + `
+  body.innerHTML = bqWarnHtml + ovrWarnHtml + heroHtml + hierHtml + (bqOk ? top5Html : `<div class="mr-top5-wrap"><div class="mr-top5-card" style="grid-column:1/-1">${bqSectionWarn}</div></div>`) + (bqOk ? chHtml : `<div class="card" style="margin-bottom:16px"><div class="card-title">채널별 매출 분석 (국내)</div>${bqSectionWarn}</div>`) + `
 <div class="card" style="margin-bottom:16px">
   <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
     <span>상품별 매출 상세 (국내)</span>
@@ -4782,7 +4834,7 @@ async function renderMonthlyReport(ym) {
     </select>
   </div>
   <div id="mrProdTableWrap">${bqOk ? buildMrProdTable(prodData, mrProdFilter, p, totCur, safe, fb) : bqSectionWarn}</div>
-</div>` + ihubHtml;
+</div>` + ovrDetailHtml;
 }
 
 function buildMrProdTable(prodData, filter, p, totCur, safe, fb) {
