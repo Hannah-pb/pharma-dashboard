@@ -611,6 +611,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
         <div class="inv-tab-bar">
           <button class="inv-tab-btn active" data-tab="status"   onclick="switchInvTab('status')">재고 현황</button>
           <button class="inv-tab-btn"         data-tab="issues"   onclick="switchInvTab('issues')">재고 이슈</button>
+          <button class="inv-tab-btn"         data-tab="gongu"    onclick="switchInvTab('gongu')">공구 점검</button>
           <button class="inv-tab-btn"         data-tab="schedule" onclick="switchInvTab('schedule')">입고 일정</button>
         </div>
 
@@ -650,6 +651,11 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
             <div class="tbl-wrap"><table id="tblExpiry" class="inv-table"></table></div>
           </div>
 
+        </div>
+
+        <!-- 탭 3: 공구 점검 -->
+        <div class="inv-tab-pane" id="invTab-gongu">
+
           <!-- 공구 소비기한 점검 -->
           <div class="card">
             <div class="card-title card-title-row">
@@ -668,9 +674,18 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
             <div class="tbl-wrap"><table id="tblStockoutCheck" class="inv-table"></table></div>
           </div>
 
+          <!-- 리뉴얼 상품 공구 진행 점검 -->
+          <div class="card">
+            <div class="card-title card-title-row">
+              <span>리뉴얼 상품 공구 진행 점검 <span id="invRenewalCount" style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px"></span></span>
+              <span style="font-size:11px;font-weight:400;color:#94a3b8">T열 리뉴얼 확인 대상 공구건</span>
+            </div>
+            <div id="invRenewalCheck"></div>
+          </div>
+
         </div>
 
-        <!-- 탭 3: 입고 일정 -->
+        <!-- 탭 4: 입고 일정 -->
         <div class="inv-tab-pane" id="invTab-schedule">
           <div class="card">
             <div class="card-title">입고 일정표 <span style="font-size:11px;font-weight:400;color:#94a3b8;margin-left:6px">향후 90일</span></div>
@@ -3632,6 +3647,7 @@ async function loadInventoryData() {
           obj._colG = (r[6] ?? '').trim();  // G열 raw 값
           obj._colP = (r[15] ?? '').trim(); // P열 raw 값 (점검 여부)
           obj._colQ = (r[16] ?? '').trim(); // Q열 raw 값 (점검 확인)
+          obj._colT = (r[19] ?? '').trim(); // T열 raw 값 (리뉴얼 알람)
           return obj;
         });
       console.log('[공구탭] 헤더:', gonguHdr);
@@ -3881,6 +3897,7 @@ function renderInventory() {
     renderExpiry();
     renderStockoutCheck();
     renderGonguExpiryCheck();
+    renderRenewalCheck();
     renderOrderTimeline();
     updateInvRegionDisplay();
     document.getElementById('pageMeta').textContent = invMetaText();
@@ -3975,21 +3992,14 @@ function renderOrderAlarm() {
   const processed = alarmRows.map(r => {
     const sellout = parseInvDate(r['입고후소진예상일']);
     const dDay    = sellout ? Math.round((sellout.getTime() - today.getTime()) / 86400000) : null;
-    return { r, sellout, dDay };
+    const isHandok = (r['브랜드'] || '').includes('한독');
+    return { r, sellout, dDay, isHandok };
   }).sort((a, b) => (a.dDay ?? 9999) - (b.dDay ?? 9999));
 
-  let html = `<thead><tr>
-    <th>품목명</th>
-    <th>담당자</th>
-    <th>현재고</th>
-    <th>MOQ</th>
-    <th>소진 예상일</th>
-    <th>입고예정 / 발주수량</th>
-    <th>오늘 공구여부</th>
-    <th>비고</th>
-  </tr></thead><tbody>`;
+  const normalRows = processed.filter(x => !x.isHandok);
+  const handokRows = processed.filter(x =>  x.isHandok);
 
-  for (const { r, sellout, dDay } of processed) {
+  const makeRow = ({ r, sellout, dDay }) => {
     const rowCls  = dDay !== null && dDay >= 0 && dDay <= 30 ? 'alarm-red'
                   : dDay !== null && dDay >= 0 && dDay <= 60 ? 'alarm-orange'
                   : 'alarm-yellow';
@@ -3999,15 +4009,13 @@ function renderOrderAlarm() {
       ? `${delivDate}<div style="font-size:11px;color:#64748b;margin-top:1px">${delivQty.toLocaleString()}개</div>`
       : '—';
     const note = (r['커머스 이슈'] || r['커머스이슈'] || r['비고'] || '').substring(0, 80);
-
     let ddayBadge = '';
     if (dDay !== null) {
       const ddayStr = dDay >= 0 ? `D-${dDay}` : `D+${Math.abs(dDay)}`;
       const ddayCls = dDay < 0 ? 'gray' : dDay <= 30 ? 'red' : dDay <= 60 ? 'orange' : 'yellow';
       ddayBadge = ` <span class="inv-badge ${ddayCls}">${ddayStr}</span>`;
     }
-
-    html += `<tr class="${rowCls}">
+    return `<tr class="${rowCls}">
       <td><b>${r['품목명']}</b></td>
       <td>${r['상기담당'] || '—'}</td>
       <td>${parseInvNum(r['재고수량']).toLocaleString()}</td>
@@ -4017,7 +4025,22 @@ function renderOrderAlarm() {
       <td>${r['오늘 공구여부'] || r['오늘공구여부'] || '—'}</td>
       <td style="max-width:200px;white-space:normal;word-break:break-all">${note || '—'}</td>
     </tr>`;
+  };
+
+  let html = `<thead><tr>
+    <th>품목명</th><th>담당자</th><th>현재고</th><th>MOQ</th>
+    <th>소진 예상일</th><th>입고예정 / 발주수량</th><th>오늘 공구여부</th><th>비고</th>
+  </tr></thead><tbody>`;
+
+  html += normalRows.map(makeRow).join('');
+
+  if (handokRows.length > 0) {
+    html += `<tr><td colspan="8" style="padding:8px 12px 4px;background:#f8fafc;border-top:2px solid #e2e8f0">
+      <span style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:.04em">* 한독</span>
+    </td></tr>`;
+    html += handokRows.map(makeRow).join('');
   }
+
   html += '</tbody>';
   document.getElementById('tblOrderAlarm').innerHTML = html;
 }
@@ -4265,6 +4288,55 @@ function renderGonguExpiryCheck() {
     </tr></thead><tbody>`;
   for (const prod of prods) {
     const events = grouped[prod];
+    const schedule = events.map(e => `${e.nick} – ${e.start}`).join('<br>');
+    const checks   = events.map(e => e.check).join('<br>');
+    html += `<tr>
+      <td>${prod}</td>
+      <td>${schedule}</td>
+      <td>${checks}</td>
+    </tr>`;
+  }
+  html += '</tbody></table></div>';
+  el.innerHTML = html;
+  if (badge) badge.textContent = `${prods.length}품목 / ${items.length}건`;
+}
+
+// ═══════════════════════════════════════════════════════
+//  INVENTORY — 리뉴얼 상품 공구 진행 점검 (T열 = "리뉴얼 확인")
+// ═══════════════════════════════════════════════════════
+function renderRenewalCheck() {
+  const el    = document.getElementById('invRenewalCheck');
+  const badge = document.getElementById('invRenewalCount');
+  if (!el) return;
+
+  const items = GONGU_ROWS.filter(r => r._colT === '리뉴얼 확인');
+
+  if (badge) badge.textContent = items.length ? `${items.length}건` : '';
+  if (!items.length) {
+    el.innerHTML = '<div style="text-align:center;color:#94a3b8;padding:24px;font-size:13px">✓ 리뉴얼 점검 대상 공구건이 없습니다</div>';
+    return;
+  }
+
+  // 품목명별 그룹핑
+  const grouped = {};
+  for (const r of items) {
+    const prod = r['품목명'] || r['제품명'] || '—';
+    if (!grouped[prod]) grouped[prod] = [];
+    grouped[prod].push({
+      nick:  r['닉네임'] || '—',
+      start: r['시작일'] || '—',
+      check: r._colQ || '—',
+    });
+  }
+  const prods = Object.keys(grouped);
+  let html = `<div class="tbl-wrap"><table class="inv-table narrow">
+    <thead><tr>
+      <th>품목명</th>
+      <th>공구 일정</th>
+      <th>점검 확인</th>
+    </tr></thead><tbody>`;
+  for (const prod of prods) {
+    const events   = grouped[prod];
     const schedule = events.map(e => `${e.nick} – ${e.start}`).join('<br>');
     const checks   = events.map(e => e.check).join('<br>');
     html += `<tr>
