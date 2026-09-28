@@ -1914,34 +1914,53 @@ function renderOvrForecast() {
     if (!inbounds.length) return '<span style="color:#94a3b8">—</span>';
     if (inbounds.length === 1) {
       const f = inbounds[0];
-      return `<div style="font-weight:700;font-size:12px;color:#1d4ed8">${f.qty.toLocaleString()}개</div><div style="font-size:11px;color:#64748b;margin-top:2px">${fmtFcMonth(f.month)}</div>`;
+      return `<span style="font-weight:700;font-size:12px;color:#1d4ed8">${f.qty.toLocaleString()}개</span> <span style="font-size:11px;color:#64748b">${fmtFcMonth(f.month)}</span>`;
     }
     const tot = inbounds.reduce((s,f)=>s+f.qty,0);
-    const badges = inbounds.map((f,i)=>`
-      <div style="display:flex;align-items:flex-start;gap:5px;margin-top:3px">
-        <span style="background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:1px 6px;font-weight:700;font-size:10px;flex-shrink:0;margin-top:1px">${i+1}차</span>
-        <div>
-          <div style="font-size:12px;color:#1e293b">${f.qty.toLocaleString()}개</div>
-          <div style="font-size:11px;color:#64748b">${fmtFcMonth(f.month)}</div>
-        </div>
+    const lines = inbounds.map((f,i)=>
+      `<div style="display:flex;align-items:center;gap:5px;margin-top:2px">
+        <span style="background:#dbeafe;color:#1d4ed8;border-radius:4px;padding:1px 5px;font-weight:700;font-size:10px;flex-shrink:0">${i+1}차</span>
+        <span style="font-size:12px;color:#1e293b;font-weight:600">${f.qty.toLocaleString()}개</span>
+        <span style="font-size:11px;color:#64748b">${fmtFcMonth(f.month)}</span>
       </div>`).join('');
-    return `<div style="font-size:12px;font-weight:700;color:#1d4ed8;margin-bottom:4px">합계 ${tot.toLocaleString()}개</div>${badges}`;
+    return `<div style="font-size:11px;font-weight:700;color:#1d4ed8;margin-bottom:2px">합계 ${tot.toLocaleString()}개</div>${lines}`;
+  };
+
+  // 발주 알람: 예상 부족 시점 - 5개월
+  const orderAlarmMonth = ym => {
+    if (!ym) return null;
+    const [y, m] = ym.split('-').map(Number);
+    let nm = m - 5, ny = y;
+    while (nm <= 0) { nm += 12; ny--; }
+    return `${ny}-${String(nm).padStart(2,'0')}`;
   };
 
   const ACTION=(aItems.length===0)
     ?`<div class="fc-empty">확인이 필요한 상품이 없습니다.</div>`
     :`<div style="overflow-x:auto"><table class="fc-action-tbl">
-        <thead><tr><th>상태</th><th>상품명</th><th>현재 재고</th><th>예상 부족 시점<br><span style="font-weight:400;color:#94a3b8;font-size:10px">안전재고 5,000개</span></th><th>입고 예정</th></tr></thead>
+        <thead><tr>
+          <th>브랜드</th>
+          <th>상태</th>
+          <th>상품명</th>
+          <th>현재 재고</th>
+          <th>예상 부족 시점<br><span style="font-weight:400;color:#94a3b8;font-size:10px">안전재고 5,000개</span></th>
+          <th>발주 알람<br><span style="font-weight:400;color:#94a3b8;font-size:10px">부족 5개월 전</span></th>
+          <th>입고 예정</th>
+        </tr></thead>
         <tbody>${aItems.map(it=>{
           const safetyM = getSafetyMonth(it.forecast);
           const sc = {CRITICAL:'#dc2626',GAP:'#ea580c',WARNING:'#b45309'}[it.status]||'#475569';
           const ss = safetyM ? `<span style="font-weight:600;color:${sc}">${fmtFcMonth(safetyM)}</span>` : '<span style="color:#94a3b8">—</span>';
+          const alarm = orderAlarmMonth(safetyM);
+          const alarmCell = alarm ? `<span style="font-weight:600;color:#7c3aed">${fmtFcMonth(alarm)}</span>` : '<span style="color:#94a3b8">—</span>';
           const futInb = getFutureInbounds(it.forecast);
           return `<tr>
+            <td style="color:#475569;white-space:nowrap">${it.product.brand||'—'}</td>
             <td><span class="fc-badge ${it.status}">${FC_STATUS_LABELS[it.status]}</span></td>
-            <td style="font-weight:600;color:#1e293b;max-width:200px;white-space:normal">${it.product.name}</td>
+            <td style="font-weight:600;color:#1e293b;max-width:180px;white-space:normal">${it.product.name}</td>
             <td style="font-weight:700;font-variant-numeric:tabular-nums">${it.product.initialInventory.toLocaleString()}</td>
             <td>${ss}</td>
+            <td>${alarmCell}</td>
             <td>${fmtInbCell(futInb)}</td>
           </tr>`;
         }).join('')}</tbody>
