@@ -1943,9 +1943,9 @@ function renderOvrForecast() {
           <th>상태</th>
           <th>상품명</th>
           <th>현재 재고</th>
+          <th>입고 예정</th>
           <th>예상 부족 시점<br><span style="font-weight:400;color:#94a3b8;font-size:10px">안전재고 5,000개</span></th>
           <th>발주 알람<br><span style="font-weight:400;color:#94a3b8;font-size:10px">부족 5개월 전</span></th>
-          <th>입고 예정</th>
         </tr></thead>
         <tbody>${aItems.map(it=>{
           const safetyM = getSafetyMonth(it.forecast);
@@ -1959,9 +1959,9 @@ function renderOvrForecast() {
             <td><span class="fc-badge ${it.status}">${FC_STATUS_LABELS[it.status]}</span></td>
             <td style="font-weight:600;color:#1e293b;max-width:180px;white-space:normal">${it.product.name}</td>
             <td style="font-weight:700;font-variant-numeric:tabular-nums">${it.product.initialInventory.toLocaleString()}</td>
+            <td>${fmtInbCell(futInb)}</td>
             <td>${ss}</td>
             <td>${alarmCell}</td>
-            <td>${fmtInbCell(futInb)}</td>
           </tr>`;
         }).join('')}</tbody>
       </table></div>`;
@@ -4461,7 +4461,9 @@ function renderOrderTimeline() {
 // ═══════════════════════════════════════════════════════
 //  월 매출 현황
 // ═══════════════════════════════════════════════════════
-let mrLoadStatus = null; // { bqOk, ihubOk }
+let mrLoadStatus  = null; // { bqOk, ihubOk }
+let mrRawLoaded   = false;
+let mrRawDate     = '';   // 데이터 기준일 (마지막 행 주문일, "YYYY.MM.DD")
 
 function parseOverseasSheet(csvText) {
   const rows = parseCSV(csvText);
@@ -4513,9 +4515,9 @@ async function loadMonthlyReportData() {
   mrLoading = (async () => {
     let bqOk = true, ihubOk = true;
 
-    // 국내 판매 raw 탭 (BQ 대체) — 실패해도 계속 진행
+    // 국내 판매 raw 탭 — 항상 raw 시트를 우선 로드 (bqLoaded 여부 무관)
     try {
-      if (!bqLoaded) {
+      if (!mrRawLoaded) {
         const ctrl = new AbortController();
         const timer = setTimeout(() => ctrl.abort(), 90000);
         let csv;
@@ -4531,15 +4533,16 @@ async function loadMonthlyReportData() {
         const allRows = parseCSV(csv);
         if (allRows.length < 2) throw new Error('데이터 없음');
 
-        // 헤더 기반 컬럼 탐지
+        // 헤더 기반 컬럼 탐지 — exact match 우선 (짧은 컬럼명 '일' 등 오탐 방지)
         const hdr = allRows[0].map(h => String(h||'').replace(/\n/g,' ').trim());
-        const fi = name => hdr.findIndex(h => h.includes(name));
+        const fi   = name => hdr.findIndex(h => h.includes(name));
+        const fiEx = name => { const i=hdr.findIndex(h=>h===name); return i>=0?i:fi(name); };
         const idxCh    = fi('대표채널명');
         const idxDist  = fi('구분');
         const idxBrand = fi('브랜드');
-        const idxYear  = fi('연');
-        const idxMonth = fi('월');
-        const idxDay   = fi('일');
+        const idxYear  = fiEx('연');   // exact match: '연' ≠ '주문번호' 등
+        const idxMonth = fiEx('월');
+        const idxDay   = fiEx('일');   // exact match: '일' ≠ '주문일' (index 2)
         const idxWeek  = fi('주차');
         const idxProd  = fi('대표품목명');
         const idxQty   = fi('수량');
@@ -4547,6 +4550,7 @@ async function loadMonthlyReportData() {
         const idxFqty   = fi('최종 수량');
         const idxCat    = fi('건기');
         const idxExcl   = fi('매출제외');
+        const idxOrderDate = 2; // C열 = 주문일 (고정)
 
         const _ps = v => String(v??'').trim();
         const _pn = v => { const n=parseFloat(String(v??'').replace(/[,\s₩]/g,'')); return isNaN(n)?0:n; };
@@ -4572,8 +4576,15 @@ async function loadMonthlyReportData() {
           && r.exclude !== '한독'             // 한독 매출제외
         );
 
-        bqLoaded = true;
-        console.log(`[MR] RAW 판매 ${ROWS.length}건 로드 (시트)`);
+        // 데이터 기준일: 마지막 유효 행의 C열(주문일)
+        const lastDateRow = [...allRows].slice(1).reverse().find(r => _ps(r[idxOrderDate]));
+        if (lastDateRow) {
+          mrRawDate = _ps(lastDateRow[idxOrderDate]).replace(/-/g,'.').substring(0,10);
+        }
+
+        mrRawLoaded = true;
+        bqLoaded    = true; // 다른 탭에서 BQ 재로드 방지
+        console.log(`[MR] RAW 판매 ${ROWS.length}건 로드 (시트, 기준: ${mrRawDate})`);
       }
     } catch(e) {
       bqOk = false;
@@ -4615,6 +4626,12 @@ async function renderMonthlyReport(ym) {
   const status = await loadMonthlyReportData().catch(() => ({ bqOk:false, ihubOk:false }));
   const bqOk   = status?.bqOk   !== false;
   const ihubOk = status?.ihubOk !== false;
+
+  // 데이터 기준일 표시
+  const noteEl = document.getElementById('mrLoadNote');
+  if (noteEl) {
+    noteEl.textContent = mrRawDate ? `데이터 기준: ${mrRawDate}` : (bqOk ? '' : '데이터 로드 실패');
+  }
 
   // 기준월 셀렉터: BQ 없으면 PIVOT_DATA 기반 월 목록
   // 마감된 월만 선택 가능 (이번 달 이후 제외)
