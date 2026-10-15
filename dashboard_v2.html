@@ -532,6 +532,12 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .ovr-ch-card.ihub{border-color:#f59e0b} .ovr-ch-card.ss{border-color:#3b82f6} .ovr-ch-card.amz{border-color:#ea580c}
 .ovr-ch-name{font-size:.68rem;font-weight:700;color:#64748b;margin-bottom:3px}
 .ovr-ch-val{font-size:1.05rem;font-weight:700;color:#1e293b}
+/* 연간/월간 구분 레이블 */
+.ovr-period-hd{font-size:.72rem;font-weight:700;color:#64748b;letter-spacing:.07em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ovr-period-hd::after{content:'';flex:1;height:1px;background:#e2e8f0}
+/* 상품 테이블 기본 (PC) */
+.ovr-sticky-brand{text-align:left;min-width:60px}
+.ovr-sticky-prod{text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}
 /* 태블릿 */
 @media(max-width:900px){
   .ovr-hero{grid-template-columns:1fr}
@@ -560,6 +566,14 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
   .ovr-prog-label{font-size:.66rem}
   .ovr-prog-label span:last-child{font-size:.72rem}
   .ovr-prog-caption{font-size:.64rem}
+  /* 열 고정 */
+  .ovr-sticky-brand{position:sticky;left:0;z-index:2;background:#fff;min-width:44px;max-width:44px;width:44px}
+  .ovr-sticky-prod{position:sticky;left:44px;z-index:2;background:#fff;max-width:calc(46vw - 44px)}
+  .ovr-sticky-prod.no-brand{left:0;max-width:46vw}
+  thead .ovr-sticky-brand,thead .ovr-sticky-prod{background:#f8fafc;z-index:3}
+  .ovr-sum-row .ovr-sticky-brand,.ovr-sum-row .ovr-sticky-prod{background:#f0f4ff}
+  /* 열 고정 오른쪽 경계선 */
+  .ovr-sticky-prod{box-shadow:2px 0 4px rgba(0,0,0,.06)}
 }
 /* 소형 모바일 */
 @media(max-width:400px){
@@ -2448,6 +2462,7 @@ async function renderOverseasSales() {
 
   // ── Hero KPI 카드 (ovr-hero 흰 카드 + 진행률 바)
   body.innerHTML = `
+<div class="ovr-period-hd">연간 누적 실적</div>
 <div class="ovr-hero">
   <div class="ovr-kpi total">
     <div class="ovr-kpi-label">해외 총 매출</div>
@@ -2478,6 +2493,7 @@ async function renderOverseasSales() {
   </div>
 </div>
 
+<div class="ovr-period-hd" style="margin-top:8px">월별 실적</div>
 <!-- 월별 추이 차트 -->
 <div class="ovr-section">
   <div class="ovr-section-title">월별 매출 추이</div>
@@ -2592,18 +2608,19 @@ function _ovrProdTable(prods, months, fw) {
   const sorted = hasBrand
     ? [...prods].sort((a,b) => a.brand===b.brand ? b.total-a.total : a.brand<b.brand?-1:1)
     : prods;
+  const nb = hasBrand ? '' : ' no-brand';
   const hdr = `<tr>
-    ${hasBrand?'<th style="text-align:left;min-width:60px">브랜드</th>':''}
-    <th style="text-align:left">상품명</th>
+    ${hasBrand?`<th class="ovr-sticky-brand">브랜드</th>`:''}
+    <th class="ovr-sticky-prod${nb}">상품명</th>
     ${monthCols.map(m=>`<th>${m}월</th>`).join('')}
     <th>합계</th>
   </tr>`;
   let lastBrand = null;
   const rows = sorted.map(p => {
     const bLabel = hasBrand ? (p.brand !== lastBrand ? (lastBrand=p.brand, p.brand) : '') : '';
-    const brandTd = hasBrand ? `<td style="color:#64748b;font-size:.7rem;font-weight:700;white-space:nowrap">${bLabel}</td>` : '';
+    const brandTd = hasBrand ? `<td class="ovr-sticky-brand" style="color:#64748b;font-size:.7rem;font-weight:700">${bLabel}</td>` : '';
     const cells = monthCols.map(m => `<td>${(p.months[m]||0)>0?fw(p.months[m]):'—'}</td>`);
-    return `<tr>${brandTd}<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.prod}">${p.prod}</td>${cells.join('')}<td style="font-weight:700">${fw(p.total)}</td></tr>`;
+    return `<tr>${brandTd}<td class="ovr-sticky-prod${nb}" title="${p.prod}">${p.prod}</td>${cells.join('')}<td style="font-weight:700">${fw(p.total)}</td></tr>`;
   }).join('');
   // 합산 행
   const grandTotal = sorted.reduce((s,p)=>s+p.total,0);
@@ -2611,9 +2628,9 @@ function _ovrProdTable(prods, months, fw) {
     const v=sorted.reduce((s,p)=>s+(p.months[m]||0),0);
     return `<td style="font-weight:700;color:#1d3f72">${v>0?fw(v):'—'}</td>`;
   });
-  const sumRow = `<tr style="background:#f0f4ff;border-top:2px solid #c7d6f5">
-    ${hasBrand?'<td></td>':''}
-    <td style="font-weight:700;color:#1d3f72;font-size:.78rem">합계</td>
+  const sumRow = `<tr class="ovr-sum-row" style="background:#f0f4ff;border-top:2px solid #c7d6f5">
+    ${hasBrand?`<td class="ovr-sticky-brand"></td>`:''}
+    <td class="ovr-sticky-prod${nb}" style="font-weight:700;color:#1d3f72;font-size:.78rem">합계</td>
     ${sumCells.join('')}
     <td style="font-weight:800;color:#1d3f72">${fw(grandTotal)}</td>
   </tr>`;
