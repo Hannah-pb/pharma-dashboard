@@ -497,6 +497,15 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .ovr-kpi-sub{font-size:.72rem;color:#94a3b8;margin-top:4px}
 .ovr-kpi-ach{font-size:.78rem;font-weight:700;margin-top:6px}
 .ovr-kpi-ach.good{color:#059669} .ovr-kpi-ach.warn{color:#d97706} .ovr-kpi-ach.bad{color:#dc2626}
+.ovr-prog-wrap{margin-top:10px}
+.ovr-prog-label{display:flex;justify-content:space-between;align-items:baseline;font-size:.68rem;color:#94a3b8;margin-bottom:3px}
+.ovr-prog-label span:last-child{font-weight:700;font-size:.74rem}
+.ovr-prog-label span:last-child.good{color:#059669} .ovr-prog-label span:last-child.warn{color:#d97706} .ovr-prog-label span:last-child.bad{color:#dc2626}
+.ovr-prog-track{height:6px;background:#f1f5f9;border-radius:99px;overflow:hidden;margin-bottom:2px}
+.ovr-prog-fill{height:100%;border-radius:99px;max-width:100%;transition:width .4s}
+.ovr-prog-fill.total{background:#0ea5e9} .ovr-prog-fill.gongu{background:#8b5cf6} .ovr-prog-fill.ilban{background:#10b981}
+.ovr-prog-fill.fcast{opacity:.45}
+.ovr-prog-caption{display:flex;justify-content:space-between;font-size:.67rem;color:#94a3b8}
 .ovr-brand-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid #f1f5f9}
 .ovr-brand-card{background:#f8fafc;border-radius:8px;padding:10px 12px}
 .ovr-brand-name{font-size:.68rem;font-weight:700;color:#64748b;margin-bottom:3px}
@@ -2366,27 +2375,52 @@ async function renderOverseasSales() {
   const ytdTgtTotal = availMonths.reduce((s,m)=>s+(d.totalTarget[m]||0),0);
   const ytdTgtGongu = availMonths.reduce((s,m)=>s+(d.gonguTarget[m]||0),0);
   const ytdTgtIlban = availMonths.reduce((s,m)=>s+(d.ilbanTarget[m]||0),0);
-
-  const achTotal  = pct(ytdTotal,  ytdTgtTotal);
-  const achGongu  = pct(ytdGongu,  ytdTgtGongu);
-  const achIlban  = pct(ytdIlban,  ytdTgtIlban);
+  const allMo = Array.from({length:12},(_,i)=>i+1);
+  const annTgtTotal = allMo.reduce((s,m)=>s+(d.totalTarget[m]||0),0);
+  const annTgtGongu = allMo.reduce((s,m)=>s+(d.gonguTarget[m]||0),0);
+  const annTgtIlban = allMo.reduce((s,m)=>s+(d.ilbanTarget[m]||0),0);
+  const annFcastTotal = allMo.reduce((s,m)=>s+(d.totalFcast?.[m]||0),0);
+  const annFcastGongu = allMo.reduce((s,m)=>s+(d.gonguFcast?.[m]||0),0);
+  const annFcastIlban = allMo.reduce((s,m)=>s+(d.ilbanFcast?.[m]||0),0);
 
   const lastMo = availMonths[availMonths.length-1] || 0;
+  const moLabel = `1~${lastMo}월`;
 
-  // ── Hero KPI 카드
+  const oFmt = v => v ? Math.round(v).toLocaleString() : '0';
+
+  // ── 진행률 바 헬퍼
+  const progBar = (ytdV, ytdT, fcastV, fcastT, colorCls) => {
+    if (!ytdT) return '';
+    const achPct  = ytdV / ytdT * 100;
+    const achW    = Math.min(100, achPct).toFixed(1);
+    const achCls2 = achPct>=100?'good':achPct>=80?'warn':'bad';
+    const fcastPct = fcastT>0&&fcastV>0 ? fcastV/fcastT*100 : null;
+    const fcastW   = fcastPct ? Math.min(100, fcastPct).toFixed(1) : null;
+    return `<div class="ovr-prog-wrap">
+      <div class="ovr-prog-label"><span>목표대비 (${moLabel})</span><span class="${achCls2}">${achPct.toFixed(1)}%</span></div>
+      <div class="ovr-prog-track"><div class="ovr-prog-fill ${colorCls}" style="width:${achW}%"></div></div>
+      <div class="ovr-prog-caption"><span>${oFmt(ytdV)}</span><span>목표 ${oFmt(ytdT)}</span></div>
+      ${fcastPct!==null?`
+      <div class="ovr-prog-label" style="margin-top:6px"><span>예상 연마감</span><span class="${fcastPct>=100?'good':fcastPct>=80?'warn':'bad'}">${fcastPct.toFixed(1)}%</span></div>
+      <div class="ovr-prog-track"><div class="ovr-prog-fill ${colorCls} fcast" style="width:${fcastW}%"></div></div>
+      <div class="ovr-prog-caption"><span>${oFmt(fcastV)}</span><span>목표 ${oFmt(fcastT)}</span></div>`:''}
+    </div>`;
+  };
+
+  // ── Hero KPI 카드 (ovr-hero 흰 카드 + 진행률 바)
   body.innerHTML = `
 <div class="ovr-hero">
   <div class="ovr-kpi total">
     <div class="ovr-kpi-label">해외 총 매출</div>
     <div class="ovr-kpi-val num">${fw(ytdTotal)}</div>
-    <div class="ovr-kpi-sub">누적 (1~${lastMo}월) · 목표 ${fw(ytdTgtTotal)}</div>
-    ${ytdTgtTotal?`<div class="ovr-kpi-ach ${achCls(achTotal)}">${achTotal.toFixed(1)}% 달성</div>`:''}
+    <div class="ovr-kpi-sub">누적 (${moLabel}) · 연간목표 ${fw(annTgtTotal)}</div>
+    ${progBar(ytdTotal, ytdTgtTotal, annFcastTotal, annTgtTotal, 'total')}
   </div>
   <div class="ovr-kpi gongu">
     <div class="ovr-kpi-label">해외 공구</div>
     <div class="ovr-kpi-val num">${fw(ytdGongu)}</div>
-    <div class="ovr-kpi-sub">목표 ${fw(ytdTgtGongu)}</div>
-    ${ytdTgtGongu?`<div class="ovr-kpi-ach ${achCls(achGongu)}">${achGongu.toFixed(1)}% 달성</div>`:''}
+    <div class="ovr-kpi-sub">연간목표 ${fw(annTgtGongu)}</div>
+    ${progBar(ytdGongu, ytdTgtGongu, annFcastGongu, annTgtGongu, 'gongu')}
     <div class="ovr-brand-row">
       <div class="ovr-brand-card"><div class="ovr-brand-name">YDY</div><div class="ovr-brand-val num">${fw(ytdYdy)}</div></div>
       <div class="ovr-brand-card"><div class="ovr-brand-name">마이랩스</div><div class="ovr-brand-val num">${fw(ytdMylabs)}</div></div>
@@ -2395,8 +2429,8 @@ async function renderOverseasSales() {
   <div class="ovr-kpi ilban">
     <div class="ovr-kpi-label">해외 일반</div>
     <div class="ovr-kpi-val num">${fw(ytdIlban)}</div>
-    <div class="ovr-kpi-sub">목표 ${fw(ytdTgtIlban)}</div>
-    ${ytdTgtIlban?`<div class="ovr-kpi-ach ${achCls(achIlban)}">${achIlban.toFixed(1)}% 달성</div>`:''}
+    <div class="ovr-kpi-sub">연간목표 ${fw(annTgtIlban)}</div>
+    ${progBar(ytdIlban, ytdTgtIlban, annFcastIlban, annTgtIlban, 'ilban')}
     <div class="ovr-brand-row">
       <div class="ovr-brand-card"><div class="ovr-brand-name">아이허브</div><div class="ovr-brand-val num">${fw(ytdIhub)}</div></div>
       <div class="ovr-brand-card"><div class="ovr-brand-name">스마트스토어</div><div class="ovr-brand-val num">${fw(ytdSs)}</div></div>
@@ -4803,9 +4837,9 @@ function parseOverseasSheet(csvText) {
   for (const row of rows) {
     const c1 = ps(row[1]), c2 = ps(row[2]);
     // 섹션 변경 감지 (헤더 행: c1이 섹션명이고 c2 비어있음)
-    if      (c1 === '해외 공구' && !c2)              { section='gongu'; brand=''; colMap=[]; continue; }
-    else if (c1 === '해외 일반 스마트스토어')         { section='ss';    brand=''; colMap=[]; continue; }
-    else if (c1.includes('아이허브') && !c2)          { section='ihub';  brand=''; colMap=[]; continue; }
+    if      (c1 === '해외 공구' && !c2)                           { section='gongu'; brand=''; colMap=[]; continue; }
+    else if (c1 === '해외 일반 스마트스토어')                     { section='ss';    brand=''; colMap=[]; continue; }
+    else if (c1.startsWith('해외') && c1.includes('아이허브'))    { section='ihub';  brand=''; colMap=[]; continue; }
     if (!section) continue;
     // 컬럼 헤더 행
     if (c1==='브랜드' && c2==='품목명') {
@@ -4830,7 +4864,15 @@ function parseOverseasSheet(csvText) {
     for (const [m,v] of Object.entries(months)) { map[key].months[+m]=(map[key].months[+m]||0)+v; }
     map[key].total += tot;
   }
-  const sortProds = arr => arr.sort((a,b) => a.brand===b.brand ? b.total-a.total : a.brand<b.brand?-1:1);
+  const brandRank = b => b==='YDY'?0:b==='마이랩스'?1:99;
+  const sortProds = arr => arr.sort((a,b) => {
+    if (a.brand!==b.brand) {
+      const ra=brandRank(a.brand), rb=brandRank(b.brand);
+      if (ra!==rb) return ra-rb;
+      return a.brand<b.brand?-1:1;
+    }
+    return b.total-a.total;
+  });
   data.gonguProds = sortProds(Object.values(gonguMap));
   data.ssProds    = sortProds(Object.values(ssMap));
   data.ihubProds  = sortProds(Object.values(ihubMap));
