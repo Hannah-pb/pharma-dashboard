@@ -232,6 +232,9 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 @media(max-width:480px){
   .kpi-grid{grid-template-columns:1fr}
   .drill-kpi-row{grid-template-columns:1fr 1fr}
+  .page-body{padding:12px 12px 20px}
+  .page-header{padding:14px 16px 12px}
+  .page-header h1{font-size:18px}
 }
 
 /* ── KPI 대시보드 v2 (draft-aligned) ── */
@@ -529,7 +532,43 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .ovr-ch-card.ihub{border-color:#f59e0b} .ovr-ch-card.ss{border-color:#3b82f6} .ovr-ch-card.amz{border-color:#ea580c}
 .ovr-ch-name{font-size:.68rem;font-weight:700;color:#64748b;margin-bottom:3px}
 .ovr-ch-val{font-size:1.05rem;font-weight:700;color:#1e293b}
-@media(max-width:900px){.ovr-hero{grid-template-columns:1fr}.ovr-ch-cards{grid-template-columns:1fr 1fr}.ovr-brand-row{grid-template-columns:1fr 1fr}}
+/* 태블릿 */
+@media(max-width:900px){
+  .ovr-hero{grid-template-columns:1fr}
+  .ovr-ch-cards{grid-template-columns:1fr 1fr}
+  .ovr-brand-row{grid-template-columns:1fr 1fr}
+}
+/* 모바일 */
+@media(max-width:600px){
+  .ovr-hero{gap:10px;margin-bottom:14px}
+  .ovr-kpi{padding:14px 16px}
+  .ovr-kpi-val{font-size:1.6rem}
+  .ovr-kpi-sub{font-size:.7rem}
+  .ovr-brand-row{gap:8px}
+  .ovr-brand-card{padding:8px 10px}
+  .ovr-brand-val{font-size:1rem}
+  .ovr-section{padding:14px 14px}
+  .ovr-section-title{font-size:.74rem;margin-bottom:10px}
+  .ovr-chart-wrap{height:180px}
+  .ovr-tabs{gap:5px;margin-bottom:10px}
+  .ovr-tab{padding:5px 11px;font-size:.74rem}
+  .ovr-ch-cards{grid-template-columns:1fr 1fr;gap:8px}
+  .ovr-ch-card{padding:10px 11px}
+  .ovr-ch-val{font-size:.95rem}
+  .ovr-prod-tbl{font-size:.7rem}
+  .ovr-prod-tbl th,.ovr-prod-tbl td{padding:4px 6px}
+  .ovr-prog-label{font-size:.66rem}
+  .ovr-prog-label span:last-child{font-size:.72rem}
+  .ovr-prog-caption{font-size:.64rem}
+}
+/* 소형 모바일 */
+@media(max-width:400px){
+  .ovr-kpi-val{font-size:1.4rem}
+  .ovr-ch-cards{grid-template-columns:1fr}
+  .ovr-brand-row{grid-template-columns:1fr 1fr}
+  .ovr-chart-wrap{height:160px}
+  .ovr-prod-tbl{font-size:.66rem}
+}
 </style>
 </head>
 <body>
