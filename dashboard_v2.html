@@ -2465,6 +2465,7 @@ async function renderOverseasSales() {
     <div class="ovr-ch-card ss"><div class="ovr-ch-name">스마트스토어</div><div class="ovr-ch-val num">${fw(ytdSs)}</div></div>
     <div class="ovr-ch-card amz"><div class="ovr-ch-name">아마존</div><div class="ovr-ch-val num">${ytdAmz?fw(ytdAmz):'—'}</div></div>
   </div>
+  <div class="ovr-chart-wrap" style="height:180px"><canvas id="ovrIlbanChart"></canvas></div>
   <div class="ovr-tabs">
     <button class="ovr-tab active" onclick="ovrSwitchIlban('아이허브',this)">아이허브</button>
     <button class="ovr-tab" onclick="ovrSwitchIlban('스마트스토어',this)">스마트스토어</button>
@@ -2487,9 +2488,9 @@ async function renderOverseasSales() {
     options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'top', labels:{ boxWidth:12, font:{size:11} } } }, scales:{ y:{ ticks:{ callback:v=>fw(v), font:{size:10} }, grid:{color:'rgba(0,0,0,.04)'} }, x:{ ticks:{font:{size:10}} } } }
   });
 
-  // ── 공구 차트 & 테이블 초기 렌더
+  // ── 공구/일반 차트 & 테이블 초기 렌더
   _renderGonguView(d, availMonths, fw);
-  _renderIlbanTable(d, availMonths, fw);
+  _renderIlbanView(d, availMonths, fw);
 }
 
 function _ovrMonthlyByBrand(prods, months, brand) {
@@ -2522,7 +2523,23 @@ function _renderGonguView(d, availMonths, fw) {
   if (el) el.innerHTML = _ovrProdTable(prods, availMonths, fw);
 }
 
-function _renderIlbanTable(d, availMonths, fw) {
+function _renderIlbanView(d, availMonths, fw) {
+  // 차트 (아이허브 + 스마트스토어 + 아마존 stacked bar)
+  const ihubData = availMonths.map(m => d.ihubKrw[m]||0);
+  const ssData   = availMonths.map(m => d.smartstore[m]||0);
+  const amzData  = availMonths.map(m => d.amazon[m]||0);
+  const hasAmz   = amzData.some(v=>v>0);
+  const datasets = [
+    { label:'아이허브',     data:ihubData, backgroundColor:'rgba(245,158,11,.75)' },
+    { label:'스마트스토어', data:ssData,   backgroundColor:'rgba(59,130,246,.65)' },
+    ...(hasAmz ? [{ label:'아마존', data:amzData, backgroundColor:'rgba(234,88,12,.6)' }] : [])
+  ];
+  mkChart('ovrIlbanChart', {
+    type: 'bar',
+    data: { labels: availMonths.map(m=>`${m}월`), datasets },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{boxWidth:10,font:{size:10}} } }, scales:{ x:{stacked:true,ticks:{font:{size:10}}}, y:{stacked:true,ticks:{callback:v=>fw(v),font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}} } }
+  });
+  // 테이블
   const prods = ovrIlbanCh === '스마트스토어' ? d.ssProds : d.ihubProds;
   const el = document.getElementById('ovrIlbanTable');
   if (el) el.innerHTML = _ovrProdTable(prods, availMonths, fw);
@@ -2581,7 +2598,9 @@ function ovrSwitchIlban(ch, btn) {
   if (!OVR_DATA) return;
   const fw = v => { if(!v||isNaN(v)) return '—'; const a=Math.abs(v); return a>=1e8?(v/1e8).toFixed(1)+'억':a>=1e4?Math.round(v/1e4).toLocaleString()+'만':Math.round(v).toLocaleString(); };
   const availMonths = Array.from({length:12},(_,i)=>i+1).filter(m=>(OVR_DATA.total[m]||0)>0);
-  _renderIlbanTable(OVR_DATA, availMonths, fw);
+  const prods = ovrIlbanCh === '스마트스토어' ? OVR_DATA.ssProds : OVR_DATA.ihubProds;
+  const el = document.getElementById('ovrIlbanTable');
+  if (el) el.innerHTML = _ovrProdTable(prods, availMonths, fw);
 }
 
 function onTabActivated(tabId) {
