@@ -2329,7 +2329,7 @@ function renderPage(pg) {
 // ═══════════════════════════════════════════════════════
 //  해외 매출 대시보드
 // ═══════════════════════════════════════════════════════
-let ovrGonguBrand = 'YDY';   // 공구 활성 브랜드
+let ovrGonguBrand = 'ALL';   // 공구 활성 브랜드
 let ovrIlbanCh    = '아이허브'; // 일반 활성 채널
 
 async function renderOverseasSales() {
@@ -2415,9 +2415,9 @@ async function renderOverseasSales() {
 <div class="ovr-section">
   <div class="ovr-section-title">해외 공구</div>
   <div class="ovr-tabs">
-    <button class="ovr-tab active" onclick="ovrSwitchGongu('YDY',this)">YDY</button>
+    <button class="ovr-tab active" onclick="ovrSwitchGongu('ALL',this)">전체</button>
+    <button class="ovr-tab" onclick="ovrSwitchGongu('YDY',this)">YDY</button>
     <button class="ovr-tab" onclick="ovrSwitchGongu('MYLABS',this)">마이랩스</button>
-    <button class="ovr-tab" onclick="ovrSwitchGongu('ALL',this)">전체</button>
   </div>
   <div class="ovr-chart-wrap" style="height:180px"><canvas id="ovrGonguChart"></canvas></div>
   <div id="ovrGonguTable"></div>
@@ -2515,7 +2515,19 @@ function _ovrProdTable(prods, months, fw) {
     const cells = monthCols.map(m => `<td>${(p.months[m]||0)>0?fw(p.months[m]):'—'}</td>`);
     return `<tr>${brandTd}<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.prod}">${p.prod}</td>${cells.join('')}<td style="font-weight:700">${fw(p.total)}</td></tr>`;
   }).join('');
-  return `<div style="overflow-x:auto"><table class="ovr-prod-tbl"><thead>${hdr}</thead><tbody>${rows}</tbody></table></div>`;
+  // 합산 행
+  const grandTotal = sorted.reduce((s,p)=>s+p.total,0);
+  const sumCells = monthCols.map(m=>{
+    const v=sorted.reduce((s,p)=>s+(p.months[m]||0),0);
+    return `<td style="font-weight:700;color:#1d3f72">${v>0?fw(v):'—'}</td>`;
+  });
+  const sumRow = `<tr style="background:#f0f4ff;border-top:2px solid #c7d6f5">
+    ${hasBrand?'<td></td>':''}
+    <td style="font-weight:700;color:#1d3f72;font-size:.78rem">합계</td>
+    ${sumCells.join('')}
+    <td style="font-weight:800;color:#1d3f72">${fw(grandTotal)}</td>
+  </tr>`;
+  return `<div style="overflow-x:auto"><table class="ovr-prod-tbl"><thead>${hdr}</thead><tbody>${rows}${sumRow}</tbody></table></div>`;
 }
 
 function ovrSwitchGongu(brand, btn) {
@@ -4761,12 +4773,16 @@ function parseOverseasSheet(csvText) {
   // 요약 행: col[1]=레이블, col[2]=1월 ... col[13]=12월
   const labelMap = {
     '해외 매출':       'total',      '해외 목표':       'totalTarget',
+    '해외 예상':       'totalFcast', '해외 공구 예상':  'gonguFcast',
     '해외 공구':       'gongu',      '해외 공구 목표':  'gonguTarget',
     '해외 일반':       'ilban',      '해외 일반 목표':  'ilbanTarget',
+    '해외 일반 예상':  'ilbanFcast',
     '아이허브(￦)':    'ihubKrw',   '스마트스토어':    'smartstore',
     '아마존':          'amazon',     'YDY':             'ydy',
     '마이랩스':        'mylabs',
   };
+  // totalFcast/gonguFcast/ilbanFcast 초기화
+  Object.assign(data, { totalFcast:{}, gonguFcast:{}, ilbanFcast:{} });
   for (const row of rows) {
     const label = ps(row[1]);
     const key = labelMap[label];
@@ -4779,17 +4795,17 @@ function parseOverseasSheet(csvText) {
   }
 
   // 상품별 테이블 파싱 (col[1]=브랜드, col[2]=상품명, col[3..]=월별값)
-  let section = null;  // 'gongu' | 'ss'
+  let section = null;  // 'gongu' | 'ss' | 'ihub'
   let brand = '';
   let colMap = []; // [{col, month}]
-  const gonguMap = {}, ssMap = {};
+  const gonguMap = {}, ssMap = {}, ihubMap = {};
 
   for (const row of rows) {
     const c1 = ps(row[1]), c2 = ps(row[2]);
-    // 섹션 변경 감지
+    // 섹션 변경 감지 (헤더 행: c1이 섹션명이고 c2 비어있음)
     if      (c1 === '해외 공구' && !c2)              { section='gongu'; brand=''; colMap=[]; continue; }
     else if (c1 === '해외 일반 스마트스토어')         { section='ss';    brand=''; colMap=[]; continue; }
-    else if (c1.includes('아이허브'))                 { section=null; } // 이하 iHub(별도 파싱)
+    else if (c1.includes('아이허브') && !c2)          { section='ihub';  brand=''; colMap=[]; continue; }
     if (!section) continue;
     // 컬럼 헤더 행
     if (c1==='브랜드' && c2==='품목명') {
@@ -4808,7 +4824,7 @@ function parseOverseasSheet(csvText) {
     for (const {col,month} of colMap) { const v=pn(row[col]); if(v) months[month]=v; }
     const tot = Object.values(months).reduce((s,v)=>s+v,0);
     if (!tot) continue;
-    const map = section==='gongu' ? gonguMap : ssMap;
+    const map = section==='gongu' ? gonguMap : section==='ss' ? ssMap : ihubMap;
     const key = `${brand}||${c2}`;
     if (!map[key]) map[key] = {brand, prod:c2, months:{}, total:0};
     for (const [m,v] of Object.entries(months)) { map[key].months[+m]=(map[key].months[+m]||0)+v; }
@@ -4817,23 +4833,7 @@ function parseOverseasSheet(csvText) {
   const sortProds = arr => arr.sort((a,b) => a.brand===b.brand ? b.total-a.total : a.brand<b.brand?-1:1);
   data.gonguProds = sortProds(Object.values(gonguMap));
   data.ssProds    = sortProds(Object.values(ssMap));
-
-  // iHerb 제품별 KRW: 오른쪽 col[16]부터
-  let ihubColMap = [];
-  const ihMap = {};
-  for (const row of rows) {
-    const rl = ps(row[16]);
-    if (rl==='품목명') {
-      ihubColMap = [];
-      for (let c=17; c<row.length; c++) { const mn=parseInt(row[c]); if(mn>=1&&mn<=12) ihubColMap.push({col:c,month:mn}); }
-    } else if (rl && rl!=='최종 매출(￦)의 SUM' && ihubColMap.length>0) {
-      if (!ihMap[rl]) ihMap[rl] = {};
-      for (const {col,month} of ihubColMap) { const v=pn(row[col]); if(v) ihMap[rl][month]=(ihMap[rl][month]||0)+v; }
-    }
-  }
-  data.ihubProds = Object.entries(ihMap)
-    .map(([prod,months])=>({prod,months,total:Object.values(months).reduce((s,v)=>s+v,0)}))
-    .filter(r=>r.total>0).sort((a,b)=>b.total-a.total);
+  data.ihubProds  = sortProds(Object.values(ihubMap));
 
   return data;
 }
