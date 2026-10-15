@@ -533,11 +533,16 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .ovr-ch-name{font-size:.68rem;font-weight:700;color:#64748b;margin-bottom:3px}
 .ovr-ch-val{font-size:1.05rem;font-weight:700;color:#1e293b}
 /* 연간/월간 구분 레이블 */
-.ovr-period-hd{font-size:.72rem;font-weight:700;color:#64748b;letter-spacing:.07em;text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:8px}
-.ovr-period-hd::after{content:'';flex:1;height:1px;background:#e2e8f0}
+.ovr-period-hd{font-size:1rem;font-weight:800;color:#1e293b;letter-spacing:-.01em;margin-bottom:12px;display:flex;align-items:center;gap:10px}
+.ovr-period-hd::after{content:'';flex:1;height:2px;background:#e2e8f0;border-radius:1px}
 /* 상품 테이블 기본 (PC) */
-.ovr-sticky-brand{text-align:left;min-width:60px}
-.ovr-sticky-prod{text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px}
+.ovr-prod-tbl{table-layout:fixed;width:100%}
+.ovr-col-brand{width:60px}
+.ovr-col-prod{width:150px}
+.ovr-col-num{width:64px}
+.ovr-sticky-brand{text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ovr-sticky-prod{text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ovr-prod-tbl td,.ovr-prod-tbl th{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 태블릿 */
 @media(max-width:900px){
   .ovr-hero{grid-template-columns:1fr}
@@ -567,9 +572,13 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
   .ovr-prog-label span:last-child{font-size:.72rem}
   .ovr-prog-caption{font-size:.64rem}
   /* 열 고정 */
-  .ovr-sticky-brand{position:sticky;left:0;z-index:2;background:#fff;min-width:44px;max-width:44px;width:44px}
-  .ovr-sticky-prod{position:sticky;left:44px;z-index:2;background:#fff;max-width:calc(46vw - 44px)}
-  .ovr-sticky-prod.no-brand{left:0;max-width:46vw}
+  .ovr-col-brand{width:44px}
+  .ovr-col-prod{width:calc(46vw - 44px)}
+  .ovr-col-num{width:54px}
+  .ovr-sticky-brand{position:sticky;left:0;z-index:2;background:#fff}
+  .ovr-sticky-prod{position:sticky;left:44px;z-index:2;background:#fff}
+  .ovr-sticky-prod.no-brand{left:0}
+  .ovr-col-prod.no-brand{width:46vw}
   thead .ovr-sticky-brand,thead .ovr-sticky-prod{background:#f8fafc;z-index:3}
   .ovr-sum-row .ovr-sticky-brand,.ovr-sum-row .ovr-sticky-prod{background:#f0f4ff}
   /* 열 고정 오른쪽 경계선 */
@@ -2609,6 +2618,12 @@ function _ovrProdTable(prods, months, fw) {
     ? [...prods].sort((a,b) => a.brand===b.brand ? b.total-a.total : a.brand<b.brand?-1:1)
     : prods;
   const nb = hasBrand ? '' : ' no-brand';
+  const colgroup = `<colgroup>
+    ${hasBrand?'<col class="ovr-col-brand">':''}
+    <col class="ovr-col-prod${nb}">
+    ${monthCols.map(()=>'<col class="ovr-col-num">').join('')}
+    <col class="ovr-col-num">
+  </colgroup>`;
   const hdr = `<tr>
     ${hasBrand?`<th class="ovr-sticky-brand">브랜드</th>`:''}
     <th class="ovr-sticky-prod${nb}">상품명</th>
@@ -2634,7 +2649,7 @@ function _ovrProdTable(prods, months, fw) {
     ${sumCells.join('')}
     <td style="font-weight:800;color:#1d3f72">${fw(grandTotal)}</td>
   </tr>`;
-  return `<div style="overflow-x:auto"><table class="ovr-prod-tbl"><thead>${hdr}</thead><tbody>${rows}${sumRow}</tbody></table></div>`;
+  return `<div style="overflow-x:auto"><table class="ovr-prod-tbl">${colgroup}<thead>${hdr}</thead><tbody>${rows}${sumRow}</tbody></table></div>`;
 }
 
 function ovrSwitchGongu(brand, btn) {
