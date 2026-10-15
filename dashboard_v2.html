@@ -486,6 +486,41 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .mr-pg-btn{padding:4px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;cursor:pointer}
 .mr-pg-btn:disabled{opacity:.4;cursor:default}
 @media(max-width:900px){.mr-grid2,.mr-top5-wrap,.mr-sub-grid{grid-template-columns:1fr}.mr-hero{flex-direction:column}.mr-hero-kpis{grid-template-columns:repeat(2,auto)}}
+/* ── 해외 매출 ── */
+.ovr-hero{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px}
+.ovr-kpi{background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 1px 4px rgba(0,0,0,.06);position:relative;overflow:hidden}
+.ovr-kpi.total{border-top:4px solid #0ea5e9}
+.ovr-kpi.gongu{border-top:4px solid #8b5cf6}
+.ovr-kpi.ilban{border-top:4px solid #10b981}
+.ovr-kpi-label{font-size:.68rem;font-weight:700;letter-spacing:.08em;color:#64748b;margin-bottom:4px;text-transform:uppercase}
+.ovr-kpi-val{font-size:1.9rem;font-weight:800;color:#0f172a;line-height:1.1}
+.ovr-kpi-sub{font-size:.72rem;color:#94a3b8;margin-top:4px}
+.ovr-kpi-ach{font-size:.78rem;font-weight:700;margin-top:6px}
+.ovr-kpi-ach.good{color:#059669} .ovr-kpi-ach.warn{color:#d97706} .ovr-kpi-ach.bad{color:#dc2626}
+.ovr-brand-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid #f1f5f9}
+.ovr-brand-card{background:#f8fafc;border-radius:8px;padding:10px 12px}
+.ovr-brand-name{font-size:.68rem;font-weight:700;color:#64748b;margin-bottom:3px}
+.ovr-brand-val{font-size:1.1rem;font-weight:700;color:#1e293b}
+.ovr-section{background:#fff;border-radius:14px;padding:20px 22px;box-shadow:0 1px 4px rgba(0,0,0,.06);margin-bottom:16px}
+.ovr-section-title{font-size:.8rem;font-weight:700;letter-spacing:.08em;color:#64748b;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.ovr-section-title::after{content:'';flex:1;height:1px;background:#e2e8f0}
+.ovr-chart-wrap{height:220px;margin-bottom:16px}
+.ovr-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.ovr-tab{padding:5px 14px;border-radius:20px;border:1.5px solid #e2e8f0;font-size:.78rem;font-weight:600;cursor:pointer;color:#64748b;background:#f8fafc;transition:all .15s}
+.ovr-tab.active{background:#0f172a;color:#fff;border-color:#0f172a}
+.ovr-prod-tbl{width:100%;border-collapse:collapse;font-size:.76rem}
+.ovr-prod-tbl th{background:#f8fafc;color:#64748b;font-weight:600;padding:6px 8px;text-align:right;border-bottom:2px solid #e8edf3;white-space:nowrap}
+.ovr-prod-tbl th:first-child,.ovr-prod-tbl th:nth-child(2){text-align:left}
+.ovr-prod-tbl td{padding:5px 8px;border-bottom:1px solid #f8fafc;text-align:right;font-variant-numeric:tabular-nums}
+.ovr-prod-tbl td:first-child,.ovr-prod-tbl td:nth-child(2){text-align:left}
+.ovr-prod-tbl tr:hover td{background:#fafbff}
+.ovr-prod-tbl .brand-cell{font-size:.7rem;color:#64748b;font-weight:600;background:#f8fafc}
+.ovr-ch-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.ovr-ch-card{background:#f8fafc;border-radius:10px;padding:12px 14px;border-left:3px solid #e2e8f0}
+.ovr-ch-card.ihub{border-color:#f59e0b} .ovr-ch-card.ss{border-color:#3b82f6} .ovr-ch-card.amz{border-color:#ea580c}
+.ovr-ch-name{font-size:.68rem;font-weight:700;color:#64748b;margin-bottom:3px}
+.ovr-ch-val{font-size:1.05rem;font-weight:700;color:#1e293b}
+@media(max-width:900px){.ovr-hero{grid-template-columns:1fr}.ovr-ch-cards{grid-template-columns:1fr 1fr}.ovr-brand-row{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -507,12 +542,14 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
     </li>
 
     <!-- 판매분석 (대분류) -->
-    <li class="nav-parent" id="navParentSales" onclick="switchPage('sales')">
+    <li class="nav-parent open" id="navParentSales" onclick="toggleNavParent('navParentSales')">
       <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
-      <span class="nav-label">판매분석 <span style="font-weight:400;color:#9ca3af">(준비중)</span></span>
+      <span class="nav-label">판매분석</span>
+      <span class="nav-arrow">▸</span>
     </li>
     <div class="nav-children open" id="navChildrenSales">
-      <div class="nav-child" data-page="monthly-report">월 매출 현황 <span style="font-weight:400;color:#9ca3af">(준비중)</span></div>
+      <div class="nav-child" data-page="monthly-report">🇰🇷 국내 매출</div>
+      <div class="nav-child" data-page="overseas-sales">🌏 해외 매출</div>
     </div>
 
     <!-- 재고관리 -->
@@ -558,7 +595,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
     <div class="page-body"></div>
   </div>
 
-  <!-- ── 월 매출 현황 ── -->
+  <!-- ── 국내 매출 ── -->
   <div id="page-monthly-report" class="page">
     <div class="page-body">
       <div class="mr-ctrl-bar">
@@ -569,6 +606,15 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       <div id="mrSpinner" style="display:none;padding:40px;text-align:center;color:#94a3b8;font-size:.9rem">데이터 로딩 중…</div>
       <div id="mrError" style="display:none"></div>
       <div id="mrBody"></div>
+    </div>
+  </div>
+
+  <!-- ── 해외 매출 ── -->
+  <div id="page-overseas-sales" class="page">
+    <div class="page-body">
+      <div id="ovrSpinner" style="display:none;padding:40px;text-align:center;color:#94a3b8;font-size:.9rem">데이터 로딩 중…</div>
+      <div id="ovrError" style="display:none"></div>
+      <div id="ovrBody"></div>
     </div>
   </div>
 
@@ -1249,7 +1295,7 @@ function mkChart(id, cfg) {
 // ═══════════════════════════════════════════════════════
 //  NAV / PAGE SWITCHING
 // ═══════════════════════════════════════════════════════
-const PAGE_TITLES = {kpi:'', sales:'판매분석', 'monthly-report':'월 매출 현황', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출', inventory:'재고관리'};
+const PAGE_TITLES = {kpi:'', sales:'판매분석', 'monthly-report':'국내 매출', 'overseas-sales':'해외 매출', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출', inventory:'재고관리'};
 
 function toggleNavParent(id) {
   const parent = document.getElementById(id);
@@ -2272,8 +2318,224 @@ function renderPage(pg) {
     renderMonthlyReport(selectedReportMonth);
     return;
   }
+  if (pg === 'overseas-sales') {
+    renderOverseasSales();
+    return;
+  }
   if (EMPTY_PAGES.has(pg)) return;
   else if (pg==='inventory') { renderInventory(); }
+}
+
+// ═══════════════════════════════════════════════════════
+//  해외 매출 대시보드
+// ═══════════════════════════════════════════════════════
+let ovrGonguBrand = 'YDY';   // 공구 활성 브랜드
+let ovrIlbanCh    = '아이허브'; // 일반 활성 채널
+
+async function renderOverseasSales() {
+  const spinner = document.getElementById('ovrSpinner');
+  const errEl   = document.getElementById('ovrError');
+  const body    = document.getElementById('ovrBody');
+  if (!body) return;
+  spinner.style.display = ''; errEl.style.display = 'none'; body.innerHTML = '';
+
+  const status = await loadOvrSalesData();
+  spinner.style.display = 'none';
+  if (!status.ok && !OVR_DATA) {
+    errEl.style.display = '';
+    errEl.innerHTML = '<div style="padding:30px;color:#dc2626;text-align:center">해외 데이터 로드 실패 <button onclick="ovrSalesLoading=null;renderOverseasSales()" style="margin-left:12px;padding:6px 14px;background:#3b82f6;color:#fff;border:none;border-radius:6px;cursor:pointer">다시 시도</button></div>';
+    return;
+  }
+
+  const d = OVR_DATA;
+  const fw  = v => { if(!v||isNaN(v)) return '—'; const a=Math.abs(v); return a>=1e8?(v/1e8).toFixed(1)+'억':a>=1e4?Math.round(v/1e4).toLocaleString()+'만':Math.round(v).toLocaleString(); };
+  const fwM = (v,m) => v>0 ? `<span style="font-size:11px;color:#475569">${m}월</span> ${fw(v)}` : '—';
+  const pct = (cur,tgt) => tgt>0 ? (cur/tgt*100) : 0;
+  const achCls = p => p>=100?'good':p>=80?'warn':'bad';
+
+  // ── 사용 가능한 월 목록 (합계에서 값 있는 월)
+  const availMonths = Array.from({length:12},(_,i)=>i+1).filter(m=>(d.total[m]||0)>0);
+  const ytdTotal  = availMonths.reduce((s,m)=>s+(d.total[m]||0),0);
+  const ytdGongu  = availMonths.reduce((s,m)=>s+(d.gongu[m]||0),0);
+  const ytdIlban  = availMonths.reduce((s,m)=>s+(d.ilban[m]||0),0);
+  const ytdYdy    = availMonths.reduce((s,m)=>s+(d.ydy[m]||0),0);
+  const ytdMylabs = availMonths.reduce((s,m)=>s+(d.mylabs[m]||0),0);
+  const ytdIhub   = availMonths.reduce((s,m)=>s+(d.ihubKrw[m]||0),0);
+  const ytdSs     = availMonths.reduce((s,m)=>s+(d.smartstore[m]||0),0);
+  const ytdAmz    = availMonths.reduce((s,m)=>s+(d.amazon[m]||0),0);
+  const ytdTgtTotal = availMonths.reduce((s,m)=>s+(d.totalTarget[m]||0),0);
+  const ytdTgtGongu = availMonths.reduce((s,m)=>s+(d.gonguTarget[m]||0),0);
+  const ytdTgtIlban = availMonths.reduce((s,m)=>s+(d.ilbanTarget[m]||0),0);
+
+  const achTotal  = pct(ytdTotal,  ytdTgtTotal);
+  const achGongu  = pct(ytdGongu,  ytdTgtGongu);
+  const achIlban  = pct(ytdIlban,  ytdTgtIlban);
+
+  const lastMo = availMonths[availMonths.length-1] || 0;
+
+  // ── Hero KPI 카드
+  body.innerHTML = `
+<div class="ovr-hero">
+  <div class="ovr-kpi total">
+    <div class="ovr-kpi-label">해외 총 매출</div>
+    <div class="ovr-kpi-val num">${fw(ytdTotal)}</div>
+    <div class="ovr-kpi-sub">누적 (1~${lastMo}월) · 목표 ${fw(ytdTgtTotal)}</div>
+    ${ytdTgtTotal?`<div class="ovr-kpi-ach ${achCls(achTotal)}">${achTotal.toFixed(1)}% 달성</div>`:''}
+  </div>
+  <div class="ovr-kpi gongu">
+    <div class="ovr-kpi-label">해외 공구</div>
+    <div class="ovr-kpi-val num">${fw(ytdGongu)}</div>
+    <div class="ovr-kpi-sub">목표 ${fw(ytdTgtGongu)}</div>
+    ${ytdTgtGongu?`<div class="ovr-kpi-ach ${achCls(achGongu)}">${achGongu.toFixed(1)}% 달성</div>`:''}
+    <div class="ovr-brand-row">
+      <div class="ovr-brand-card"><div class="ovr-brand-name">YDY</div><div class="ovr-brand-val num">${fw(ytdYdy)}</div></div>
+      <div class="ovr-brand-card"><div class="ovr-brand-name">마이랩스</div><div class="ovr-brand-val num">${fw(ytdMylabs)}</div></div>
+    </div>
+  </div>
+  <div class="ovr-kpi ilban">
+    <div class="ovr-kpi-label">해외 일반</div>
+    <div class="ovr-kpi-val num">${fw(ytdIlban)}</div>
+    <div class="ovr-kpi-sub">목표 ${fw(ytdTgtIlban)}</div>
+    ${ytdTgtIlban?`<div class="ovr-kpi-ach ${achCls(achIlban)}">${achIlban.toFixed(1)}% 달성</div>`:''}
+    <div class="ovr-brand-row">
+      <div class="ovr-brand-card"><div class="ovr-brand-name">아이허브</div><div class="ovr-brand-val num">${fw(ytdIhub)}</div></div>
+      <div class="ovr-brand-card"><div class="ovr-brand-name">스마트스토어</div><div class="ovr-brand-val num">${fw(ytdSs)}</div></div>
+      ${ytdAmz?`<div class="ovr-brand-card" style="grid-column:1/-1"><div class="ovr-brand-name">아마존</div><div class="ovr-brand-val num">${fw(ytdAmz)}</div></div>`:''}
+    </div>
+  </div>
+</div>
+
+<!-- 월별 추이 차트 -->
+<div class="ovr-section">
+  <div class="ovr-section-title">월별 매출 추이</div>
+  <div class="ovr-chart-wrap"><canvas id="ovrTrendChart"></canvas></div>
+</div>
+
+<!-- 해외 공구 -->
+<div class="ovr-section">
+  <div class="ovr-section-title">해외 공구</div>
+  <div class="ovr-tabs">
+    <button class="ovr-tab active" onclick="ovrSwitchGongu('YDY',this)">YDY</button>
+    <button class="ovr-tab" onclick="ovrSwitchGongu('MYLABS',this)">마이랩스</button>
+    <button class="ovr-tab" onclick="ovrSwitchGongu('ALL',this)">전체</button>
+  </div>
+  <div class="ovr-chart-wrap" style="height:180px"><canvas id="ovrGonguChart"></canvas></div>
+  <div id="ovrGonguTable"></div>
+</div>
+
+<!-- 해외 일반 -->
+<div class="ovr-section">
+  <div class="ovr-section-title">해외 일반</div>
+  <div class="ovr-ch-cards">
+    <div class="ovr-ch-card ihub"><div class="ovr-ch-name">아이허브</div><div class="ovr-ch-val num">${fw(ytdIhub)}</div></div>
+    <div class="ovr-ch-card ss"><div class="ovr-ch-name">스마트스토어</div><div class="ovr-ch-val num">${fw(ytdSs)}</div></div>
+    <div class="ovr-ch-card amz"><div class="ovr-ch-name">아마존</div><div class="ovr-ch-val num">${ytdAmz?fw(ytdAmz):'—'}</div></div>
+  </div>
+  <div class="ovr-tabs">
+    <button class="ovr-tab active" onclick="ovrSwitchIlban('아이허브',this)">아이허브</button>
+    <button class="ovr-tab" onclick="ovrSwitchIlban('스마트스토어',this)">스마트스토어</button>
+  </div>
+  <div id="ovrIlbanTable"></div>
+</div>`;
+
+  // ── 월별 추이 라인 차트
+  const labels = availMonths.map(m => `${m}월`);
+  mkChart('ovrTrendChart', {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label:'해외 합계', data: availMonths.map(m=>d.total[m]||0), borderColor:'#0ea5e9', backgroundColor:'rgba(14,165,233,.08)', tension:.3, pointRadius:4, fill:true },
+        { label:'해외 공구', data: availMonths.map(m=>d.gongu[m]||0), borderColor:'#8b5cf6', backgroundColor:'transparent', tension:.3, pointRadius:3, borderDash:[] },
+        { label:'해외 일반', data: availMonths.map(m=>d.ilban[m]||0), borderColor:'#10b981', backgroundColor:'transparent', tension:.3, pointRadius:3 },
+      ]
+    },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'top', labels:{ boxWidth:12, font:{size:11} } } }, scales:{ y:{ ticks:{ callback:v=>fw(v), font:{size:10} }, grid:{color:'rgba(0,0,0,.04)'} }, x:{ ticks:{font:{size:10}} } } }
+  });
+
+  // ── 공구 차트 & 테이블 초기 렌더
+  _renderGonguView(d, availMonths, fw);
+  _renderIlbanTable(d, availMonths, fw);
+}
+
+function _ovrMonthlyByBrand(prods, months, brand) {
+  const filtered = brand === 'ALL' ? prods : prods.filter(p => p.brand.toUpperCase() === brand.toUpperCase() || (brand==='MYLABS' && p.brand.toUpperCase().includes('MYLAB')));
+  return months.map(m => filtered.reduce((s,p) => s+(p.months[m]||0), 0));
+}
+
+function _renderGonguView(d, availMonths, fw) {
+  const brand = ovrGonguBrand;
+  const ydyData    = availMonths.map(m => d.ydy[m]||0);
+  const mylabsData = availMonths.map(m => d.mylabs[m]||0);
+
+  const datasets = brand === 'ALL'
+    ? [ { label:'YDY',    data:ydyData,    backgroundColor:'rgba(139,92,246,.75)' },
+        { label:'마이랩스', data:mylabsData, backgroundColor:'rgba(167,139,250,.5)' } ]
+    : brand === 'MYLABS'
+    ? [ { label:'마이랩스', data:mylabsData, backgroundColor:'rgba(139,92,246,.75)' } ]
+    : [ { label:'YDY',    data:ydyData,    backgroundColor:'rgba(139,92,246,.75)' } ];
+
+  mkChart('ovrGonguChart', {
+    type: 'bar',
+    data: { labels: availMonths.map(m=>`${m}월`), datasets },
+    options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{boxWidth:10,font:{size:10}} } }, scales:{ x:{stacked:true,ticks:{font:{size:10}}}, y:{stacked:true,ticks:{callback:v=>fw(v),font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}} } }
+  });
+
+  const prods = (brand === 'ALL')  ? d.gonguProds
+              : (brand === 'MYLABS') ? d.gonguProds.filter(p=>p.brand.toUpperCase().includes('MYLAB')||p.brand.toUpperCase().includes('마이랩'))
+              : d.gonguProds.filter(p=>p.brand.toUpperCase()==='YDY');
+  const el = document.getElementById('ovrGonguTable');
+  if (el) el.innerHTML = _ovrProdTable(prods, availMonths, fw);
+}
+
+function _renderIlbanTable(d, availMonths, fw) {
+  const prods = ovrIlbanCh === '스마트스토어' ? d.ssProds : d.ihubProds;
+  const el = document.getElementById('ovrIlbanTable');
+  if (el) el.innerHTML = _ovrProdTable(prods, availMonths, fw);
+}
+
+function _ovrProdTable(prods, months, fw) {
+  if (!prods || !prods.length) return '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:.85rem">데이터 없음</div>';
+  const hasBrand = prods.some(p => p.brand);
+  const monthCols = months.filter(m => prods.some(p => (p.months[m]||0)>0));
+  // 브랜드별로 묶어서 정렬
+  const sorted = hasBrand
+    ? [...prods].sort((a,b) => a.brand===b.brand ? b.total-a.total : a.brand<b.brand?-1:1)
+    : prods;
+  const hdr = `<tr>
+    ${hasBrand?'<th style="text-align:left;min-width:60px">브랜드</th>':''}
+    <th style="text-align:left">상품명</th>
+    ${monthCols.map(m=>`<th>${m}월</th>`).join('')}
+    <th>합계</th>
+  </tr>`;
+  let lastBrand = null;
+  const rows = sorted.map(p => {
+    const bLabel = hasBrand ? (p.brand !== lastBrand ? (lastBrand=p.brand, p.brand) : '') : '';
+    const brandTd = hasBrand ? `<td style="color:#64748b;font-size:.7rem;font-weight:700;white-space:nowrap">${bLabel}</td>` : '';
+    const cells = monthCols.map(m => `<td>${(p.months[m]||0)>0?fw(p.months[m]):'—'}</td>`);
+    return `<tr>${brandTd}<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${p.prod}">${p.prod}</td>${cells.join('')}<td style="font-weight:700">${fw(p.total)}</td></tr>`;
+  }).join('');
+  return `<div style="overflow-x:auto"><table class="ovr-prod-tbl"><thead>${hdr}</thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function ovrSwitchGongu(brand, btn) {
+  ovrGonguBrand = brand;
+  btn.closest('.ovr-tabs').querySelectorAll('.ovr-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if (!OVR_DATA) return;
+  const fw = v => { if(!v||isNaN(v)) return '—'; const a=Math.abs(v); return a>=1e8?(v/1e8).toFixed(1)+'억':a>=1e4?Math.round(v/1e4).toLocaleString()+'만':Math.round(v).toLocaleString(); };
+  const availMonths = Array.from({length:12},(_,i)=>i+1).filter(m=>(OVR_DATA.total[m]||0)>0);
+  _renderGonguView(OVR_DATA, availMonths, fw);
+}
+
+function ovrSwitchIlban(ch, btn) {
+  ovrIlbanCh = ch;
+  btn.closest('.ovr-tabs').querySelectorAll('.ovr-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  if (!OVR_DATA) return;
+  const fw = v => { if(!v||isNaN(v)) return '—'; const a=Math.abs(v); return a>=1e8?(v/1e8).toFixed(1)+'억':a>=1e4?Math.round(v/1e4).toLocaleString()+'만':Math.round(v).toLocaleString(); };
+  const availMonths = Array.from({length:12},(_,i)=>i+1).filter(m=>(OVR_DATA.total[m]||0)>0);
+  _renderIlbanTable(OVR_DATA, availMonths, fw);
 }
 
 function onTabActivated(tabId) {
@@ -4464,46 +4726,113 @@ function renderOrderTimeline() {
 let mrLoadStatus  = null; // { bqOk, ihubOk }
 let mrRawLoaded   = false;
 let mrRawDate     = '';   // 데이터 기준일 (마지막 행 주문일, "YYYY.MM.DD")
+let ovrSalesLoaded  = false;
+let ovrSalesLoading = null;
+
+async function loadOvrSalesData() {
+  if ((ovrSalesLoaded || mrLoaded) && OVR_DATA) return { ok: true };
+  if (ovrSalesLoading) return ovrSalesLoading;
+  ovrSalesLoading = (async () => {
+    try {
+      const url = `https://docs.google.com/spreadsheets/d/${IHUB_SHEET_ID}/export?format=csv&gid=${OVR_2026_GID}`;
+      const csv = await fetch(url).then(r => r.ok ? r.text() : Promise.reject('HTTP '+r.status));
+      OVR_DATA = parseOverseasSheet(csv);
+      ovrSalesLoaded = true;
+      return { ok: true };
+    } catch(e) {
+      console.warn('[OVR Sales] 로드 실패:', e);
+      return { ok: false };
+    }
+  })();
+  return ovrSalesLoading;
+}
 
 function parseOverseasSheet(csvText) {
   const rows = parseCSV(csvText);
   const pn = v => parseFloat(String(v||'').replace(/,/g,'')) || 0;
-  const data = { gongu:{}, ilban:{}, ihubKrw:{}, smartstore:{}, total:{}, ihubProds:[] };
+  const ps = v => String(v||'').trim();
+  const data = {
+    gongu:{}, ilban:{}, ihubKrw:{}, smartstore:{}, total:{},
+    ydy:{}, mylabs:{}, amazon:{},
+    gonguTarget:{}, ilbanTarget:{}, totalTarget:{},
+    gonguProds:[], ssProds:[], ihubProds:[]
+  };
 
   // 요약 행: col[1]=레이블, col[2]=1월 ... col[13]=12월
+  const labelMap = {
+    '해외 매출':       'total',      '해외 목표':       'totalTarget',
+    '해외 공구':       'gongu',      '해외 공구 목표':  'gonguTarget',
+    '해외 일반':       'ilban',      '해외 일반 목표':  'ilbanTarget',
+    '아이허브(￦)':    'ihubKrw',   '스마트스토어':    'smartstore',
+    '아마존':          'amazon',     'YDY':             'ydy',
+    '마이랩스':        'mylabs',
+  };
   for (const row of rows) {
-    const label = String(row[1]||'').trim();
-    if (!['해외 공구','해외 일반','아이허브(￦)','스마트스토어','해외 매출'].includes(label)) continue;
+    const label = ps(row[1]);
+    const key = labelMap[label];
+    if (!key) continue;
+    // 데이터 행만 (섹션 헤더와 구분: col[2]에 숫자값 있음)
+    if (!Array.from({length:12},(_,i)=>pn(row[i+2])).some(v=>v>0)) continue;
     const obj = {};
     for (let m=1; m<=12; m++) obj[m] = pn(row[m+1]);
-    if      (label==='해외 공구')           data.gongu      = obj;
-    else if (label==='해외 일반')           data.ilban      = obj;
-    else if (label==='아이허브(￦)')    data.ihubKrw    = obj;
-    else if (label==='스마트스토어')        data.smartstore = obj;
-    else if (label==='해외 매출')           data.total      = obj;
+    data[key] = obj;
   }
 
+  // 상품별 테이블 파싱 (col[1]=브랜드, col[2]=상품명, col[3..]=월별값)
+  let section = null;  // 'gongu' | 'ss'
+  let brand = '';
+  let colMap = []; // [{col, month}]
+  const gonguMap = {}, ssMap = {};
+
+  for (const row of rows) {
+    const c1 = ps(row[1]), c2 = ps(row[2]);
+    // 섹션 변경 감지
+    if      (c1 === '해외 공구' && !c2)              { section='gongu'; brand=''; colMap=[]; continue; }
+    else if (c1 === '해외 일반 스마트스토어')         { section='ss';    brand=''; colMap=[]; continue; }
+    else if (c1.includes('아이허브'))                 { section=null; } // 이하 iHub(별도 파싱)
+    if (!section) continue;
+    // 컬럼 헤더 행
+    if (c1==='브랜드' && c2==='품목명') {
+      colMap = [];
+      for (let c=3; c<row.length; c++) { const mn=parseInt(ps(row[c])); if(mn>=1&&mn<=12) colMap.push({col:c,month:mn}); }
+      continue;
+    }
+    if (!colMap.length) continue;
+    // 소계/합계 행 스킵
+    if (c1.includes('총계')||c2.includes('총계')||!c2||c2==='월'||c2.includes('SUM')) {
+      if (c1 && !c1.includes('총계')) brand=c1;
+      continue;
+    }
+    if (c1) brand = c1;
+    const months = {};
+    for (const {col,month} of colMap) { const v=pn(row[col]); if(v) months[month]=v; }
+    const tot = Object.values(months).reduce((s,v)=>s+v,0);
+    if (!tot) continue;
+    const map = section==='gongu' ? gonguMap : ssMap;
+    const key = `${brand}||${c2}`;
+    if (!map[key]) map[key] = {brand, prod:c2, months:{}, total:0};
+    for (const [m,v] of Object.entries(months)) { map[key].months[+m]=(map[key].months[+m]||0)+v; }
+    map[key].total += tot;
+  }
+  const sortProds = arr => arr.sort((a,b) => a.brand===b.brand ? b.total-a.total : a.brand<b.brand?-1:1);
+  data.gonguProds = sortProds(Object.values(gonguMap));
+  data.ssProds    = sortProds(Object.values(ssMap));
+
   // iHerb 제품별 KRW: 오른쪽 col[16]부터
-  let ihubColMap = []; // [{col, month}]
+  let ihubColMap = [];
   const ihMap = {};
   for (const row of rows) {
-    const rl = String(row[16]||'').trim();
-    if (rl === '품목명') {
+    const rl = ps(row[16]);
+    if (rl==='품목명') {
       ihubColMap = [];
-      for (let c=17; c<row.length; c++) {
-        const mn = parseInt(row[c]);
-        if (mn>=1 && mn<=12) ihubColMap.push({col:c, month:mn});
-      }
+      for (let c=17; c<row.length; c++) { const mn=parseInt(row[c]); if(mn>=1&&mn<=12) ihubColMap.push({col:c,month:mn}); }
     } else if (rl && rl!=='최종 매출(￦)의 SUM' && ihubColMap.length>0) {
       if (!ihMap[rl]) ihMap[rl] = {};
-      for (const {col, month} of ihubColMap) {
-        const v = pn(row[col]);
-        if (v) ihMap[rl][month] = (ihMap[rl][month]||0) + v;
-      }
+      for (const {col,month} of ihubColMap) { const v=pn(row[col]); if(v) ihMap[rl][month]=(ihMap[rl][month]||0)+v; }
     }
   }
   data.ihubProds = Object.entries(ihMap)
-    .map(([prod, months]) => ({prod, months, total:Object.values(months).reduce((s,v)=>s+v,0)}))
+    .map(([prod,months])=>({prod,months,total:Object.values(months).reduce((s,v)=>s+v,0)}))
     .filter(r=>r.total>0).sort((a,b)=>b.total-a.total);
 
   return data;
@@ -4596,6 +4925,7 @@ async function loadMonthlyReportData() {
       const url = `https://docs.google.com/spreadsheets/d/${IHUB_SHEET_ID}/export?format=csv&gid=${OVR_2026_GID}`;
       const csv = await fetch(url).then(r => r.ok ? r.text() : Promise.reject('HTTP ' + r.status));
       OVR_DATA = parseOverseasSheet(csv);
+      ovrSalesLoaded = true;
       console.log(`[MR] OVR 로드: 공구 키 ${Object.keys(OVR_DATA.gongu).length}개, iHerb ${OVR_DATA.ihubProds.length}개 상품`);
     } catch(e) {
       ihubOk = false;
