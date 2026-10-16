@@ -520,6 +520,10 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .ovr-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
 .ovr-tab{padding:5px 14px;border-radius:20px;border:1.5px solid #e2e8f0;font-size:.78rem;font-weight:600;cursor:pointer;color:#64748b;background:#f8fafc;transition:all .15s}
 .ovr-tab.active{background:#0f172a;color:#fff;border-color:#0f172a}
+/* 매출/수량 전환 */
+.ovr-metric-tg{order:2;display:inline-flex;background:#f1f5f9;border-radius:8px;padding:2px;text-transform:none;letter-spacing:0}
+.ovr-metric-tg button{border:0;background:transparent;padding:4px 12px;font-size:.74rem;font-weight:600;color:#64748b;border-radius:6px;cursor:pointer;transition:all .15s}
+.ovr-metric-tg button.active{background:#0f172a;color:#fff}
 .ovr-prod-tbl{width:100%;border-collapse:collapse;font-size:.76rem}
 .ovr-prod-tbl th{background:#f8fafc;color:#64748b;font-weight:600;padding:6px 8px;text-align:right;border-bottom:2px solid #e8edf3;white-space:nowrap}
 .ovr-prod-tbl th:first-child,.ovr-prod-tbl th:nth-child(2){text-align:left}
@@ -895,6 +899,8 @@ const OVR_GID_GONGU    = '396878850';
 // ── 해외 매출 파일 (월 매출 현황용) ──
 const IHUB_SHEET_ID  = '1tre8iSG89MwJAZJJjuCVtUsxC8HwSJvzW8s3ZzABgbk';
 const OVR_2026_GID   = '1352973521'; // 2026 탭: 해외 공구/일반/아이허브 요약
+// 해외 수량 피벗 탭 (해외 공구 = 공구 / 해외 일반 = 아이허브 + 일반스스)
+const OVR_QTY_GIDS   = { gongu: '1485177878', ss: '1736983203', ihub: '450272287' };
 // ── 국내 판매 raw 탭 (월 매출 현황용 — BQ 대체) ──
 const RAW_SALES_ID   = '1nkKrL8YaudsdjTjIZjDmE5NYoubgcSRIFUObyLiJRlQ';
 const RAW_SALES_GID  = '1605737796';
@@ -2401,6 +2407,7 @@ function renderPage(pg) {
 // ═══════════════════════════════════════════════════════
 let ovrGonguBrand = 'ALL';   // 공구 활성 브랜드
 let ovrIlbanCh    = '아이허브'; // 일반 활성 채널
+let ovrMetric     = 'rev';     // 'rev' 매출 | 'qty' 수량
 
 async function renderOverseasSales() {
   const spinner = document.getElementById('ovrSpinner');
@@ -2409,7 +2416,7 @@ async function renderOverseasSales() {
   if (!body) return;
   spinner.style.display = ''; errEl.style.display = 'none'; body.innerHTML = '';
 
-  const status = await loadOvrSalesData();
+  const [status] = await Promise.all([loadOvrSalesData(), loadOvrQtyData()]);
   spinner.style.display = 'none';
   if (!status.ok && !OVR_DATA) {
     errEl.style.display = '';
@@ -2425,96 +2432,57 @@ async function renderOverseasSales() {
 
   // ── 사용 가능한 월 목록 (합계에서 값 있는 월)
   const availMonths = Array.from({length:12},(_,i)=>i+1).filter(m=>(d.total[m]||0)>0);
-  const ytdTotal  = availMonths.reduce((s,m)=>s+(d.total[m]||0),0);
-  const ytdGongu  = availMonths.reduce((s,m)=>s+(d.gongu[m]||0),0);
-  const ytdIlban  = availMonths.reduce((s,m)=>s+(d.ilban[m]||0),0);
   const ytdYdy    = availMonths.reduce((s,m)=>s+(d.ydy[m]||0),0);
   const ytdMylabs = availMonths.reduce((s,m)=>s+(d.mylabs[m]||0),0);
   const ytdIhub   = availMonths.reduce((s,m)=>s+(d.ihubKrw[m]||0),0);
   const ytdSs     = availMonths.reduce((s,m)=>s+(d.smartstore[m]||0),0);
   const ytdAmz    = availMonths.reduce((s,m)=>s+(d.amazon[m]||0),0);
-  const ytdTgtTotal = availMonths.reduce((s,m)=>s+(d.totalTarget[m]||0),0);
-  const ytdTgtGongu = availMonths.reduce((s,m)=>s+(d.gonguTarget[m]||0),0);
-  const ytdTgtIlban = availMonths.reduce((s,m)=>s+(d.ilbanTarget[m]||0),0);
-  const allMo = Array.from({length:12},(_,i)=>i+1);
-  const annTgtTotal = allMo.reduce((s,m)=>s+(d.totalTarget[m]||0),0);
-  const annTgtGongu = allMo.reduce((s,m)=>s+(d.gonguTarget[m]||0),0);
-  const annTgtIlban = allMo.reduce((s,m)=>s+(d.ilbanTarget[m]||0),0);
-  const annFcastTotal = allMo.reduce((s,m)=>s+(d.totalFcast?.[m]||0),0);
-  const annFcastGongu = allMo.reduce((s,m)=>s+(d.gonguFcast?.[m]||0),0);
-  const annFcastIlban = allMo.reduce((s,m)=>s+(d.ilbanFcast?.[m]||0),0);
 
-  const lastMo = availMonths[availMonths.length-1] || 0;
-  const moLabel = `1~${lastMo}월`;
+  // ── 상단 카드: KPI 대시보드와 동일 (PIVOT_DATA · 같은 헬퍼)
+  const { n, ytd, ann, fmt, fmtB, pctCls, ml, rev, goalRow, kpiTile } = _kpiKit();
+  const oRev=rev('overseas'),oTgt=ytd('overseas','target'),oAnnT=ann('overseas','target'),oAnnF=ann('overseas','fcast');
+  const ogRev=rev('overseasGongu'),ogTgt=ytd('overseasGongu','target'),ogAnnT=ann('overseasGongu','target'),ogAnnF=ann('overseasGongu','fcast');
+  const oiRev=rev('overseasIlban'),oiTgt=ytd('overseasIlban','target'),oiAnnT=ann('overseasIlban','target'),oiAnnF=ann('overseasIlban','fcast');
+  const oPace = oTgt > 0 ? oRev / oTgt * 100 : null;
 
-  // ── KPI 대시보드와 동일한 헬퍼
-  const oFmt  = v => v ? Math.round(v).toLocaleString() : '0';
-  const oFmtB = v => v && !isNaN(v) && v > 0 ? (v/1e8).toFixed(1) : null;
-  const oBpct = (v,t) => t > 0 ? Math.min(100, v/t*100) : 0;
-  const oPcls = p => p===null?'':p>=100?'good':p>=90?'warning':'critical';
-
-  const oGoalRow = (lbl, v, tot, cls='') => {
-    const w = tot>0 ? Math.min(100,v/tot*100).toFixed(1) : '0';
-    const p = tot>0 ? (v/tot*100).toFixed(1) : '—';
-    return `<div class="kd-hero-goal-row">
-      <span class="kd-hero-row-lbl">${lbl}</span>
-      <div class="kd-hero-track"><div class="kd-hero-fill${cls?' '+cls:''}" style="width:${w}%"></div></div>
-      <div class="kd-hero-trail"><span class="kd-hero-pct num">${p}%</span><span class="kd-hero-amt">${oFmt(v)} / ${oFmt(tot)}</span></div>
-    </div>`;
-  };
-
-  const oTile = (label, rev, tgt, annT, annF, tier3=false) => {
-    const ytdPct = tgt>0 ? rev/tgt*100 : null;
-    const ytdW   = tgt>0 ? oBpct(rev,tgt).toFixed(1) : '0';
-    const ytdCls = oPcls(ytdPct);
-    const fPct   = annT>0&&annF>0 ? annF/annT*100 : null;
-    const fW     = fPct!==null ? oBpct(annF,annT).toFixed(1) : '0';
-    const fCls   = oPcls(fPct);
-    const bv     = oFmtB(rev);
-    return `<div class="kpi${tier3?' tier3':''}">
-      <div class="kpi-label">${label}</div>
-      <div class="kpi-value num">${bv??'—'}<sup>억</sup></div>
-      <div class="kpi-progress">
-        ${ytdPct!==null?`
-          <div class="kpi-pace ${ytdCls}">${moLabel} 목표대비 <b class="num">${ytdPct.toFixed(1)}%</b></div>
-          <div class="kpi-progress-track"><div class="kpi-progress-fill" style="width:${ytdW}%${ytdPct>=100?';background:#0ca30c':''}"></div></div>
-          <div class="kpi-progress-caption"><span class="num">${oFmt(rev)}</span><span class="fc num">목표 ${oFmt(tgt)}</span></div>`
-        :'<div class="kpi-pace" style="color:#94a3b8;font-size:.7rem">목표 미설정</div>'}
-        ${fPct!==null?`
-          <div class="kpi-pace ${fCls}" style="margin-top:5px">예상 연마감 <b class="num">${fPct.toFixed(1)}%</b></div>
-          <div class="kpi-progress-track"><div class="kpi-progress-fill" style="width:${fW}%;opacity:.55"></div></div>
-          <div class="kpi-progress-caption"><span class="num">${oFmt(annF)}</span><span class="fc num">목표 ${oFmt(annT)}</span></div>`:''}
-      </div>
-    </div>`;
-  };
-
-  // ── Hero (KPI 대시보드 동일 디자인)
+  // ── Hero + 카드 (KPI 대시보드와 동일 마크업)
   body.innerHTML = `
-<div class="kd-hero" style="margin-bottom:14px">
+<section class="kd-hero">
   <div>
-    <div class="kd-hero-chip">🌏 해외 매출 ${moLabel}</div>
-    <div class="kd-hero-value num">${oFmtB(ytdTotal)??'—'}<span class="kd-hero-unit">억</span></div>
-    <div class="kd-hero-note">연간 목표 ${oFmt(annTgtTotal)}</div>
+    <div class="kd-hero-chip">누적 해외매출</div>
+    <div class="kd-hero-value num">${fmtB(oRev)??'—'}<span class="kd-hero-unit">억원</span></div>
+    <div class="kd-hero-note">${n.y}년 ${ml} · 해외 전체(공구+일반)</div>
+    ${oPace!==null?`<div class="kd-hero-pace ${pctCls(oPace)}">
+      <span class="hpb-label">${ml} 목표 대비</span>
+      <span class="hpb-value num">${oPace.toFixed(1)}%</span>
+      <span class="hpb-note num">${fmt(oRev)} 실적 · ${fmt(oTgt)} 목표</span>
+    </div>`:''}
   </div>
   <div class="kd-hero-goal">
-    ${oGoalRow('YTD 달성', ytdTotal, ytdTgtTotal)}
-    ${annFcastTotal>0?oGoalRow('연마감 예상', annFcastTotal, annTgtTotal, 'forecast'):''}
+    <div class="kd-hero-goal-label">연간 목표 ${fmt(oAnnT)} 대비</div>
+    <div class="kd-hero-goal-rows">
+      ${goalRow('경과일', n.doy, n.diy, 'elapsed')}
+      ${goalRow('실적', oRev, oAnnT)}
+      ${oAnnF>0?goalRow('예상 마감', oAnnF, oAnnT, 'forecast'):''}
+    </div>
   </div>
-</div>
+</section>
+<p class="kd2-footnote">예상 마감은 시트의 예상행 기준이며 실제와 다를 수 있습니다</p>
+
 <section class="tier2-grid">
   <div class="tier2-col">
-    ${oTile('해외 공구', ytdGongu, ytdTgtGongu, annTgtGongu, annFcastGongu)}
+    ${kpiTile('해외 공구', ogRev, ogTgt, ogAnnT, ogAnnF, null)}
     <div class="tier3-row">
-      ${oTile('YDY', ytdYdy, 0, 0, 0, true)}
-      ${oTile('마이랩스', ytdMylabs, 0, 0, 0, true)}
+      ${kpiTile('YDY', ytdYdy, 0, 0, 0, null, true)}
+      ${kpiTile('마이랩스', ytdMylabs, 0, 0, 0, null, true)}
     </div>
   </div>
   <div class="tier2-col">
-    ${oTile('해외 일반', ytdIlban, ytdTgtIlban, annTgtIlban, annFcastIlban)}
+    ${kpiTile('해외 일반', oiRev, oiTgt, oiAnnT, oiAnnF, null)}
     <div class="tier3-row">
-      ${oTile('아이허브', ytdIhub, 0, 0, 0, true)}
-      ${oTile('스마트스토어', ytdSs, 0, 0, 0, true)}
-      ${ytdAmz?oTile('아마존', ytdAmz, 0, 0, 0, true):''}
+      ${kpiTile('아이허브', ytdIhub, 0, 0, 0, null, true)}
+      ${kpiTile('스마트스토어', ytdSs, 0, 0, 0, null, true)}
+      ${ytdAmz?kpiTile('아마존', ytdAmz, 0, 0, 0, null, true):''}
     </div>
   </div>
 </section>
@@ -2528,7 +2496,7 @@ async function renderOverseasSales() {
 
 <!-- 해외 공구 -->
 <div class="ovr-section">
-  <div class="ovr-section-title">해외 공구</div>
+  <div class="ovr-section-title">해외 공구${_ovrMetricToggle()}</div>
   <div class="ovr-tabs">
     <button class="ovr-tab active" onclick="ovrSwitchGongu('ALL',this)">전체</button>
     <button class="ovr-tab" onclick="ovrSwitchGongu('YDY',this)">YDY</button>
@@ -2540,11 +2508,11 @@ async function renderOverseasSales() {
 
 <!-- 해외 일반 -->
 <div class="ovr-section">
-  <div class="ovr-section-title">해외 일반</div>
+  <div class="ovr-section-title">해외 일반${_ovrMetricToggle()}</div>
   <div class="ovr-ch-cards">
-    <div class="ovr-ch-card ihub"><div class="ovr-ch-name">아이허브</div><div class="ovr-ch-val num">${fw(ytdIhub)}</div></div>
-    <div class="ovr-ch-card ss"><div class="ovr-ch-name">스마트스토어</div><div class="ovr-ch-val num">${fw(ytdSs)}</div></div>
-    <div class="ovr-ch-card amz"><div class="ovr-ch-name">아마존</div><div class="ovr-ch-val num">${ytdAmz?fw(ytdAmz):'—'}</div></div>
+    <div class="ovr-ch-card ihub"><div class="ovr-ch-name">아이허브</div><div class="ovr-ch-val num" id="ovrChIhub">${fw(ytdIhub)}</div></div>
+    <div class="ovr-ch-card ss"><div class="ovr-ch-name">스마트스토어</div><div class="ovr-ch-val num" id="ovrChSs">${fw(ytdSs)}</div></div>
+    <div class="ovr-ch-card amz"><div class="ovr-ch-name">아마존</div><div class="ovr-ch-val num" id="ovrChAmz">${ytdAmz?fw(ytdAmz):'—'}</div></div>
   </div>
   <div class="ovr-chart-wrap" style="height:180px"><canvas id="ovrIlbanChart"></canvas></div>
   <div class="ovr-tabs">
@@ -2579,8 +2547,54 @@ function _ovrMonthlyByBrand(prods, months, brand) {
   return months.map(m => filtered.reduce((s,p) => s+(p.months[m]||0), 0));
 }
 
+// ── 매출/수량 전환
+const _ovrFq = v => v>0 ? Math.round(v).toLocaleString() : '—';
+const _ovrSumMonths = (prods, months) => months.map(m => prods.reduce((s,p)=>s+(p.months[m]||0),0));
+const _ovrQtyMonths = prods => Array.from({length:12},(_,i)=>i+1).filter(m => prods.some(p=>(p.months[m]||0)>0));
+const _ovrIsMylabs = p => p.brand.toUpperCase().includes('MYLAB') || p.brand.includes('마이랩');
+
+function _ovrMetricToggle() {
+  return `<span class="ovr-metric-tg">
+    <button class="${ovrMetric==='rev'?'active':''}" onclick="ovrSetMetric('rev')">매출</button>
+    <button class="${ovrMetric==='qty'?'active':''}" onclick="ovrSetMetric('qty')">수량</button>
+  </span>`;
+}
+
+function ovrSetMetric(metric) {
+  ovrMetric = metric;
+  document.querySelectorAll('.ovr-metric-tg button').forEach(b =>
+    b.classList.toggle('active', (b.textContent==='수량') === (metric==='qty')));
+  _ovrRerenderViews();
+}
+
+function _ovrRerenderViews() {
+  if (!OVR_DATA) return;
+  const fw = v => { if(!v||isNaN(v)) return '—'; const a=Math.abs(v); return a>=1e8?(v/1e8).toFixed(1)+'억':a>=1e4?Math.round(v/1e4).toLocaleString()+'만':Math.round(v).toLocaleString(); };
+  const availMonths = Array.from({length:12},(_,i)=>i+1).filter(m=>(OVR_DATA.total[m]||0)>0);
+  _renderGonguView(OVR_DATA, availMonths, fw);
+  _renderIlbanView(OVR_DATA, availMonths, fw);
+}
+
 function _renderGonguView(d, availMonths, fw) {
   const brand = ovrGonguBrand;
+  if (ovrMetric === 'qty') {
+    const all    = OVR_QTY?.gongu || [];
+    const months = _ovrQtyMonths(all);
+    const ydyP = all.filter(p => !_ovrIsMylabs(p)), mlP = all.filter(_ovrIsMylabs);
+    const datasets = [
+      ...(brand!=='MYLABS' ? [{ label:'YDY',    data:_ovrSumMonths(ydyP,months), backgroundColor:'rgba(139,92,246,.75)' }] : []),
+      ...(brand!=='YDY'    ? [{ label:'마이랩스', data:_ovrSumMonths(mlP,months),  backgroundColor: brand==='ALL'?'rgba(167,139,250,.5)':'rgba(139,92,246,.75)' }] : []),
+    ];
+    mkChart('ovrGonguChart', {
+      type: 'bar',
+      data: { labels: months.map(m=>`${m}월`), datasets },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{boxWidth:10,font:{size:10}} } }, scales:{ x:{stacked:true,ticks:{font:{size:10}}}, y:{stacked:true,ticks:{callback:v=>_ovrFq(v),font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}} } }
+    });
+    const prods = brand==='ALL' ? all : brand==='MYLABS' ? mlP : ydyP;
+    const el = document.getElementById('ovrGonguTable');
+    if (el) el.innerHTML = _ovrProdTable(prods, months, _ovrFq);
+    return;
+  }
   const ydyData    = availMonths.map(m => d.ydy[m]||0);
   const mylabsData = availMonths.map(m => d.mylabs[m]||0);
 
@@ -2605,6 +2619,32 @@ function _renderGonguView(d, availMonths, fw) {
 }
 
 function _renderIlbanView(d, availMonths, fw) {
+  const setCh = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  if (ovrMetric === 'qty') {
+    const ihubP = OVR_QTY?.ihub || [], ssP = OVR_QTY?.ss || [];
+    const months = _ovrQtyMonths([...ihubP, ...ssP]);
+    const sumAll = ps => ps.reduce((s,p)=>s+p.total,0);
+    setCh('ovrChIhub', _ovrFq(sumAll(ihubP)));
+    setCh('ovrChSs',   _ovrFq(sumAll(ssP)));
+    setCh('ovrChAmz',  '—');
+    mkChart('ovrIlbanChart', {
+      type: 'bar',
+      data: { labels: months.map(m=>`${m}월`), datasets: [
+        { label:'아이허브',     data:_ovrSumMonths(ihubP,months), backgroundColor:'rgba(245,158,11,.75)' },
+        { label:'스마트스토어', data:_ovrSumMonths(ssP,months),   backgroundColor:'rgba(59,130,246,.65)' },
+      ] },
+      options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{boxWidth:10,font:{size:10}} } }, scales:{ x:{stacked:true,ticks:{font:{size:10}}}, y:{stacked:true,ticks:{callback:v=>_ovrFq(v),font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}} } }
+    });
+    const prods = ovrIlbanCh === '스마트스토어' ? ssP : ihubP;
+    const el = document.getElementById('ovrIlbanTable');
+    if (el) el.innerHTML = _ovrProdTable(prods, _ovrQtyMonths(prods), _ovrFq);
+    return;
+  }
+  const sumMo = obj => availMonths.reduce((s,m)=>s+(obj[m]||0),0);
+  const ytdAmz = sumMo(d.amazon);
+  setCh('ovrChIhub', fw(sumMo(d.ihubKrw)));
+  setCh('ovrChSs',   fw(sumMo(d.smartstore)));
+  setCh('ovrChAmz',  ytdAmz ? fw(ytdAmz) : '—');
   // 차트 (아이허브 + 스마트스토어 + 아마존 stacked bar)
   const ihubData = availMonths.map(m => d.ihubKrw[m]||0);
   const ssData   = availMonths.map(m => d.smartstore[m]||0);
@@ -2673,22 +2713,14 @@ function ovrSwitchGongu(brand, btn) {
   ovrGonguBrand = brand;
   btn.closest('.ovr-tabs').querySelectorAll('.ovr-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  if (!OVR_DATA) return;
-  const fw = v => { if(!v||isNaN(v)) return '—'; const a=Math.abs(v); return a>=1e8?(v/1e8).toFixed(1)+'억':a>=1e4?Math.round(v/1e4).toLocaleString()+'만':Math.round(v).toLocaleString(); };
-  const availMonths = Array.from({length:12},(_,i)=>i+1).filter(m=>(OVR_DATA.total[m]||0)>0);
-  _renderGonguView(OVR_DATA, availMonths, fw);
+  _ovrRerenderViews();
 }
 
 function ovrSwitchIlban(ch, btn) {
   ovrIlbanCh = ch;
   btn.closest('.ovr-tabs').querySelectorAll('.ovr-tab').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
-  if (!OVR_DATA) return;
-  const fw = v => { if(!v||isNaN(v)) return '—'; const a=Math.abs(v); return a>=1e8?(v/1e8).toFixed(1)+'억':a>=1e4?Math.round(v/1e4).toLocaleString()+'만':Math.round(v).toLocaleString(); };
-  const availMonths = Array.from({length:12},(_,i)=>i+1).filter(m=>(OVR_DATA.total[m]||0)>0);
-  const prods = ovrIlbanCh === '스마트스토어' ? OVR_DATA.ssProds : OVR_DATA.ihubProds;
-  const el = document.getElementById('ovrIlbanTable');
-  if (el) el.innerHTML = _ovrProdTable(prods, availMonths, fw);
+  _ovrRerenderViews();
 }
 
 function onTabActivated(tabId) {
@@ -2719,23 +2751,10 @@ function populateMonthSelects() {
   const _selPM = document.getElementById('selProductsMonth'); if (_selPM) _selPM.innerHTML = opts;
 }
 
-// ═══════════════════════════════════════════════════════
-//  KPI 대시보드 v2 — PIVOT_DATA 기반 (draft-aligned)
-// ═══════════════════════════════════════════════════════
-
-function renderKPI() {
-  const body = document.querySelector('#page-kpi .page-body');
-  if (!body) return;
-  if (!PIVOT_DATA) {
-    body.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8">데이터 로딩 중…</div>';
-    return;
-  }
-
+// KPI 공통 헬퍼 — KPI 대시보드 / 해외 매출 페이지 공용 (PIVOT_DATA 기반)
+function _kpiKit() {
   const n = getKpiNow();
-  console.log('[KPI] 기준일:', n, 'PIVOT_DATE:', PIVOT_DATE, 'pb.rev.monthly:', PIVOT_DATA?.pb?.rev?.monthly, 'pb.rev.annual:', PIVOT_DATA?.pb?.rev?.annual);
-
-  // helpers
-  const pn  = v => { const x = parseFloat(String(v ?? '').replace(/[,\s₩]/g,'')); return isNaN(x) ? 0 : x; };
+  const pn  = v => { const x = parseFloat(String(v ?? '').replace(/[,s₩]/g,'')); return isNaN(x) ? 0 : x; };
   const ytd = (key, fld, maxMo = n.m) => {
     const d = PIVOT_DATA[key]; if (!d || !d[fld]) return 0;
     return Object.entries(d[fld].monthly || {}).filter(([mo]) => +mo <= maxMo).reduce((s,[,v]) => s + pn(v), 0);
@@ -2749,29 +2768,7 @@ function renderKPI() {
   const ml = `1~${n.m}월`;
 
   // rev은 monthly 합계 vs 연간합계 컬럼 중 더 큰 값 사용 (일부 월이 CSV에서 0으로 export될 경우 대비)
-  const rev = (key) => { const s = ytd(key,'rev'), a = ann(key,'rev'); const v = (a > 0 && a > s) ? a : s; console.log(`[KPI rev] ${key}: ytd=${s} ann=${a} → ${v}`); return v; };
-
-  // KPI values
-  const pbRev=rev('pb'),pbTgt=ytd('pb','target'),pbAnnT=ann('pb','target'),pbAnnF=ann('pb','fcast');
-  const domRev=rev('domestic'),domTgt=ytd('domestic','target'),domAnnT=ann('domestic','target'),domAnnF=ann('domestic','fcast');
-  const gRev=rev('gongu'),gTgt=ytd('gongu','target'),gAnnT=ann('gongu','target'),gAnnF=ann('gongu','fcast');
-  const iRev=rev('ilban'),iTgt=ytd('ilban','target'),iAnnT=ann('ilban','target'),iAnnF=ann('ilban','fcast');
-  const oRev=rev('overseas'),oTgt=ytd('overseas','target'),oAnnT=ann('overseas','target'),oAnnF=ann('overseas','fcast');
-  const ogRev=rev('overseasGongu'),ogTgt=ytd('overseasGongu','target'),ogAnnT=ann('overseasGongu','target'),ogAnnF=ann('overseasGongu','fcast');
-  const oiRev=rev('overseasIlban'),oiTgt=ytd('overseasIlban','target'),oiAnnT=ann('overseasIlban','target'),oiAnnF=ann('overseasIlban','fcast');
-
-  const pbPace  = pbTgt  > 0 ? pbRev  / pbTgt  * 100 : null;
-  const domPace = domTgt > 0 ? domRev / domTgt * 100 : null;
-  const gPace   = gTgt   > 0 ? gRev   / gTgt   * 100 : null;
-  const iPace   = iTgt   > 0 ? iRev   / iTgt   * 100 : null;
-  const oPace   = oTgt   > 0 ? oRev   / oTgt   * 100 : null;
-  const ogPace  = ogTgt  > 0 ? ogRev  / ogTgt  * 100 : null;
-  const oiPace  = oiTgt  > 0 ? oiRev  / oiTgt  * 100 : null;
-
-  const elPct = n.diy > 0 ? n.doy / n.diy * 100 : 0;
-  const asof  = PIVOT_DATE
-    ? `${PIVOT_DATE.y}-${String(PIVOT_DATE.m).padStart(2,'0')}-${String(PIVOT_DATE.dy).padStart(2,'0')}`
-    : `${n.y}-${String(n.m).padStart(2,'0')}-${String(n.dy).padStart(2,'0')}`;
+  const rev = (key) => { const s = ytd(key,'rev'), a = ann(key,'rev'); return (a > 0 && a > s) ? a : s; };
 
   // hero goal row
   const goalRow = (lbl, v, total, cls='') => {
@@ -2819,6 +2816,46 @@ function renderKPI() {
       </div>
     </div>`;
   };
+
+  return { n, ytd, ann, monV, fmt, fmtB, pctCls, bpct, ml, rev, goalRow, kpiTile };
+}
+
+// ═══════════════════════════════════════════════════════
+//  KPI 대시보드 v2 — PIVOT_DATA 기반 (draft-aligned)
+// ═══════════════════════════════════════════════════════
+
+function renderKPI() {
+  const body = document.querySelector('#page-kpi .page-body');
+  if (!body) return;
+  if (!PIVOT_DATA) {
+    body.innerHTML = '<div style="padding:40px;text-align:center;color:#94a3b8">데이터 로딩 중…</div>';
+    return;
+  }
+
+  const { n, ytd, ann, monV, fmt, fmtB, pctCls, bpct, ml, rev, goalRow, kpiTile } = _kpiKit();
+  console.log('[KPI] 기준일:', n, 'PIVOT_DATE:', PIVOT_DATE, 'pb.rev.monthly:', PIVOT_DATA?.pb?.rev?.monthly, 'pb.rev.annual:', PIVOT_DATA?.pb?.rev?.annual);
+
+  // KPI values
+  const pbRev=rev('pb'),pbTgt=ytd('pb','target'),pbAnnT=ann('pb','target'),pbAnnF=ann('pb','fcast');
+  const domRev=rev('domestic'),domTgt=ytd('domestic','target'),domAnnT=ann('domestic','target'),domAnnF=ann('domestic','fcast');
+  const gRev=rev('gongu'),gTgt=ytd('gongu','target'),gAnnT=ann('gongu','target'),gAnnF=ann('gongu','fcast');
+  const iRev=rev('ilban'),iTgt=ytd('ilban','target'),iAnnT=ann('ilban','target'),iAnnF=ann('ilban','fcast');
+  const oRev=rev('overseas'),oTgt=ytd('overseas','target'),oAnnT=ann('overseas','target'),oAnnF=ann('overseas','fcast');
+  const ogRev=rev('overseasGongu'),ogTgt=ytd('overseasGongu','target'),ogAnnT=ann('overseasGongu','target'),ogAnnF=ann('overseasGongu','fcast');
+  const oiRev=rev('overseasIlban'),oiTgt=ytd('overseasIlban','target'),oiAnnT=ann('overseasIlban','target'),oiAnnF=ann('overseasIlban','fcast');
+
+  const pbPace  = pbTgt  > 0 ? pbRev  / pbTgt  * 100 : null;
+  const domPace = domTgt > 0 ? domRev / domTgt * 100 : null;
+  const gPace   = gTgt   > 0 ? gRev   / gTgt   * 100 : null;
+  const iPace   = iTgt   > 0 ? iRev   / iTgt   * 100 : null;
+  const oPace   = oTgt   > 0 ? oRev   / oTgt   * 100 : null;
+  const ogPace  = ogTgt  > 0 ? ogRev  / ogTgt  * 100 : null;
+  const oiPace  = oiTgt  > 0 ? oiRev  / oiTgt  * 100 : null;
+
+  const elPct = n.diy > 0 ? n.doy / n.diy * 100 : 0;
+  const asof  = PIVOT_DATE
+    ? `${PIVOT_DATE.y}-${String(PIVOT_DATE.m).padStart(2,'0')}-${String(PIVOT_DATE.dy).padStart(2,'0')}`
+    : `${n.y}-${String(n.m).padStart(2,'0')}-${String(n.dy).padStart(2,'0')}`;
 
   // SVG chart
   const svgChart = () => {
@@ -4898,6 +4935,59 @@ async function loadOvrSalesData() {
     }
   })();
   return ovrSalesLoading;
+}
+
+// ── 해외 수량 (공구 / 일반스스 / 아이허브 피벗 탭) ──
+let OVR_QTY = null;          // { gongu:[], ss:[], ihub:[] } — 각 [{brand, prod, months, total}]
+let ovrQtyLoading = null;
+
+async function loadOvrQtyData() {
+  if (OVR_QTY) return { ok: true };
+  if (ovrQtyLoading) return ovrQtyLoading;
+  ovrQtyLoading = (async () => {
+    try {
+      const entries = await Promise.all(Object.entries(OVR_QTY_GIDS).map(async ([key, gid]) => {
+        const url = `https://docs.google.com/spreadsheets/d/${IHUB_SHEET_ID}/export?format=csv&gid=${gid}`;
+        const csv = await fetch(url).then(r => r.ok ? r.text() : Promise.reject('HTTP '+r.status));
+        return [key, parseOvrQtyPivot(csv)];
+      }));
+      OVR_QTY = Object.fromEntries(entries);
+      return { ok: true };
+    } catch(e) {
+      console.warn('[OVR Qty] 로드 실패:', e);
+      ovrQtyLoading = null;
+      return { ok: false };
+    }
+  })();
+  return ovrQtyLoading;
+}
+
+// 피벗 표: col[0]=브랜드, col[1]=품번, col[2]=품목명, col[3..]=월. 첫 번째 표(총계 행까지)만 사용
+function parseOvrQtyPivot(csvText) {
+  const rows = parseCSV(csvText);
+  const pn = v => parseFloat(String(v||'').replace(/,/g,'')) || 0;
+  const ps = v => String(v||'').trim();
+  const normBrand = b => b.toUpperCase().includes('MYLAB') ? '마이랩스' : b;
+  const prods = [];
+  let colMap = null, brand = '';
+  for (const row of rows) {
+    const c0 = ps(row[0]), c2 = ps(row[2]);
+    if (!colMap) {
+      if (c0 === '브랜드' && c2 === '품목명') {
+        colMap = [];
+        for (let c=3; c<row.length; c++) { const mn = parseInt(ps(row[c])); if (mn>=1 && mn<=12) colMap.push({col:c, month:mn}); }
+      }
+      continue;
+    }
+    if (c0.includes('총계')) break;
+    if (c0) brand = normBrand(c0);
+    if (!c2) continue;
+    const months = {};
+    for (const {col, month} of colMap) { const v = pn(row[col]); if (v) months[month] = v; }
+    const total = Object.values(months).reduce((s,v)=>s+v,0);
+    if (total) prods.push({ brand, prod: c2, months, total });
+  }
+  return prods;
 }
 
 function parseOverseasSheet(csvText) {
