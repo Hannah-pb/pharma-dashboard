@@ -532,8 +532,10 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .ovr-prod-tbl tr:hover td{background:#fafbff}
 .ovr-prod-tbl .brand-cell{font-size:.7rem;color:#64748b;font-weight:600;background:#f8fafc}
 .ovr-ch-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.ovr-ch-cards.cols2{grid-template-columns:repeat(2,1fr)}
 .ovr-ch-card{background:#f8fafc;border-radius:10px;padding:12px 14px;border-left:3px solid #e2e8f0}
 .ovr-ch-card.ihub{border-color:#f59e0b} .ovr-ch-card.ss{border-color:#3b82f6} .ovr-ch-card.amz{border-color:#ea580c}
+.ovr-ch-card.ydy{border-color:#8b5cf6} .ovr-ch-card.mylabs{border-color:#a78bfa}
 .ovr-ch-name{font-size:.68rem;font-weight:700;color:#64748b;margin-bottom:3px}
 .ovr-ch-val{font-size:1.05rem;font-weight:700;color:#1e293b}
 /* 연간/월간 구분 레이블 */
@@ -550,7 +552,6 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 /* 태블릿 */
 @media(max-width:900px){
   .ovr-hero{grid-template-columns:1fr}
-  .ovr-ch-cards{grid-template-columns:1fr 1fr}
   .ovr-brand-row{grid-template-columns:1fr 1fr}
 }
 /* 모바일 */
@@ -567,7 +568,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
   .ovr-chart-wrap{height:180px}
   .ovr-tabs{gap:5px;margin-bottom:10px}
   .ovr-tab{padding:5px 11px;font-size:.74rem}
-  .ovr-ch-cards{grid-template-columns:1fr 1fr;gap:8px}
+  .ovr-ch-cards{gap:8px}
   .ovr-ch-card{padding:10px 11px}
   .ovr-ch-val{font-size:.95rem}
   .ovr-prod-tbl{font-size:.7rem}
@@ -591,7 +592,8 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 /* 소형 모바일 */
 @media(max-width:400px){
   .ovr-kpi-val{font-size:1.4rem}
-  .ovr-ch-cards{grid-template-columns:1fr}
+  .ovr-ch-card{padding:9px 9px}
+  .ovr-ch-val{font-size:.88rem}
   .ovr-brand-row{grid-template-columns:1fr 1fr}
   .ovr-chart-wrap{height:160px}
   .ovr-prod-tbl{font-size:.66rem}
@@ -2462,7 +2464,7 @@ async function renderOverseasSales() {
     <div class="kd-hero-goal-label">연간 목표 ${fmt(oAnnT)} 대비</div>
     <div class="kd-hero-goal-rows">
       ${goalRow('경과일', n.doy, n.diy, 'elapsed')}
-      ${goalRow('실적', oRev, oAnnT)}
+      ${goalRow('누적실적', oRev, oAnnT)}
       ${oAnnF>0?goalRow('예상 마감', oAnnF, oAnnT, 'forecast'):''}
     </div>
   </div>
@@ -2472,18 +2474,9 @@ async function renderOverseasSales() {
 <section class="tier2-grid">
   <div class="tier2-col">
     ${kpiTile('해외 공구', ogRev, ogTgt, ogAnnT, ogAnnF, null)}
-    <div class="tier3-row">
-      ${kpiTile('YDY', ytdYdy, 0, 0, 0, null, true)}
-      ${kpiTile('마이랩스', ytdMylabs, 0, 0, 0, null, true)}
-    </div>
   </div>
   <div class="tier2-col">
     ${kpiTile('해외 일반', oiRev, oiTgt, oiAnnT, oiAnnF, null)}
-    <div class="tier3-row">
-      ${kpiTile('아이허브', ytdIhub, 0, 0, 0, null, true)}
-      ${kpiTile('스마트스토어', ytdSs, 0, 0, 0, null, true)}
-      ${ytdAmz?kpiTile('아마존', ytdAmz, 0, 0, 0, null, true):''}
-    </div>
   </div>
 </section>
 
@@ -2497,6 +2490,10 @@ async function renderOverseasSales() {
 <!-- 해외 공구 -->
 <div class="ovr-section">
   <div class="ovr-section-title">해외 공구${_ovrMetricToggle()}</div>
+  <div class="ovr-ch-cards cols2">
+    <div class="ovr-ch-card ydy"><div class="ovr-ch-name">YDY</div><div class="ovr-ch-val num" id="ovrChYdy">${fw(ytdYdy)}</div></div>
+    <div class="ovr-ch-card mylabs"><div class="ovr-ch-name">마이랩스</div><div class="ovr-ch-val num" id="ovrChMylabs">${fw(ytdMylabs)}</div></div>
+  </div>
   <div class="ovr-tabs">
     <button class="ovr-tab active" onclick="ovrSwitchGongu('ALL',this)">전체</button>
     <button class="ovr-tab" onclick="ovrSwitchGongu('YDY',this)">YDY</button>
@@ -2577,10 +2574,13 @@ function _ovrRerenderViews() {
 
 function _renderGonguView(d, availMonths, fw) {
   const brand = ovrGonguBrand;
+  const setCh = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
   if (ovrMetric === 'qty') {
     const all    = OVR_QTY?.gongu || [];
     const months = _ovrQtyMonths(all);
     const ydyP = all.filter(p => !_ovrIsMylabs(p)), mlP = all.filter(_ovrIsMylabs);
+    setCh('ovrChYdy',    _ovrFq(ydyP.reduce((s,p)=>s+p.total,0)));
+    setCh('ovrChMylabs', _ovrFq(mlP.reduce((s,p)=>s+p.total,0)));
     const datasets = [
       ...(brand!=='MYLABS' ? [{ label:'YDY',    data:_ovrSumMonths(ydyP,months), backgroundColor:'rgba(139,92,246,.75)' }] : []),
       ...(brand!=='YDY'    ? [{ label:'마이랩스', data:_ovrSumMonths(mlP,months),  backgroundColor: brand==='ALL'?'rgba(167,139,250,.5)':'rgba(139,92,246,.75)' }] : []),
@@ -2597,6 +2597,8 @@ function _renderGonguView(d, availMonths, fw) {
   }
   const ydyData    = availMonths.map(m => d.ydy[m]||0);
   const mylabsData = availMonths.map(m => d.mylabs[m]||0);
+  setCh('ovrChYdy',    fw(ydyData.reduce((s,v)=>s+v,0)));
+  setCh('ovrChMylabs', fw(mylabsData.reduce((s,v)=>s+v,0)));
 
   const datasets = brand === 'ALL'
     ? [ { label:'YDY',    data:ydyData,    backgroundColor:'rgba(139,92,246,.75)' },
@@ -2961,7 +2963,7 @@ function renderKPI() {
         <div class="kd-hero-goal-label">연간 목표 ${fmt(pbAnnT)} 대비</div>
         <div class="kd-hero-goal-rows">
           ${goalRow('경과일', n.doy, n.diy, 'elapsed')}
-          ${goalRow('실적', pbRev, pbAnnT)}
+          ${goalRow('누적실적', pbRev, pbAnnT)}
           ${pbAnnF>0?goalRow('예상 마감', pbAnnF, pbAnnT, 'forecast'):''}
         </div>
       </div>
