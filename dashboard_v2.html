@@ -222,19 +222,20 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 
 /* ── Responsive ── */
 @media(max-width:768px){
-  #sidebar{position:fixed;top:0;left:0;bottom:0;transform:translateX(-100%);transition:transform .25s;width:220px!important;min-width:220px!important}
+  /* 사이드바가 햄버거 버튼(z 60)보다 위에 열리도록 */
+  #sidebar{position:fixed;top:0;left:0;bottom:0;transform:translateX(-100%);transition:transform .25s;width:220px!important;min-width:220px!important;z-index:70}
   #sidebar.open{transform:translateX(0)}
   #main{margin-left:0;padding-top:56px}
   #hamburger{display:flex;align-items:center;justify-content:center}
   .kpi-grid{grid-template-columns:1fr 1fr}
   .chart-grid-2{grid-template-columns:1fr}
-  .page-header{position:fixed;top:0;left:0;right:0;z-index:30}
+  .page-header{position:fixed;top:0;left:0;right:0;z-index:30;padding-left:64px}
 }
 @media(max-width:480px){
   .kpi-grid{grid-template-columns:1fr}
   .drill-kpi-row{grid-template-columns:1fr 1fr}
   .page-body{padding:12px 12px 20px}
-  .page-header{padding:14px 16px 12px}
+  .page-header{padding:14px 16px 12px 64px}
   .page-header h1{font-size:18px}
 }
 
@@ -451,6 +452,8 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .mr-card{background:#fff;border-radius:14px;padding:20px 22px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
 .mr-card.dom{border-top:3px solid #2563eb}
 .mr-card.ovr{border-top:3px solid #059669}
+.mr-card.gongu{border-top:3px solid #8b5cf6}
+.mr-card.ilban{border-top:3px solid #10b981}
 .mr-card-title{font-size:.75rem;font-weight:700;color:#64748b;letter-spacing:.06em;margin-bottom:6px}
 .mr-card-val{font-size:1.8rem;font-weight:800;color:#1e293b;margin-bottom:2px}
 .mr-card-tgt{font-size:.78rem;color:#94a3b8;margin-bottom:6px;min-height:1.1em}
@@ -720,12 +723,6 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       </div>
 
       <div id="inv-content">
-
-        <!-- 지역 탭 (국내/해외) -->
-        <div class="inv-region-bar">
-          <button class="inv-region-btn active" data-region="domestic" onclick="switchInvRegion('domestic')">국내</button>
-          <button class="inv-region-btn"        data-region="overseas" onclick="switchInvRegion('overseas')">해외</button>
-        </div>
 
         <!-- 국내 콘텐츠 -->
         <div id="invDomesticContent">
@@ -1374,7 +1371,7 @@ function mkChart(id, cfg) {
 // ═══════════════════════════════════════════════════════
 //  NAV / PAGE SWITCHING
 // ═══════════════════════════════════════════════════════
-const PAGE_TITLES = {kpi:'', sales:'판매분석', 'monthly-report':'국내', 'overseas-sales':'해외', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출', inventory:'재고관리'};
+const PAGE_TITLES = {kpi:'', sales:'판매분석', 'monthly-report':'국내 PB브랜드 매출 현황', 'overseas-sales':'해외 상품 매출 현황', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출', inventory:'재고관리'};
 
 function toggleNavParent(id) {
   const parent = document.getElementById(id);
@@ -1533,6 +1530,12 @@ function bindNav() {
 
 function bindSidebar() {
   document.getElementById('sidebarToggle').addEventListener('click', () => {
+    // 모바일: ◀ 버튼 = 메뉴 닫기 / PC: 사이드바 접기
+    if (window.matchMedia('(max-width:768px)').matches) {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('overlay').style.display='';
+      return;
+    }
     document.getElementById('sidebar').classList.toggle('collapsed');
   });
   document.getElementById('hamburger').addEventListener('click', () => {
@@ -5176,21 +5179,10 @@ async function loadMonthlyReportData() {
       console.warn('[MR] RAW 판매 로드 실패:', e.message || e);
     }
 
-    // 해외 매출 파일 (2026 탭) — 실패해도 계속 진행
-    try {
-      const url = `https://docs.google.com/spreadsheets/d/${IHUB_SHEET_ID}/export?format=csv&gid=${OVR_2026_GID}`;
-      const csv = await fetch(url).then(r => r.ok ? r.text() : Promise.reject('HTTP ' + r.status));
-      OVR_DATA = parseOverseasSheet(csv);
-      ovrSalesLoaded = true;
-      console.log(`[MR] OVR 로드: 공구 키 ${Object.keys(OVR_DATA.gongu).length}개, iHerb ${OVR_DATA.ihubProds.length}개 상품`);
-    } catch(e) {
-      ihubOk = false;
-      console.warn('[MR] OVR 로드 실패:', e.message || e);
-    }
 
     mrLoaded = true;
     mrLoadStatus = { bqOk, ihubOk };
-    console.log(`[MR] 로드완료 BQ:${bqOk}(${ROWS.length}건) OVR:${ihubOk}`);
+    console.log(`[MR] 로드완료 BQ:${bqOk}(${ROWS.length}건)`);
     return mrLoadStatus;
   })();
   return mrLoading;
@@ -5297,81 +5289,57 @@ async function renderMonthlyReport(ym) {
   const domGitaP  = domIlbanP - domChP;
   const domTotalP = bqOk ? S(domPrev)                                                                 : piv('domestic', p.prev.m);
   const domTotalYr= bqOk ? S(domYr)  : 0;
+  const domGonguYr= bqOk ? S(domYr.filter(r => r.dist==='3.공동구매')) : 0;
+  const domIlbanYr= bqOk ? S(domYr.filter(r => r.dist!=='3.공동구매')) : 0;
 
-  // ── 해외 집계 (OVR_DATA 우선, fallback: PIVOT_DATA) ──
-  const ovrGet = (key, yr, mo) => {
-    if (OVR_DATA && yr === 2026) {
-      const v = OVR_DATA[key]?.[mo];
-      if (v) return v;
-    }
-    const pivKey = key==='gongu' ? 'overseasGongu' : key==='ilban' ? 'overseasIlban' : 'overseas';
-    return piv(pivKey, mo);
-  };
-  const ovrTotal  = ovrGet('total', p.cur.y,  p.cur.m);
-  const ovrGongu  = ovrGet('gongu', p.cur.y,  p.cur.m);
-  const ovrIlban  = ovrGet('ilban', p.cur.y,  p.cur.m);
-  const ovrPrev   = ovrGet('total', p.prev.y, p.prev.m);
-  const ovrGonguP = ovrGet('gongu', p.prev.y, p.prev.m);
-  const ovrIlbanP = ovrGet('ilban', p.prev.y, p.prev.m);
-
-  // ── 전체 ──
-  const totCur  = domTotal + ovrTotal;
-  const totPrev = domTotalP + ovrPrev;
+  // ── 전체 (국내 페이지: 국내만 — 해외는 판매분석 > 해외) ──
+  const totCur  = domTotal;
+  const totPrev = domTotalP;
   const totYr   = domTotalYr;
 
   // ── 예상 마감 금액 (진행 중인 당월만) ──
   const _nowD = new Date();
   const isCurrentMo = p.cur.y === _nowD.getFullYear() && p.cur.m === (_nowD.getMonth()+1);
-  let projDom = null, projTot = null, projRatio = null, projMaxDay = null;
+  let projTot = null, projGongu = null, projIlban = null, projRatio = null, projMaxDay = null;
   if (isCurrentMo && bqOk && domAll.length > 0) {
     const days = domAll.map(r => r.day||0).filter(d => d > 0);
     projMaxDay = days.length > 0 ? Math.max(...days) : 0;
     const daysInMo = new Date(p.cur.y, p.cur.m, 0).getDate();
     if (projMaxDay > 0 && projMaxDay < daysInMo) {
       projRatio = daysInMo / projMaxDay;
-      projDom   = Math.round(domTotal * projRatio);
       projTot   = Math.round(totCur * projRatio);
+      projGongu = Math.round(domGongu * projRatio);
+      projIlban = Math.round(domIlban * projRatio);
     }
   }
 
   // ── 목표 ──
-  const tPb    = tgt2('pb',          p.cur.m);
   const tDom   = tgt2('domestic',    p.cur.m);
   const tGongu = tgt2('gongu',       p.cur.m);
   const tIlban = tgt2('ilban',       p.cur.m);
-  const tOvr   = tgt2('overseas',    p.cur.m);
-  const tOvrG  = tgt2('overseasGongu', p.cur.m);
-  const tOvrI  = tgt2('overseasIlban', p.cur.m);
 
   // ── 달성률 / 변동 ──
-  const achPb    = ach(totCur, tPb);
-  const achDom   = ach(domTotal, tDom);
+  const achDom   = ach(totCur, tDom);
   const achGongu = ach(domGongu, tGongu);
   const achIlban = ach(domIlban, tIlban);
-  const achOvr   = ach(ovrTotal, tOvr);
-  const achOvrG  = ach(ovrGongu, tOvrG);
-  const achOvrI  = ach(ovrIlban, tOvrI);
   const totMoM   = safe(totCur, totPrev);
   const totYoY   = safe(totCur, totYr);
-  const domMoM   = safe(domTotal, domTotalP);
-  const domYoY   = safe(domTotal, domTotalYr);
-  const ovrMoM   = safe(ovrTotal, ovrPrev);
 
-  // ─────────── Hero ───────────
-  const projAchPb = projTot && tPb ? ach(projTot, tPb) : null;
+  // ─────────── Hero (국내 합계) ───────────
+  const projAchDom = projTot && tDom ? ach(projTot, tDom) : null;
   const heroHtml = `
 <div class="mr-hero">
   <div class="mr-hero-main">
-    <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;opacity:.6;margin-bottom:8px">${p.cur.y}년 ${ml} 전체 매출</div>
+    <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;opacity:.6;margin-bottom:8px">${p.cur.y}년 ${ml} 국내 매출</div>
     <div class="mr-hero-val num">${fb(totCur)}</div>
     ${projTot ? `<div style="font-size:.88rem;margin-top:6px;opacity:.85">예상 마감 <span style="font-size:1.35rem;font-weight:800">${fb(projTot)}</span><span style="font-size:.7rem;opacity:.65;margin-left:6px">${projMaxDay}일 기준</span></div>` : ''}
-    ${tPb ? `<div style="font-size:.78rem;margin-top:${projTot?4:6}px;opacity:.78">목표 ${fb(tPb)} · ${projAchPb ? `<span style="font-weight:700">예상 ${projAchPb.html}</span>` : achPb.html}</div>${pBar(projTot||totCur, tPb, (projAchPb||achPb).cls)}` : ''}
+    ${tDom ? `<div style="font-size:.78rem;margin-top:${projTot?4:6}px;opacity:.78">목표 ${fb(tDom)} · ${projAchDom ? `<span style="font-weight:700">예상 ${projAchDom.html}</span>` : achDom.html}</div>${pBar(projTot||totCur, tDom, (projAchDom||achDom).cls)}` : ''}
   </div>
   <div class="mr-hero-kpis">
-    <div class="mr-hero-kpi"><span class="k">목표대비</span><span class="v">${tPb ? (projAchPb ? projAchPb.html : achPb.html) : '<span style="opacity:.55">—</span>'}</span></div>
+    <div class="mr-hero-kpi"><span class="k">목표대비</span><span class="v">${tDom ? (projAchDom ? projAchDom.html : achDom.html) : '<span style="opacity:.55">—</span>'}</span></div>
     <div class="mr-hero-kpi"><span class="k">전월비${projTot?'(예상)':''}</span><span class="v">${projTot ? safe(projTot,totPrev).html : totMoM.html}</span></div>
     <div class="mr-hero-kpi"><span class="k">전년동월비${projTot?'(예상)':''}</span><span class="v">${projTot ? safe(projTot,totYr).html : totYoY.html}</span></div>
-    <div class="mr-hero-kpi"><span class="k">국내비중</span><span class="v">${totCur>0?(domTotal/totCur*100).toFixed(0):0}%</span></div>
+    <div class="mr-hero-kpi"><span class="k">공구비중</span><span class="v">${totCur>0?(domGongu/totCur*100).toFixed(0):0}%</span></div>
   </div>
 </div>`;
 
@@ -5386,33 +5354,24 @@ async function renderMonthlyReport(ym) {
     </div>`;
   };
 
-  // ─────────── 국내/해외 계층 ───────────
-  const projAchDom = projDom && tDom ? ach(projDom, tDom) : null;
+  // ─────────── 공구 / 일반 ───────────
+  const segCard = (cls, label, cur, prev, yr, tgtV, achV, proj) => {
+    const projAch = proj && tgtV ? ach(proj, tgtV) : null;
+    return `<div class="mr-card ${cls}">
+    <div class="mr-card-title">${label}</div>
+    <div class="mr-card-val num">${fb(cur)}</div>
+    ${proj ? `<div style="font-size:.82rem;color:#1e40af;margin-top:2px;margin-bottom:4px">예상 마감 <strong>${fb(proj)}</strong></div>` : ''}
+    ${tgtV ? `<div class="mr-card-tgt">목표 ${fb(tgtV)} · ${projAch ? `예상 ${projAch.html}` : achV.html}</div>${pBar(proj||cur,tgtV,(projAch||achV).cls)}` : '<div class="mr-card-tgt"></div>'}
+    <div class="mr-card-stats"><span>전월${proj?'(예상)':''} ${safe(proj||cur,prev).html}</span><span>전년동월${proj?'(예상)':''} ${safe(proj||cur,yr).html}</span></div>`;
+  };
   const hierHtml = `
 <div class="mr-grid2">
-  <div class="mr-card dom">
-    <div class="mr-card-title">국내 매출</div>
-    <div class="mr-card-val num">${fb(domTotal)}</div>
-    ${projDom ? `<div style="font-size:.82rem;color:#1e40af;margin-top:2px;margin-bottom:4px">예상 마감 <strong>${fb(projDom)}</strong></div>` : ''}
-    ${tDom ? `<div class="mr-card-tgt">목표 ${fb(tDom)} · ${projAchDom ? `예상 ${projAchDom.html}` : achDom.html}</div>${pBar(projDom||domTotal,tDom,(projAchDom||achDom).cls)}` : '<div class="mr-card-tgt"></div>'}
-    <div class="mr-card-stats"><span>전월${projDom?'(예상)':''} ${projDom?safe(projDom,domTotalP).html:domMoM.html}</span><span>전년동월${projDom?'(예상)':''} ${projDom?safe(projDom,domTotalYr).html:domYoY.html}</span></div>
+  ${segCard('gongu', '공구', domGongu, domGonguP, domGonguYr, tGongu, achGongu, projGongu)}
+  </div>
+  ${segCard('ilban', '일반', domIlban, domIlbanP, domIlbanYr, tIlban, achIlban, projIlban)}
     <div class="mr-sub-grid">
-      ${subCard('공구', domGongu, domGonguP, tGongu, achGongu)}
-      ${subCard('일반', domIlban, domIlbanP, tIlban, achIlban)}
-    </div>
-    <div class="mr-chan-pair">
       ${subCard('채널', domCh, domChP, null, {cls:'',html:''})}
       ${subCard('기타', domGita, domGitaP, null, {cls:'',html:''})}
-    </div>
-  </div>
-  <div class="mr-card ovr">
-    <div class="mr-card-title">해외 매출</div>
-    <div class="mr-card-val num">${fb(ovrTotal)}</div>
-    ${tOvr ? `<div class="mr-card-tgt">목표 ${fb(tOvr)} · ${achOvr.html}</div>${pBar(ovrTotal,tOvr,achOvr.cls)}` : '<div class="mr-card-tgt"></div>'}
-    <div class="mr-card-stats"><span>전월 ${ovrMoM.html}</span><span style="color:#94a3b8;font-size:.72rem">전년동월 데이터 없음</span></div>
-    <div class="mr-sub-grid">
-      ${subCard('해외 공구', ovrGongu, ovrGonguP, tOvrG, achOvrG)}
-      ${subCard('해외 일반', ovrIlban, ovrIlbanP, tOvrI, achOvrI)}
     </div>
   </div>
 </div>`;
@@ -5489,87 +5448,6 @@ async function renderMonthlyReport(ym) {
   const prodData = Object.values(pMap);
   mrState = { prodData, p, totCur, safe, fb, bqOk };
 
-  // ─────────── 해외 매출 상세 (OVR_DATA 기반: 공구 / 일반) ───────────
-  const KRW = v => Math.round(v).toLocaleString('ko-KR') + '원';
-  const oG = (key, mo) => (OVR_DATA && p.cur.y===2026 ? (OVR_DATA[key]?.[mo]||0) : 0);
-  // 해외 공구
-  const ovrGonguCur  = oG('gongu', p.cur.m);
-  const ovrGonguPrev = oG('gongu', p.prev.m);
-  // 해외 일반 구성: 스마트스토어 + 아이허브
-  const ovrSsCur     = oG('smartstore', p.cur.m);
-  const ovrSsPrev    = oG('smartstore', p.prev.m);
-  const ovrIhubCur   = oG('ihubKrw', p.cur.m);
-  const ovrIhubPrev  = oG('ihubKrw', p.prev.m);
-  const ovrIlbanCur  = oG('ilban',  p.cur.m);
-  const ovrIlbanPrev = oG('ilban',  p.prev.m);
-  // 아이허브 제품 상세
-  let ihProds = [];
-  if (OVR_DATA && OVR_DATA.ihubProds && OVR_DATA.ihubProds.length > 0) {
-    ihProds = OVR_DATA.ihubProds.map(r => ({
-      prod: r.prod,
-      cur:  r.months?.[p.cur.m]  || 0,
-      prev: (p.prev.y === 2026 ? r.months?.[p.prev.m] : 0) || 0,
-    })).filter(r => r.cur > 0).sort((a,b) => b.cur - a.cur);
-  }
-  const hasOvrData = ovrGonguCur > 0 || ovrIlbanCur > 0;
-  const ovrDetailHtml = !hasOvrData ? '' : `
-<div class="card" style="margin-bottom:16px">
-  <div class="card-title">해외 매출 상세</div>
-  <div class="tbl-wrap"><table class="mr-ch-tbl">
-    <thead><tr><th>구분</th><th>${ml}</th><th>전월</th><th>전월비</th><th>비중</th></tr></thead>
-    <tbody>
-      <tr style="font-weight:700;background:#f0f7ff">
-        <td>해외 공구</td>
-        <td class="num">${KRW(ovrGonguCur)}</td>
-        <td class="num">${ovrGonguPrev>0?KRW(ovrGonguPrev):'—'}</td>
-        <td>${safe(ovrGonguCur,ovrGonguPrev).html}</td>
-        <td class="num">${ovrIlbanCur+ovrGonguCur>0?((ovrGonguCur/(ovrIlbanCur+ovrGonguCur))*100).toFixed(1):0}%</td>
-      </tr>
-      <tr style="font-weight:700;background:#f0fdf4">
-        <td>해외 일반</td>
-        <td class="num">${KRW(ovrIlbanCur)}</td>
-        <td class="num">${ovrIlbanPrev>0?KRW(ovrIlbanPrev):'—'}</td>
-        <td>${safe(ovrIlbanCur,ovrIlbanPrev).html}</td>
-        <td class="num">${ovrIlbanCur+ovrGonguCur>0?((ovrIlbanCur/(ovrIlbanCur+ovrGonguCur))*100).toFixed(1):0}%</td>
-      </tr>
-      ${ovrSsCur>0?`<tr style="padding-left:16px">
-        <td style="padding-left:24px;color:#475569">└ 스마트스토어</td>
-        <td class="num">${KRW(ovrSsCur)}</td>
-        <td class="num">${ovrSsPrev>0?KRW(ovrSsPrev):'—'}</td>
-        <td>${safe(ovrSsCur,ovrSsPrev).html}</td>
-        <td class="num">${ovrIlbanCur>0?((ovrSsCur/ovrIlbanCur)*100).toFixed(1):0}%</td>
-      </tr>`:''}
-      ${ovrIhubCur>0?`<tr>
-        <td style="padding-left:24px;color:#475569">└ 아이허브</td>
-        <td class="num">${KRW(ovrIhubCur)}</td>
-        <td class="num">${ovrIhubPrev>0?KRW(ovrIhubPrev):'—'}</td>
-        <td>${safe(ovrIhubCur,ovrIhubPrev).html}</td>
-        <td class="num">${ovrIlbanCur>0?((ovrIhubCur/ovrIlbanCur)*100).toFixed(1):0}%</td>
-      </tr>`:''}
-      <tr style="font-weight:700;border-top:2px solid #e8edf3">
-        <td>해외 합계</td>
-        <td class="num">${KRW(ovrGonguCur+ovrIlbanCur)}</td>
-        <td class="num">${(ovrGonguPrev+ovrIlbanPrev)>0?KRW(ovrGonguPrev+ovrIlbanPrev):'—'}</td>
-        <td>${safe(ovrGonguCur+ovrIlbanCur,ovrGonguPrev+ovrIlbanPrev).html}</td>
-        <td class="num">100%</td>
-      </tr>
-    </tbody>
-  </table></div>
-  ${ihProds.length>0?`
-  <div style="margin-top:16px;border-top:1px solid #f1f5f9;padding-top:14px">
-    <div style="font-size:.78rem;font-weight:700;color:#64748b;margin-bottom:8px">아이허브 제품별 상세</div>
-    <div class="tbl-wrap"><table class="mr-prod-tbl">
-      <thead><tr><th style="text-align:left">제품명</th><th>${ml}</th><th>전월</th><th>전월비</th><th>비중</th></tr></thead>
-      <tbody>${ihProds.map(r=>`<tr>
-        <td>${r.prod}</td>
-        <td class="num">${KRW(r.cur)}</td>
-        <td class="num">${r.prev>0?KRW(r.prev):'—'}</td>
-        <td>${safe(r.cur,r.prev).html}</td>
-        <td class="num">${ovrIhubCur>0?((r.cur/ovrIhubCur)*100).toFixed(1):0}%</td>
-      </tr>`).join('')}</tbody>
-    </table></div>
-  </div>`:''}
-</div>`;
 
   // ─────────── BQ 경고 배너 ───────────
   const bqWarnHtml = !bqOk ? `
@@ -5577,17 +5455,12 @@ async function renderMonthlyReport(ym) {
   <span style="font-size:1rem">⚠️</span>
   <span>상세 판매 데이터(BigQuery)를 불러오지 못했습니다. 합계는 PIVOT_DATA 기준으로 표시되며, 상품·채널 상세 데이터는 제한됩니다.</span>
 </div>` : '';
-  const ovrWarnHtml = !ihubOk ? `
-<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:.8rem;color:#92400e;display:flex;align-items:center;gap:8px">
-  <span style="font-size:1rem">⚠️</span>
-  <span>해외 매출 데이터를 불러오지 못했습니다. 해외 상세 현황이 표시되지 않습니다.</span>
-</div>` : '';
   const bqSectionWarn = !bqOk ? `<div style="text-align:center;color:#94a3b8;padding:20px;font-size:.82rem">⚠️ BigQuery 데이터 없음 — 상세 내역 표시 불가</div>` : '';
 
   // ─────────── DOM 조립 ───────────
   const brandList  = [...new Set(prodData.map(r=>r.brand).filter(Boolean))].sort();
   const chListFull = [...new Set(prodData.map(r=>r.ch).filter(Boolean))].sort();
-  body.innerHTML = bqWarnHtml + ovrWarnHtml + heroHtml + hierHtml + (bqOk ? top5Html : `<div class="mr-top5-wrap"><div class="mr-top5-card" style="grid-column:1/-1">${bqSectionWarn}</div></div>`) + (bqOk ? chHtml : `<div class="card" style="margin-bottom:16px"><div class="card-title">채널별 매출 분석 (국내)</div>${bqSectionWarn}</div>`) + `
+  body.innerHTML = bqWarnHtml + heroHtml + hierHtml + (bqOk ? top5Html : `<div class="mr-top5-wrap"><div class="mr-top5-card" style="grid-column:1/-1">${bqSectionWarn}</div></div>`) + (bqOk ? chHtml : `<div class="card" style="margin-bottom:16px"><div class="card-title">채널별 매출 분석 (국내)</div>${bqSectionWarn}</div>`) + `
 <div class="card" style="margin-bottom:16px">
   <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
     <span>상품별 매출 상세 (국내)</span>
@@ -5610,7 +5483,7 @@ async function renderMonthlyReport(ym) {
     </select>
   </div>
   <div id="mrProdTableWrap">${bqOk ? buildMrProdTable(prodData, mrProdFilter, p, totCur, safe, fb) : bqSectionWarn}</div>
-</div>` + ovrDetailHtml;
+</div>`;
 }
 
 function buildMrProdTable(prodData, filter, p, totCur, safe, fb) {
