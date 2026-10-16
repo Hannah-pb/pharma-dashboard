@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>커머스팀 대시보드</title>
+<title>파마브로스 커머스팀 대시보드</title>
+<meta property="og:title" content="파마브로스 커머스팀 대시보드">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
@@ -634,7 +635,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
       <span class="nav-label">재고관리</span>
     </li>
     <div class="nav-children open" id="navChildrenInv">
-      <div class="nav-child active inv-region-child" data-region="domestic" onclick="navToInv('domestic')">국내</div>
+      <div class="nav-child inv-region-child" data-region="domestic" onclick="navToInv('domestic')">국내</div>
       <div class="nav-child inv-region-child" data-region="overseas" onclick="navToInv('overseas')">해외</div>
     </div>
   </ul>
@@ -1553,10 +1554,9 @@ function switchPage(pg) {
   if (pg === 'sales') {
     document.getElementById('navParentSales')?.classList.add('active');
   }
-  if (pg === 'sales' || pg === 'monthly-report') {
-    document.querySelectorAll('#navChildrenSales .nav-child').forEach(el =>
-      el.classList.toggle('active', el.dataset.page === pg));
-  }
+  // 판매분석 하위(국내/해외 등) — data-page 일치하는 항목 색칠
+  document.querySelectorAll('.nav-child:not(.inv-region-child)').forEach(el =>
+    el.classList.toggle('active', el.dataset.page === pg));
   if (pg === 'inventory') {
     document.querySelectorAll('.inv-region-child').forEach(el =>
       el.classList.toggle('active', el.dataset.region === invRegion));
@@ -2408,7 +2408,7 @@ function renderPage(pg) {
 //  해외 매출 대시보드
 // ═══════════════════════════════════════════════════════
 let ovrGonguBrand = 'ALL';   // 공구 활성 브랜드
-let ovrIlbanCh    = '아이허브'; // 일반 활성 채널
+let ovrIlbanCh    = 'ALL';     // 일반 활성 채널 ('ALL' | '아이허브' | '스마트스토어')
 let ovrMetric     = 'rev';     // 'rev' 매출 | 'qty' 수량
 
 async function renderOverseasSales() {
@@ -2513,8 +2513,9 @@ async function renderOverseasSales() {
   </div>
   <div class="ovr-chart-wrap" style="height:180px"><canvas id="ovrIlbanChart"></canvas></div>
   <div class="ovr-tabs">
-    <button class="ovr-tab active" onclick="ovrSwitchIlban('아이허브',this)">아이허브</button>
-    <button class="ovr-tab" onclick="ovrSwitchIlban('스마트스토어',this)">스마트스토어</button>
+    <button class="ovr-tab${ovrIlbanCh==='ALL'?' active':''}" onclick="ovrSwitchIlban('ALL',this)">전체</button>
+    <button class="ovr-tab${ovrIlbanCh==='아이허브'?' active':''}" onclick="ovrSwitchIlban('아이허브',this)">아이허브</button>
+    <button class="ovr-tab${ovrIlbanCh==='스마트스토어'?' active':''}" onclick="ovrSwitchIlban('스마트스토어',this)">스마트스토어</button>
   </div>
   <div id="ovrIlbanTable"></div>
 </div>`;
@@ -2549,6 +2550,20 @@ const _ovrFq = v => v>0 ? Math.round(v).toLocaleString() : '—';
 const _ovrSumMonths = (prods, months) => months.map(m => prods.reduce((s,p)=>s+(p.months[m]||0),0));
 const _ovrQtyMonths = prods => Array.from({length:12},(_,i)=>i+1).filter(m => prods.some(p=>(p.months[m]||0)>0));
 const _ovrIsMylabs = p => p.brand.toUpperCase().includes('MYLAB') || p.brand.includes('마이랩');
+
+// 해외 일반 채널 선택 — 전체는 아이허브 + 스마트스토어를 브랜드·상품명 기준으로 합산
+function _ovrPickIlban(ihubP, ssP) {
+  if (ovrIlbanCh === '아이허브')     return ihubP;
+  if (ovrIlbanCh === '스마트스토어') return ssP;
+  const map = {};
+  for (const p of [...ihubP, ...ssP]) {
+    const key = `${p.brand}||${p.prod}`;
+    if (!map[key]) map[key] = { brand: p.brand, prod: p.prod, months: {}, total: 0 };
+    for (const [m, v] of Object.entries(p.months)) map[key].months[+m] = (map[key].months[+m] || 0) + v;
+    map[key].total += p.total;
+  }
+  return Object.values(map);
+}
 
 function _ovrMetricToggle() {
   return `<span class="ovr-metric-tg">
@@ -2637,7 +2652,7 @@ function _renderIlbanView(d, availMonths, fw) {
       ] },
       options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{boxWidth:10,font:{size:10}} } }, scales:{ x:{stacked:true,ticks:{font:{size:10}}}, y:{stacked:true,ticks:{callback:v=>_ovrFq(v),font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}} } }
     });
-    const prods = ovrIlbanCh === '스마트스토어' ? ssP : ihubP;
+    const prods = _ovrPickIlban(ihubP, ssP);
     const el = document.getElementById('ovrIlbanTable');
     if (el) el.innerHTML = _ovrProdTable(prods, _ovrQtyMonths(prods), _ovrFq);
     return;
@@ -2663,7 +2678,7 @@ function _renderIlbanView(d, availMonths, fw) {
     options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ labels:{boxWidth:10,font:{size:10}} } }, scales:{ x:{stacked:true,ticks:{font:{size:10}}}, y:{stacked:true,ticks:{callback:v=>fw(v),font:{size:10}},grid:{color:'rgba(0,0,0,.04)'}} } }
   });
   // 테이블
-  const prods = ovrIlbanCh === '스마트스토어' ? d.ssProds : d.ihubProds;
+  const prods = _ovrPickIlban(d.ihubProds, d.ssProds);
   const el = document.getElementById('ovrIlbanTable');
   if (el) el.innerHTML = _ovrProdTable(prods, availMonths, fw);
 }
@@ -4969,7 +4984,7 @@ function parseOvrQtyPivot(csvText) {
   const rows = parseCSV(csvText);
   const pn = v => parseFloat(String(v||'').replace(/,/g,'')) || 0;
   const ps = v => String(v||'').trim();
-  const normBrand = b => b.toUpperCase().includes('MYLAB') ? '마이랩스' : b;
+  const normBrand = b => b.toUpperCase().includes('MYLAB') ? 'MYLABS' : b;  // 매출 표와 동일 표기
   const prods = [];
   let colMap = null, brand = '';
   for (const row of rows) {
