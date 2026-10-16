@@ -490,6 +490,9 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .mr-prod-tbl td{padding:5px 8px;border-bottom:1px solid #f8fafc;text-align:right;font-variant-numeric:tabular-nums}
 .mr-prod-tbl td:first-child{text-align:left}
 .mr-prod-tbl tr:hover td{background:#fafafa}
+/* 판매분석 표 공통 정렬: 헤더 가운데 · 데이터 왼쪽 */
+.mr-ch-tbl th,.mr-prod-tbl th,.ovr-prod-tbl th{text-align:center!important}
+.mr-ch-tbl td,.mr-prod-tbl td,.ovr-prod-tbl td{text-align:left!important}
 /* 국내 표 열 구분 세로줄 */
 .mr-top5-tbl th+th,.mr-top5-tbl td+td,.mr-ch-tbl th+th,.mr-ch-tbl td+td,.mr-prod-tbl th+th,.mr-prod-tbl td+td{border-left:1px solid #e8edf3}
 .mr-pagination{display:flex;gap:6px;align-items:center;justify-content:flex-end;margin-top:10px;font-size:.8rem}
@@ -5335,30 +5338,16 @@ async function renderMonthlyReport(ym) {
   </div>
 </section>`;
 
-  // ─────────── TOP5 전월 대비 ───────────
-  const bMap = rows => { const m={}; rows.forEach(r=>{const k=String(r.prod||'기타').trim()||'기타'; m[k]=(m[k]||0)+(r.rev||0);}); return m; };
-  const curMap  = bMap(domAll);
-  const prevMap = bMap(domPrev);
-  const chgs = [...new Set([...Object.keys(curMap),...Object.keys(prevMap)])].map(k=>({
-    prod:k, cur:curMap[k]||0, prev:prevMap[k]||0, delta:(curMap[k]||0)-(prevMap[k]||0)
-  })).filter(x => x.cur>0 || x.prev>0);
-  const t5Row = x => {
-    const isNew = x.prev===0 && x.cur>0;
-    return `<tr><td title="${x.prod}">${x.prod}</td><td class="num">${fb(x.cur)}</td><td class="num">${x.prev>0?fb(x.prev):'—'}</td><td>${isNew?'<span class="up">신규</span>':safe(x.cur,x.prev).html}</td></tr>`;
-  };
-  const top5Html = `
-<div class="mr-top5-wrap">
-  <div class="mr-top5-card">
-    <div class="mr-top5-hdr"><span class="up">▲</span> 전월 대비 증가 TOP5</div>
-    <table class="mr-top5-tbl"><thead><tr><th>상품</th><th>${ml}</th><th>전월</th><th>증감</th></tr></thead>
-    <tbody>${[...chgs].sort((a,b)=>b.delta-a.delta).slice(0,5).map(t5Row).join('')}</tbody></table>
-  </div>
-  <div class="mr-top5-card">
-    <div class="mr-top5-hdr"><span class="down">▼</span> 전월 대비 감소 TOP5</div>
-    <table class="mr-top5-tbl"><thead><tr><th>상품</th><th>${ml}</th><th>전월</th><th>증감</th></tr></thead>
-    <tbody>${[...chgs].sort((a,b)=>a.delta-b.delta).slice(0,5).map(t5Row).join('')}</tbody></table>
-  </div>
-</div>`;
+  // ─────────── 당월 예상 마감 (진행 중인 달: 실적 ÷ 경과일 × 월 일수 / 마감된 달: 실적) ───────────
+  const _nowD = new Date();
+  const isCurrentMo = p.cur.y === _nowD.getFullYear() && p.cur.m === (_nowD.getMonth()+1);
+  const daysInMo = new Date(p.cur.y, p.cur.m, 0).getDate();
+  const lastDay  = bqOk ? domAll.reduce((mx,r) => Math.max(mx, r.day||0), 0) : 0;
+  const projRatio = isCurrentMo && lastDay > 0 && lastDay < daysInMo ? daysInMo / lastDay : 1;
+  const proj = v => Math.round((v||0) * projRatio);
+  const projNote = projRatio !== 1
+    ? `<div style="font-size:.72rem;color:#94a3b8;margin:-6px 0 10px">예상마감 = ${p.cur.m}월 1~${lastDay}일 실적 ÷ ${lastDay}일 × ${daysInMo}일</div>`
+    : '';
 
   // ─────────── 채널별 테이블 ───────────
   const CH_KEY = {'스마트스토어':'ss','카페24':'c24','쿠팡':'coupang','카카오톡스토어':'kakaoStore'};
@@ -5368,29 +5357,23 @@ async function renderMonthlyReport(ym) {
   // 당월 매출 큰 순
   const chCur = ch => bqOk ? S(domAll.filter(r=>(r.ch||'기타')===ch)) : (CH_KEY[ch] ? piv(CH_KEY[ch], p.cur.m) : 0);
   chList.sort((a,b) => chCur(b) - chCur(a));
+  // 달성률·전월비는 예상마감 기준
+  const chRow = (label, cur, prev, t2, style='') => {
+    const pj = proj(cur);
+    const share = totCur>0 ? (cur/totCur*100).toFixed(1) : 0;
+    return `<tr${style}><td>${label}</td><td class="num">${fb(cur)}</td><td class="num" style="font-weight:700">${fb(pj)}</td><td class="num">${t2?fb(t2):'—'}</td><td>${ach(pj, t2).html}</td><td class="num">${fb(prev)}</td><td>${safe(pj,prev).html}</td><td class="num">${share}%</td></tr>`;
+  };
   const chHtml = `
 <div class="card" style="margin-bottom:16px">
   <div class="card-title">채널별 매출 분석</div>
+  ${projNote}
   <div class="tbl-wrap"><table class="mr-ch-tbl">
-    <thead><tr><th>채널</th><th>${ml}</th><th>목표</th><th>달성률</th><th>전월</th><th>전월비</th><th>비중</th></tr></thead>
+    <thead><tr><th>채널</th><th>${ml}</th><th>예상마감</th><th>목표</th><th>달성률</th><th>전월</th><th>전월비</th><th>비중</th></tr></thead>
     <tbody>
-      ${chList.map(ch => {
-        const cur    = bqOk ? S(domAll.filter(r=>(r.ch||'기타')===ch))  : (CH_KEY[ch] ? piv(CH_KEY[ch], p.cur.m)  : 0);
-        const prev   = bqOk ? S(domPrev.filter(r=>(r.ch||'기타')===ch)) : (CH_KEY[ch] ? piv(CH_KEY[ch], p.prev.m) : 0);
-        const t2     = CH_KEY[ch] ? tgt2(CH_KEY[ch], p.cur.m) : null;
-        const a2     = ach(cur, t2);
-        const share  = totCur>0?(cur/totCur*100).toFixed(1):0;
-        return `<tr><td>${ch}</td><td class="num">${fb(cur)}</td><td class="num">${t2?fb(t2):'—'}</td><td>${a2.html}</td><td class="num">${fb(prev)}</td><td>${safe(cur,prev).html}</td><td class="num">${share}%</td></tr>`;
-      }).join('')}
-      <tr style="border-top:2px solid #e8edf3;background:#f8fafc">
-        <td>공구</td>
-        <td class="num">${fb(domGongu)}</td>
-        <td class="num">${tGongu?fb(tGongu):'—'}</td>
-        <td>${achGongu.html}</td>
-        <td class="num">${fb(domGonguP)}</td>
-        <td>${safe(domGongu,domGonguP).html}</td>
-        <td class="num">${totCur>0?(domGongu/totCur*100).toFixed(1):0}%</td>
-      </tr>
+      ${chList.map(ch => chRow(ch, chCur(ch),
+        bqOk ? S(domPrev.filter(r=>(r.ch||'기타')===ch)) : (CH_KEY[ch] ? piv(CH_KEY[ch], p.prev.m) : 0),
+        CH_KEY[ch] ? tgt2(CH_KEY[ch], p.cur.m) : null)).join('')}
+      ${chRow('공구', domGongu, domGonguP, tGongu, ' style="border-top:2px solid #e8edf3;background:#f8fafc"')}
     </tbody>
   </table></div>
 </div>`;
@@ -5399,12 +5382,13 @@ async function renderMonthlyReport(ym) {
   const pMap = {};
   const addP = (rows,key) => rows.forEach(r => {
     const k = String(r.prod||'기타').trim()||'기타';
-    if (!pMap[k]) pMap[k] = { prod:k, brand:r.brand||'', ch:r.ch||'', dist:r.dist||'', cur:0, prev:0, prev2:0, prevYr:0 };
+    if (!pMap[k]) pMap[k] = { prod:k, brand:r.brand||'', ch:r.ch||'', dist:r.dist||'', cur:0, prev:0, prev2:0 };
     pMap[k][key] += r.rev||0;
     if (key==='cur') { pMap[k].ch=r.ch||''; pMap[k].dist=r.dist||''; pMap[k].brand=r.brand||''; }
   });
-  addP(domAll,'cur'); addP(domPrev,'prev'); addP(domPrev2,'prev2'); addP(domYr,'prevYr');
+  addP(domAll,'cur'); addP(domPrev,'prev'); addP(domPrev2,'prev2');
   const prodData = Object.values(pMap);
+  prodData.forEach(r => { r.proj = proj(r.cur); r.diff = r.proj - r.prev; });
   mrState = { prodData, p, totCur, safe, fb, bqOk };
 
 
@@ -5419,7 +5403,7 @@ async function renderMonthlyReport(ym) {
   // ─────────── DOM 조립 ───────────
   const brandList  = [...new Set(prodData.map(r=>r.brand).filter(Boolean))].sort();
   const chListFull = [...new Set(prodData.map(r=>r.ch).filter(Boolean))].sort();
-  body.innerHTML = bqWarnHtml + heroHtml + hierHtml + (bqOk ? top5Html : `<div class="mr-top5-wrap"><div class="mr-top5-card" style="grid-column:1/-1">${bqSectionWarn}</div></div>`) + (bqOk ? chHtml : `<div class="card" style="margin-bottom:16px"><div class="card-title">채널별 매출 분석</div>${bqSectionWarn}</div>`) + `
+  body.innerHTML = bqWarnHtml + heroHtml + hierHtml + (bqOk ? chHtml : `<div class="card" style="margin-bottom:16px"><div class="card-title">채널별 매출 분석</div>${bqSectionWarn}</div>`) + `
 <div class="card" style="margin-bottom:16px">
   <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
     <span>상품별 매출 상세</span>
@@ -5468,8 +5452,10 @@ function buildMrProdTable(prodData, filter, p, totCur, safe, fb) {
       <td>${r.prod}${isNew?'<span class="up" style="font-size:.68rem;margin-left:4px">NEW</span>':''}</td>
       <td style="color:#94a3b8" class="num">${r.prev2>0?fb(r.prev2):'—'}</td>
       <td class="num">${r.prev>0?fb(r.prev):'—'}</td>
-      <td class="num" style="font-weight:700">${r.cur>0?fb(r.cur):'—'}</td>
-      <td>${isNew?'<span class="up">신규</span>':safe(r.cur,r.prev).html}</td>
+      <td class="num">${r.cur>0?fb(r.cur):'—'}</td>
+      <td class="num" style="font-weight:700">${r.proj>0?fb(r.proj):'—'}</td>
+      <td>${isNew?'<span class="up">신규</span>':safe(r.proj,r.prev).html}</td>
+      <td class="num ${r.diff>0?'up':r.diff<0?'down':''}">${r.diff?(r.diff>0?'+':'')+fb(r.diff):'—'}</td>
       <td class="num">${share}%</td>
     </tr>`;
   }).join('');
@@ -5483,12 +5469,15 @@ function buildMrProdTable(prodData, filter, p, totCur, safe, fb) {
   return `<div style="font-size:.76rem;color:#64748b;margin-bottom:8px">표시: <b>${total}개</b> 상품 · 합계 <b class="num">${fb(totF)}</b></div>
 <div class="tbl-wrap"><table class="mr-prod-tbl">
   <thead><tr>
-    <th style="text-align:left" ${th('brand')}>브랜드${arw('brand')}</th>
-    <th style="text-align:left" ${th('prod')}>상품명${arw('prod')}</th>
+    <th ${th('brand')}>브랜드${arw('brand')}</th>
+    <th ${th('prod')}>상품명${arw('prod')}</th>
     <th ${th('prev2')}>${p.prev2.m}월${arw('prev2')}</th>
     <th ${th('prev')}>${p.prev.m}월${arw('prev')}</th>
     <th ${th('cur')}>${p.cur.m}월${arw('cur')}</th>
-    <th>전월비</th><th>비중</th>
+    <th ${th('proj')}>당월예상마감${arw('proj')}</th>
+    <th>전월비</th>
+    <th ${th('diff')}>차액${arw('diff')}</th>
+    <th>비중</th>
   </tr></thead>
   <tbody>${bodyH}</tbody>
 </table></div>${pgH}`;
