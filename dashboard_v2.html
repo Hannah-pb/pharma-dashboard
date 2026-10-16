@@ -616,11 +616,10 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
     <li class="nav-parent open" id="navParentSales" onclick="toggleNavParent('navParentSales')">
       <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
       <span class="nav-label">판매분석</span>
-      <span class="nav-arrow">▸</span>
     </li>
     <div class="nav-children open" id="navChildrenSales">
-      <div class="nav-child" data-page="monthly-report">🇰🇷 국내 매출</div>
-      <div class="nav-child" data-page="overseas-sales">🌏 해외 매출</div>
+      <div class="nav-child" data-page="monthly-report">국내</div>
+      <div class="nav-child" data-page="overseas-sales">해외</div>
     </div>
 
     <!-- 재고관리 -->
@@ -1366,7 +1365,7 @@ function mkChart(id, cfg) {
 // ═══════════════════════════════════════════════════════
 //  NAV / PAGE SWITCHING
 // ═══════════════════════════════════════════════════════
-const PAGE_TITLES = {kpi:'', sales:'판매분석', 'monthly-report':'국내 매출', 'overseas-sales':'해외 매출', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출', inventory:'재고관리'};
+const PAGE_TITLES = {kpi:'', sales:'판매분석', 'monthly-report':'국내', 'overseas-sales':'해외', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출', inventory:'재고관리'};
 
 function toggleNavParent(id) {
   const parent = document.getElementById(id);
@@ -2448,59 +2447,77 @@ async function renderOverseasSales() {
   const lastMo = availMonths[availMonths.length-1] || 0;
   const moLabel = `1~${lastMo}월`;
 
-  const oFmt = v => v ? Math.round(v).toLocaleString() : '0';
+  // ── KPI 대시보드와 동일한 헬퍼
+  const oFmt  = v => v ? Math.round(v).toLocaleString() : '0';
+  const oFmtB = v => v && !isNaN(v) && v > 0 ? (v/1e8).toFixed(1) : null;
+  const oBpct = (v,t) => t > 0 ? Math.min(100, v/t*100) : 0;
+  const oPcls = p => p===null?'':p>=100?'good':p>=90?'warning':'critical';
 
-  // ── 진행률 바 헬퍼
-  const progBar = (ytdV, ytdT, fcastV, fcastT, colorCls) => {
-    if (!ytdT) return '';
-    const achPct  = ytdV / ytdT * 100;
-    const achW    = Math.min(100, achPct).toFixed(1);
-    const achCls2 = achPct>=100?'good':achPct>=80?'warn':'bad';
-    const fcastPct = fcastT>0&&fcastV>0 ? fcastV/fcastT*100 : null;
-    const fcastW   = fcastPct ? Math.min(100, fcastPct).toFixed(1) : null;
-    return `<div class="ovr-prog-wrap">
-      <div class="ovr-prog-label"><span>목표대비 (${moLabel})</span><span class="${achCls2}">${achPct.toFixed(1)}%</span></div>
-      <div class="ovr-prog-track"><div class="ovr-prog-fill ${colorCls}" style="width:${achW}%"></div></div>
-      <div class="ovr-prog-caption"><span>${oFmt(ytdV)}</span><span>목표 ${oFmt(ytdT)}</span></div>
-      ${fcastPct!==null?`
-      <div class="ovr-prog-label" style="margin-top:6px"><span>예상 연마감</span><span class="${fcastPct>=100?'good':fcastPct>=80?'warn':'bad'}">${fcastPct.toFixed(1)}%</span></div>
-      <div class="ovr-prog-track"><div class="ovr-prog-fill ${colorCls} fcast" style="width:${fcastW}%"></div></div>
-      <div class="ovr-prog-caption"><span>${oFmt(fcastV)}</span><span>목표 ${oFmt(fcastT)}</span></div>`:''}
+  const oGoalRow = (lbl, v, tot, cls='') => {
+    const w = tot>0 ? Math.min(100,v/tot*100).toFixed(1) : '0';
+    const p = tot>0 ? (v/tot*100).toFixed(1) : '—';
+    return `<div class="kd-hero-goal-row">
+      <span class="kd-hero-row-lbl">${lbl}</span>
+      <div class="kd-hero-track"><div class="kd-hero-fill${cls?' '+cls:''}" style="width:${w}%"></div></div>
+      <div class="kd-hero-trail"><span class="kd-hero-pct num">${p}%</span><span class="kd-hero-amt">${oFmt(v)} / ${oFmt(tot)}</span></div>
     </div>`;
   };
 
-  // ── Hero KPI 카드 (ovr-hero 흰 카드 + 진행률 바)
+  const oTile = (label, rev, tgt, annT, annF, tier3=false) => {
+    const ytdPct = tgt>0 ? rev/tgt*100 : null;
+    const ytdW   = tgt>0 ? oBpct(rev,tgt).toFixed(1) : '0';
+    const ytdCls = oPcls(ytdPct);
+    const fPct   = annT>0&&annF>0 ? annF/annT*100 : null;
+    const fW     = fPct!==null ? oBpct(annF,annT).toFixed(1) : '0';
+    const fCls   = oPcls(fPct);
+    const bv     = oFmtB(rev);
+    return `<div class="kpi${tier3?' tier3':''}">
+      <div class="kpi-label">${label}</div>
+      <div class="kpi-value num">${bv??'—'}<sup>억</sup></div>
+      <div class="kpi-progress">
+        ${ytdPct!==null?`
+          <div class="kpi-pace ${ytdCls}">${moLabel} 목표대비 <b class="num">${ytdPct.toFixed(1)}%</b></div>
+          <div class="kpi-progress-track"><div class="kpi-progress-fill" style="width:${ytdW}%${ytdPct>=100?';background:#0ca30c':''}"></div></div>
+          <div class="kpi-progress-caption"><span class="num">${oFmt(rev)}</span><span class="fc num">목표 ${oFmt(tgt)}</span></div>`
+        :'<div class="kpi-pace" style="color:#94a3b8;font-size:.7rem">목표 미설정</div>'}
+        ${fPct!==null?`
+          <div class="kpi-pace ${fCls}" style="margin-top:5px">예상 연마감 <b class="num">${fPct.toFixed(1)}%</b></div>
+          <div class="kpi-progress-track"><div class="kpi-progress-fill" style="width:${fW}%;opacity:.55"></div></div>
+          <div class="kpi-progress-caption"><span class="num">${oFmt(annF)}</span><span class="fc num">목표 ${oFmt(annT)}</span></div>`:''}
+      </div>
+    </div>`;
+  };
+
+  // ── Hero (KPI 대시보드 동일 디자인)
   body.innerHTML = `
-<div class="ovr-period-hd">연간 누적 실적</div>
-<div class="ovr-hero">
-  <div class="ovr-kpi total">
-    <div class="ovr-kpi-label">해외 총 매출</div>
-    <div class="ovr-kpi-val num">${fw(ytdTotal)}</div>
-    <div class="ovr-kpi-sub">누적 (${moLabel}) · 연간목표 ${fw(annTgtTotal)}</div>
-    ${progBar(ytdTotal, ytdTgtTotal, annFcastTotal, annTgtTotal, 'total')}
+<div class="kd-hero" style="margin-bottom:14px">
+  <div>
+    <div class="kd-hero-chip">🌏 해외 매출 ${moLabel}</div>
+    <div class="kd-hero-value num">${oFmtB(ytdTotal)??'—'}<span class="kd-hero-unit">억</span></div>
+    <div class="kd-hero-note">연간 목표 ${oFmt(annTgtTotal)}</div>
   </div>
-  <div class="ovr-kpi gongu">
-    <div class="ovr-kpi-label">해외 공구</div>
-    <div class="ovr-kpi-val num">${fw(ytdGongu)}</div>
-    <div class="ovr-kpi-sub">연간목표 ${fw(annTgtGongu)}</div>
-    ${progBar(ytdGongu, ytdTgtGongu, annFcastGongu, annTgtGongu, 'gongu')}
-    <div class="ovr-brand-row">
-      <div class="ovr-brand-card"><div class="ovr-brand-name">YDY</div><div class="ovr-brand-val num">${fw(ytdYdy)}</div></div>
-      <div class="ovr-brand-card"><div class="ovr-brand-name">마이랩스</div><div class="ovr-brand-val num">${fw(ytdMylabs)}</div></div>
-    </div>
-  </div>
-  <div class="ovr-kpi ilban">
-    <div class="ovr-kpi-label">해외 일반</div>
-    <div class="ovr-kpi-val num">${fw(ytdIlban)}</div>
-    <div class="ovr-kpi-sub">연간목표 ${fw(annTgtIlban)}</div>
-    ${progBar(ytdIlban, ytdTgtIlban, annFcastIlban, annTgtIlban, 'ilban')}
-    <div class="ovr-brand-row">
-      <div class="ovr-brand-card"><div class="ovr-brand-name">아이허브</div><div class="ovr-brand-val num">${fw(ytdIhub)}</div></div>
-      <div class="ovr-brand-card"><div class="ovr-brand-name">스마트스토어</div><div class="ovr-brand-val num">${fw(ytdSs)}</div></div>
-      ${ytdAmz?`<div class="ovr-brand-card" style="grid-column:1/-1"><div class="ovr-brand-name">아마존</div><div class="ovr-brand-val num">${fw(ytdAmz)}</div></div>`:''}
-    </div>
+  <div class="kd-hero-goal">
+    ${oGoalRow('YTD 달성', ytdTotal, ytdTgtTotal)}
+    ${annFcastTotal>0?oGoalRow('연마감 예상', annFcastTotal, annTgtTotal, 'forecast'):''}
   </div>
 </div>
+<section class="tier2-grid">
+  <div class="tier2-col">
+    ${oTile('해외 공구', ytdGongu, ytdTgtGongu, annTgtGongu, annFcastGongu)}
+    <div class="tier3-row">
+      ${oTile('YDY', ytdYdy, 0, 0, 0, true)}
+      ${oTile('마이랩스', ytdMylabs, 0, 0, 0, true)}
+    </div>
+  </div>
+  <div class="tier2-col">
+    ${oTile('해외 일반', ytdIlban, ytdTgtIlban, annTgtIlban, annFcastIlban)}
+    <div class="tier3-row">
+      ${oTile('아이허브', ytdIhub, 0, 0, 0, true)}
+      ${oTile('스마트스토어', ytdSs, 0, 0, 0, true)}
+      ${ytdAmz?oTile('아마존', ytdAmz, 0, 0, 0, true):''}
+    </div>
+  </div>
+</section>
 
 <div class="ovr-period-hd" style="margin-top:8px">월별 실적</div>
 <!-- 월별 추이 차트 -->
