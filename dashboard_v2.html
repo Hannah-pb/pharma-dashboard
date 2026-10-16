@@ -18,8 +18,9 @@ body{font-family:'Pretendard','Malgun Gothic','맑은 고딕',sans-serif;display
 .sb-header{display:flex;align-items:center;justify-content:space-between;padding:18px 16px 16px;border-bottom:1px solid #e5e7eb;min-height:60px}
 .sb-logo{font-size:12px;font-weight:700;color:#374151;white-space:nowrap;overflow:hidden;opacity:1;transition:opacity .15s;letter-spacing:-.01em;line-height:1.4}
 #sidebar.collapsed .sb-logo{opacity:0;width:0}
-#sidebarToggle{background:none;border:none;color:#9ca3af;cursor:pointer;font-size:16px;line-height:1;padding:4px;flex-shrink:0;transition:transform .2s}
-#sidebar.collapsed #sidebarToggle{transform:rotate(180deg)}
+#sidebarToggle{background:none;border:none;color:#6b7280;cursor:pointer;line-height:0;padding:6px;flex-shrink:0;border-radius:6px;transition:background .12s,color .12s}
+#sidebarToggle:hover{background:#e3e5e8;color:#111827}
+#sidebarToggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .nav-list{list-style:none;flex:1;padding:10px 0;overflow-y:auto}
 .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;margin:1px 8px;cursor:pointer;color:#6b7280;white-space:nowrap;transition:background .12s,color .12s;font-size:13px;border-radius:8px}
 .nav-item:hover{background:#e9eaec;color:#111827}
@@ -157,10 +158,10 @@ tr.row-hl td{background:#fefce8;font-weight:600}
 .nav-parent{display:flex;align-items:center;gap:10px;padding:9px 12px;margin:1px 8px;cursor:pointer;color:#6b7280;font-size:13px;user-select:none;transition:background .12s,color .12s;border-radius:8px}
 .nav-parent:hover{background:#e9eaec;color:#111827}
 .nav-parent.active{background:#e3e5e8;color:#111827;font-weight:600}
-.nav-arrow{font-size:10px;margin-left:auto;transition:transform .2s;flex-shrink:0;color:#9ca3af}
-.nav-parent.open .nav-arrow{transform:rotate(90deg)}
-.nav-children{overflow:hidden;max-height:0;transition:max-height .2s ease}
-.nav-children.open{max-height:400px}
+/* 대분류는 접히지 않음 — 중분류 항상 표시 */
+.nav-parent.static{cursor:default}
+.nav-parent.static:hover{background:transparent;color:#6b7280}
+.nav-children{overflow:hidden}
 .nav-child{display:flex;align-items:center;gap:8px;padding:8px 12px 8px 34px;margin:1px 8px;cursor:pointer;color:#6b7280;font-size:12px;transition:background .12s,color .12s;border-radius:8px}
 .nav-child:hover{background:#e9eaec;color:#111827}
 .nav-child.active{background:#e3e5e8;color:#111827;font-weight:600}
@@ -489,6 +490,8 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .mr-prod-tbl td{padding:5px 8px;border-bottom:1px solid #f8fafc;text-align:right;font-variant-numeric:tabular-nums}
 .mr-prod-tbl td:first-child{text-align:left}
 .mr-prod-tbl tr:hover td{background:#fafafa}
+/* 국내 표 열 구분 세로줄 */
+.mr-top5-tbl th+th,.mr-top5-tbl td+td,.mr-ch-tbl th+th,.mr-ch-tbl td+td,.mr-prod-tbl th+th,.mr-prod-tbl td+td{border-left:1px solid #e8edf3}
 .mr-pagination{display:flex;gap:6px;align-items:center;justify-content:flex-end;margin-top:10px;font-size:.8rem}
 .mr-pg-btn{padding:4px 10px;border:1px solid #e2e8f0;border-radius:6px;background:#fff;cursor:pointer}
 .mr-pg-btn:disabled{opacity:.4;cursor:default}
@@ -613,7 +616,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 <nav id="sidebar">
   <div class="sb-header">
     <span class="sb-logo">파마브로스 커머스팀</span>
-    <button id="sidebarToggle" title="사이드바 접기">◀</button>
+    <button id="sidebarToggle" title="사이드바 접기" aria-label="사이드바 접기"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><line x1="9" y1="4" x2="9" y2="20"/></svg></button>
   </div>
   <ul class="nav-list">
     <!-- KPI -->
@@ -623,7 +626,7 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
     </li>
 
     <!-- 판매분석 (대분류) -->
-    <li class="nav-parent open" id="navParentSales" onclick="toggleNavParent('navParentSales')">
+    <li class="nav-parent static" id="navParentSales">
       <span class="nav-icon"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></span>
       <span class="nav-label">판매분석</span>
     </li>
@@ -1373,13 +1376,6 @@ function mkChart(id, cfg) {
 // ═══════════════════════════════════════════════════════
 const PAGE_TITLES = {kpi:'', sales:'판매분석', 'monthly-report':'국내 PB브랜드 매출 현황', 'overseas-sales':'해외 상품 매출 현황', smartstore:'스마트스토어', cafe24:'카페24', products:'상품매출', inventory:'재고관리'};
 
-function toggleNavParent(id) {
-  const parent = document.getElementById(id);
-  const childrenId = id.replace('navParent','navChildren');
-  const children = document.getElementById(childrenId);
-  parent.classList.toggle('open');
-  children.classList.toggle('open');
-}
 
 function toggleNavGroup(childrenId) {
   const el = document.getElementById(childrenId);
@@ -5297,84 +5293,47 @@ async function renderMonthlyReport(ym) {
   const totPrev = domTotalP;
   const totYr   = domTotalYr;
 
-  // ── 예상 마감 금액 (진행 중인 당월만) ──
-  const _nowD = new Date();
-  const isCurrentMo = p.cur.y === _nowD.getFullYear() && p.cur.m === (_nowD.getMonth()+1);
-  let projTot = null, projGongu = null, projIlban = null, projRatio = null, projMaxDay = null;
-  if (isCurrentMo && bqOk && domAll.length > 0) {
-    const days = domAll.map(r => r.day||0).filter(d => d > 0);
-    projMaxDay = days.length > 0 ? Math.max(...days) : 0;
-    const daysInMo = new Date(p.cur.y, p.cur.m, 0).getDate();
-    if (projMaxDay > 0 && projMaxDay < daysInMo) {
-      projRatio = daysInMo / projMaxDay;
-      projTot   = Math.round(totCur * projRatio);
-      projGongu = Math.round(domGongu * projRatio);
-      projIlban = Math.round(domIlban * projRatio);
-    }
-  }
-
-  // ── 목표 ──
-  const tDom   = tgt2('domestic',    p.cur.m);
-  const tGongu = tgt2('gongu',       p.cur.m);
-  const tIlban = tgt2('ilban',       p.cur.m);
-
-  // ── 달성률 / 변동 ──
-  const achDom   = ach(totCur, tDom);
+  // ── 목표 (채널 표 공구 행에서 사용) ──
+  const tGongu   = tgt2('gongu', p.cur.m);
   const achGongu = ach(domGongu, tGongu);
-  const achIlban = ach(domIlban, tIlban);
-  const totMoM   = safe(totCur, totPrev);
-  const totYoY   = safe(totCur, totYr);
 
-  // ─────────── Hero (국내 합계) ───────────
-  const projAchDom = projTot && tDom ? ach(projTot, tDom) : null;
+  // ─────────── 상단 카드: 해외 페이지·KPI 대시보드와 동일 (PIVOT_DATA · 같은 헬퍼) ───────────
+  const K = _kpiKit();
+  const dRev=K.rev('domestic'),dTgt=K.ytd('domestic','target'),dAnnT=K.ann('domestic','target'),dAnnF=K.ann('domestic','fcast');
+  const gRev=K.rev('gongu'),gTgt=K.ytd('gongu','target'),gAnnT=K.ann('gongu','target'),gAnnF=K.ann('gongu','fcast');
+  const iRev=K.rev('ilban'),iTgt=K.ytd('ilban','target'),iAnnT=K.ann('ilban','target'),iAnnF=K.ann('ilban','fcast');
+  const dPace = dTgt > 0 ? dRev / dTgt * 100 : null;
   const heroHtml = `
-<div class="mr-hero">
-  <div class="mr-hero-main">
-    <div style="font-size:.7rem;font-weight:700;letter-spacing:.1em;opacity:.6;margin-bottom:8px">${p.cur.y}년 ${ml} 국내 매출</div>
-    <div class="mr-hero-val num">${fb(totCur)}</div>
-    ${projTot ? `<div style="font-size:.88rem;margin-top:6px;opacity:.85">예상 마감 <span style="font-size:1.35rem;font-weight:800">${fb(projTot)}</span><span style="font-size:.7rem;opacity:.65;margin-left:6px">${projMaxDay}일 기준</span></div>` : ''}
-    ${tDom ? `<div style="font-size:.78rem;margin-top:${projTot?4:6}px;opacity:.78">목표 ${fb(tDom)} · ${projAchDom ? `<span style="font-weight:700">예상 ${projAchDom.html}</span>` : achDom.html}</div>${pBar(projTot||totCur, tDom, (projAchDom||achDom).cls)}` : ''}
+<section class="kd-hero">
+  <div>
+    <div class="kd-hero-chip">누적 국내매출</div>
+    <div class="kd-hero-value num">${K.fmtB(dRev)??'—'}<span class="kd-hero-unit">억원</span></div>
+    <div class="kd-hero-note">${K.n.y}년 ${K.ml} · 국내 전체(공구+일반)</div>
+    ${dPace!==null?`<div class="kd-hero-pace ${K.pctCls(dPace)}">
+      <span class="hpb-label">${K.ml} 목표 대비</span>
+      <span class="hpb-value num">${dPace.toFixed(1)}%</span>
+      <span class="hpb-note num">${K.fmt(dRev)} 실적 · ${K.fmt(dTgt)} 목표</span>
+    </div>`:''}
   </div>
-  <div class="mr-hero-kpis">
-    <div class="mr-hero-kpi"><span class="k">목표대비</span><span class="v">${tDom ? (projAchDom ? projAchDom.html : achDom.html) : '<span style="opacity:.55">—</span>'}</span></div>
-    <div class="mr-hero-kpi"><span class="k">전월비${projTot?'(예상)':''}</span><span class="v">${projTot ? safe(projTot,totPrev).html : totMoM.html}</span></div>
-    <div class="mr-hero-kpi"><span class="k">전년동월비${projTot?'(예상)':''}</span><span class="v">${projTot ? safe(projTot,totYr).html : totYoY.html}</span></div>
-    <div class="mr-hero-kpi"><span class="k">공구비중</span><span class="v">${totCur>0?(domGongu/totCur*100).toFixed(0):0}%</span></div>
-  </div>
-</div>`;
-
-  // ─────────── 소카드 ───────────
-  const subCard = (label, rev, prevRev, tgtV, achV) => {
-    const m = safe(rev, prevRev);
-    return `<div class="mr-sub-card">
-      <div style="font-size:.7rem;font-weight:700;color:#64748b;margin-bottom:4px">${label}</div>
-      <div class="mr-sub-val num">${fb(rev)}</div>
-      ${tgtV ? `${pBar(rev, tgtV, achV.cls)}<div style="font-size:.73rem;color:#64748b">목표 ${fb(tgtV)} · ${achV.html}</div>` : ''}
-      <div style="font-size:.72rem;margin-top:4px">전월 ${m.html}</div>
-    </div>`;
-  };
-
-  // ─────────── 공구 / 일반 ───────────
-  const segCard = (cls, label, cur, prev, yr, tgtV, achV, proj) => {
-    const projAch = proj && tgtV ? ach(proj, tgtV) : null;
-    return `<div class="mr-card ${cls}">
-    <div class="mr-card-title">${label}</div>
-    <div class="mr-card-val num">${fb(cur)}</div>
-    ${proj ? `<div style="font-size:.82rem;color:#1e40af;margin-top:2px;margin-bottom:4px">예상 마감 <strong>${fb(proj)}</strong></div>` : ''}
-    ${tgtV ? `<div class="mr-card-tgt">목표 ${fb(tgtV)} · ${projAch ? `예상 ${projAch.html}` : achV.html}</div>${pBar(proj||cur,tgtV,(projAch||achV).cls)}` : '<div class="mr-card-tgt"></div>'}
-    <div class="mr-card-stats"><span>전월${proj?'(예상)':''} ${safe(proj||cur,prev).html}</span><span>전년동월${proj?'(예상)':''} ${safe(proj||cur,yr).html}</span></div>`;
-  };
-  const hierHtml = `
-<div class="mr-grid2">
-  ${segCard('gongu', '공구', domGongu, domGonguP, domGonguYr, tGongu, achGongu, projGongu)}
-  </div>
-  ${segCard('ilban', '일반', domIlban, domIlbanP, domIlbanYr, tIlban, achIlban, projIlban)}
-    <div class="mr-sub-grid">
-      ${subCard('채널', domCh, domChP, null, {cls:'',html:''})}
-      ${subCard('기타', domGita, domGitaP, null, {cls:'',html:''})}
+  <div class="kd-hero-goal">
+    <div class="kd-hero-goal-label">연간 목표 ${K.fmt(dAnnT)} 대비</div>
+    <div class="kd-hero-goal-rows">
+      ${K.goalRow('경과일', K.n.doy, K.n.diy, 'elapsed')}
+      ${K.goalRow('누적실적', dRev, dAnnT)}
+      ${dAnnF>0?K.goalRow('예상 마감', dAnnF, dAnnT, 'forecast'):''}
     </div>
   </div>
-</div>`;
+</section>
+<p class="kd2-footnote">예상 마감은 시트의 예상행 기준이며 실제와 다를 수 있습니다</p>`;
+  const hierHtml = `
+<section class="tier2-grid">
+  <div class="tier2-col">
+    ${K.kpiTile('공구', gRev, gTgt, gAnnT, gAnnF, null)}
+  </div>
+  <div class="tier2-col">
+    ${K.kpiTile('일반', iRev, iTgt, iAnnT, iAnnF, null)}
+  </div>
+</section>`;
 
   // ─────────── TOP5 전월 대비 ───────────
   const bMap = rows => { const m={}; rows.forEach(r=>{const k=String(r.prod||'기타').trim()||'기타'; m[k]=(m[k]||0)+(r.rev||0);}); return m; };
@@ -5390,12 +5349,12 @@ async function renderMonthlyReport(ym) {
   const top5Html = `
 <div class="mr-top5-wrap">
   <div class="mr-top5-card">
-    <div class="mr-top5-hdr"><span class="up">▲</span> 전월 대비 증가 TOP5 (국내)</div>
+    <div class="mr-top5-hdr"><span class="up">▲</span> 전월 대비 증가 TOP5</div>
     <table class="mr-top5-tbl"><thead><tr><th>상품</th><th>${ml}</th><th>전월</th><th>증감</th></tr></thead>
     <tbody>${[...chgs].sort((a,b)=>b.delta-a.delta).slice(0,5).map(t5Row).join('')}</tbody></table>
   </div>
   <div class="mr-top5-card">
-    <div class="mr-top5-hdr"><span class="down">▼</span> 전월 대비 감소 TOP5 (국내)</div>
+    <div class="mr-top5-hdr"><span class="down">▼</span> 전월 대비 감소 TOP5</div>
     <table class="mr-top5-tbl"><thead><tr><th>상품</th><th>${ml}</th><th>전월</th><th>증감</th></tr></thead>
     <tbody>${[...chgs].sort((a,b)=>a.delta-b.delta).slice(0,5).map(t5Row).join('')}</tbody></table>
   </div>
@@ -5404,22 +5363,24 @@ async function renderMonthlyReport(ym) {
   // ─────────── 채널별 테이블 ───────────
   const CH_KEY = {'스마트스토어':'ss','카페24':'c24','쿠팡':'coupang','카카오톡스토어':'kakaoStore'};
   const chList = bqOk
-    ? [...new Set(domAll.map(r=>r.ch||'기타').filter(Boolean))].sort()
-    : MR_CH.filter(ch => CH_KEY[ch] && piv(CH_KEY[ch], p.cur.m) > 0).sort();
+    ? [...new Set(domAll.map(r=>r.ch||'기타').filter(Boolean))]
+    : MR_CH.filter(ch => CH_KEY[ch] && piv(CH_KEY[ch], p.cur.m) > 0);
+  // 당월 매출 큰 순
+  const chCur = ch => bqOk ? S(domAll.filter(r=>(r.ch||'기타')===ch)) : (CH_KEY[ch] ? piv(CH_KEY[ch], p.cur.m) : 0);
+  chList.sort((a,b) => chCur(b) - chCur(a));
   const chHtml = `
 <div class="card" style="margin-bottom:16px">
-  <div class="card-title">채널별 매출 분석 (국내)</div>
+  <div class="card-title">채널별 매출 분석</div>
   <div class="tbl-wrap"><table class="mr-ch-tbl">
-    <thead><tr><th>채널</th><th>${ml}</th><th>목표</th><th>달성률</th><th>전월</th><th>전월비</th><th>전년동월</th><th>전년비</th><th>비중</th></tr></thead>
+    <thead><tr><th>채널</th><th>${ml}</th><th>목표</th><th>달성률</th><th>전월</th><th>전월비</th><th>비중</th></tr></thead>
     <tbody>
       ${chList.map(ch => {
         const cur    = bqOk ? S(domAll.filter(r=>(r.ch||'기타')===ch))  : (CH_KEY[ch] ? piv(CH_KEY[ch], p.cur.m)  : 0);
         const prev   = bqOk ? S(domPrev.filter(r=>(r.ch||'기타')===ch)) : (CH_KEY[ch] ? piv(CH_KEY[ch], p.prev.m) : 0);
-        const prevYr = bqOk ? S(domYr.filter(r=>(r.ch||'기타')===ch))   : 0;
         const t2     = CH_KEY[ch] ? tgt2(CH_KEY[ch], p.cur.m) : null;
         const a2     = ach(cur, t2);
         const share  = totCur>0?(cur/totCur*100).toFixed(1):0;
-        return `<tr><td>${ch}</td><td class="num">${fb(cur)}</td><td class="num">${t2?fb(t2):'—'}</td><td>${a2.html}</td><td class="num">${fb(prev)}</td><td>${safe(cur,prev).html}</td><td class="num">${prevYr>0?fb(prevYr):'—'}</td><td>${safe(cur,prevYr).html}</td><td class="num">${share}%</td></tr>`;
+        return `<tr><td>${ch}</td><td class="num">${fb(cur)}</td><td class="num">${t2?fb(t2):'—'}</td><td>${a2.html}</td><td class="num">${fb(prev)}</td><td>${safe(cur,prev).html}</td><td class="num">${share}%</td></tr>`;
       }).join('')}
       <tr style="border-top:2px solid #e8edf3;background:#f8fafc">
         <td>공구</td>
@@ -5428,8 +5389,6 @@ async function renderMonthlyReport(ym) {
         <td>${achGongu.html}</td>
         <td class="num">${fb(domGonguP)}</td>
         <td>${safe(domGongu,domGonguP).html}</td>
-        <td class="num">${S(domYr.filter(r=>r.dist==='3.공동구매'))>0?fb(S(domYr.filter(r=>r.dist==='3.공동구매'))):'—'}</td>
-        <td>${safe(domGongu,S(domYr.filter(r=>r.dist==='3.공동구매'))).html}</td>
         <td class="num">${totCur>0?(domGongu/totCur*100).toFixed(1):0}%</td>
       </tr>
     </tbody>
@@ -5460,10 +5419,10 @@ async function renderMonthlyReport(ym) {
   // ─────────── DOM 조립 ───────────
   const brandList  = [...new Set(prodData.map(r=>r.brand).filter(Boolean))].sort();
   const chListFull = [...new Set(prodData.map(r=>r.ch).filter(Boolean))].sort();
-  body.innerHTML = bqWarnHtml + heroHtml + hierHtml + (bqOk ? top5Html : `<div class="mr-top5-wrap"><div class="mr-top5-card" style="grid-column:1/-1">${bqSectionWarn}</div></div>`) + (bqOk ? chHtml : `<div class="card" style="margin-bottom:16px"><div class="card-title">채널별 매출 분석 (국내)</div>${bqSectionWarn}</div>`) + `
+  body.innerHTML = bqWarnHtml + heroHtml + hierHtml + (bqOk ? top5Html : `<div class="mr-top5-wrap"><div class="mr-top5-card" style="grid-column:1/-1">${bqSectionWarn}</div></div>`) + (bqOk ? chHtml : `<div class="card" style="margin-bottom:16px"><div class="card-title">채널별 매출 분석</div>${bqSectionWarn}</div>`) + `
 <div class="card" style="margin-bottom:16px">
   <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
-    <span>상품별 매출 상세 (국내)</span>
+    <span>상품별 매출 상세</span>
     <span style="font-size:.75rem;color:#94a3b8">전체 ${prodData.length}개 상품</span>
   </div>
   <div class="mr-filter-bar">
@@ -5494,7 +5453,8 @@ function buildMrProdTable(prodData, filter, p, totCur, safe, fb) {
   if (filter.channel)   rows = rows.filter(r => r.ch === filter.channel);
   if (filter.brand)     rows = rows.filter(r => r.brand === filter.brand);
   const s=filter.sortCol, d=filter.sortDir==='asc'?1:-1;
-  rows.sort((a,b) => ((a[s]||0)<(b[s]||0) ? d : -d));
+  // ▼(desc) = 큰 값이 위 / ▲(asc) = 작은 값이 위
+  rows.sort((a,b) => { const x=a[s]||0, y=b[s]||0; return x===y ? 0 : (x>y ? d : -d); });
   const total=rows.length, start=filter.page*filter.pageSize;
   const pageRows=rows.slice(start, start+filter.pageSize);
   const arw = c => filter.sortCol===c ? (filter.sortDir==='asc'?' ▲':' ▼') : '';
@@ -5504,14 +5464,13 @@ function buildMrProdTable(prodData, filter, p, totCur, safe, fb) {
     const isNew = r.prev===0 && r.cur>0;
     const share = totCur>0?(r.cur/totCur*100).toFixed(1):'0';
     return `<tr>
+      <td style="color:#64748b;font-size:.72rem">${r.brand||''}</td>
       <td>${r.prod}${isNew?'<span class="up" style="font-size:.68rem;margin-left:4px">NEW</span>':''}</td>
       <td style="color:#94a3b8" class="num">${r.prev2>0?fb(r.prev2):'—'}</td>
       <td class="num">${r.prev>0?fb(r.prev):'—'}</td>
       <td class="num" style="font-weight:700">${r.cur>0?fb(r.cur):'—'}</td>
       <td>${isNew?'<span class="up">신규</span>':safe(r.cur,r.prev).html}</td>
-      <td>${safe(r.cur,r.prevYr).html}</td>
       <td class="num">${share}%</td>
-      <td style="color:#64748b;font-size:.72rem">${r.brand||''}</td>
     </tr>`;
   }).join('');
   const totalPages=Math.ceil(total/filter.pageSize);
@@ -5524,11 +5483,12 @@ function buildMrProdTable(prodData, filter, p, totCur, safe, fb) {
   return `<div style="font-size:.76rem;color:#64748b;margin-bottom:8px">표시: <b>${total}개</b> 상품 · 합계 <b class="num">${fb(totF)}</b></div>
 <div class="tbl-wrap"><table class="mr-prod-tbl">
   <thead><tr>
+    <th style="text-align:left" ${th('brand')}>브랜드${arw('brand')}</th>
     <th style="text-align:left" ${th('prod')}>상품명${arw('prod')}</th>
     <th ${th('prev2')}>${p.prev2.m}월${arw('prev2')}</th>
     <th ${th('prev')}>${p.prev.m}월${arw('prev')}</th>
     <th ${th('cur')}>${p.cur.m}월${arw('cur')}</th>
-    <th>전월비</th><th>전년비</th><th>비중</th><th>브랜드</th>
+    <th>전월비</th><th>비중</th>
   </tr></thead>
   <tbody>${bodyH}</tbody>
 </table></div>${pgH}`;
