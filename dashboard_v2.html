@@ -5349,33 +5349,45 @@ async function renderMonthlyReport(ym) {
     ? `<div style="font-size:.72rem;color:#94a3b8;margin:-6px 0 10px">예상마감 = ${p.cur.m}월 1~${lastDay}일 실적 ÷ ${lastDay}일 × ${daysInMo}일</div>`
     : '';
 
-  // ─────────── 채널별 테이블 ───────────
+  // ─────────── 채널별 테이블 (공구/일반 필터) ───────────
   const CH_KEY = {'스마트스토어':'ss','카페24':'c24','쿠팡':'coupang','카카오톡스토어':'kakaoStore'};
-  const chList = bqOk
-    ? [...new Set(domAll.map(r=>r.ch||'기타').filter(Boolean))]
-    : MR_CH.filter(ch => CH_KEY[ch] && piv(CH_KEY[ch], p.cur.m) > 0);
-  // 당월 매출 큰 순
-  const chCur = ch => bqOk ? S(domAll.filter(r=>(r.ch||'기타')===ch)) : (CH_KEY[ch] ? piv(CH_KEY[ch], p.cur.m) : 0);
-  chList.sort((a,b) => chCur(b) - chCur(a));
-  // 달성률·전월비는 예상마감 기준
-  const chRow = (label, cur, prev, t2, style='') => {
-    const pj = proj(cur);
-    const share = totCur>0 ? (cur/totCur*100).toFixed(1) : 0;
-    return `<tr${style}><td>${label}</td><td class="num">${fb(cur)}</td><td class="num" style="font-weight:700">${fb(pj)}</td><td class="num">${t2?fb(t2):'—'}</td><td>${ach(pj, t2).html}</td><td class="num">${fb(prev)}</td><td>${safe(pj,prev).html}</td><td class="num">${share}%</td></tr>`;
+  const isGongu = r => r.dist === '3.공동구매';
+  // type: '' 전체 | 'gongu' 공구 | 'ilban' 일반 — 달성률·전월비는 예상마감 기준
+  const buildCh = type => {
+    const pick = rows => type==='gongu' ? rows.filter(isGongu) : type==='ilban' ? rows.filter(r => !isGongu(r)) : rows;
+    const cRows = pick(domAll), pRows = pick(domPrev);
+    const sumCh = (rows, ch) => S(rows.filter(r => (r.ch||'기타') === ch));
+    const chList = [...new Set(cRows.map(r => r.ch||'기타'))].sort((a,b) => sumCh(cRows,b) - sumCh(cRows,a));
+    const base = S(cRows);
+    // 채널 목표는 일반 채널 목표 → 일반 필터에서만 표시. 합계 목표는 필터별(국내/공구/일반)
+    const chTgt  = ch => type==='ilban' && CH_KEY[ch] ? tgt2(CH_KEY[ch], p.cur.m) : null;
+    const sumTgt = type==='gongu' ? tGongu : type==='ilban' ? tgt2('ilban', p.cur.m) : tgt2('domestic', p.cur.m);
+    const row = (label, cur, prev, t2, style='') => {
+      const pj = proj(cur);
+      const share = base>0 ? (cur/base*100).toFixed(1) : 0;
+      return `<tr${style}><td>${label}</td><td class="num">${fb(cur)}</td><td class="num" style="font-weight:700">${fb(pj)}</td><td class="num">${t2?fb(t2):'—'}</td><td>${ach(pj, t2).html}</td><td class="num">${fb(prev)}</td><td>${safe(pj,prev).html}</td><td class="num">${share}%</td></tr>`;
+    };
+    if (!chList.length) return '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:.85rem">데이터 없음</div>';
+    return `<div class="tbl-wrap"><table class="mr-ch-tbl">
+    <thead><tr><th>채널</th><th>${ml}</th><th>예상마감</th><th>목표</th><th>달성률</th><th>전월</th><th>전월비</th><th>비중</th></tr></thead>
+    <tbody>
+      ${chList.map(ch => row(ch, sumCh(cRows,ch), sumCh(pRows,ch), chTgt(ch))).join('')}
+      ${row('합계', base, S(pRows), sumTgt, ' style="border-top:2px solid #e8edf3;background:#f8fafc;font-weight:700"')}
+    </tbody>
+  </table></div>`;
   };
   const chHtml = `
 <div class="card" style="margin-bottom:16px">
   <div class="card-title">채널별 매출 분석</div>
+  <div class="mr-filter-bar">
+    <select onchange="mrChFilter(this.value)">
+      <option value="">공구/일반 전체</option>
+      <option value="gongu" ${mrChType==='gongu'?'selected':''}>공구</option>
+      <option value="ilban" ${mrChType==='ilban'?'selected':''}>일반</option>
+    </select>
+  </div>
   ${projNote}
-  <div class="tbl-wrap"><table class="mr-ch-tbl">
-    <thead><tr><th>채널</th><th>${ml}</th><th>예상마감</th><th>목표</th><th>달성률</th><th>전월</th><th>전월비</th><th>비중</th></tr></thead>
-    <tbody>
-      ${chList.map(ch => chRow(ch, chCur(ch),
-        bqOk ? S(domPrev.filter(r=>(r.ch||'기타')===ch)) : (CH_KEY[ch] ? piv(CH_KEY[ch], p.prev.m) : 0),
-        CH_KEY[ch] ? tgt2(CH_KEY[ch], p.cur.m) : null)).join('')}
-      ${chRow('공구', domGongu, domGonguP, tGongu, ' style="border-top:2px solid #e8edf3;background:#f8fafc"')}
-    </tbody>
-  </table></div>
+  <div id="mrChTableWrap">${buildCh(mrChType)}</div>
 </div>`;
 
   // ─────────── 상품 상세 ───────────
@@ -5389,7 +5401,7 @@ async function renderMonthlyReport(ym) {
   addP(domAll,'cur'); addP(domPrev,'prev'); addP(domPrev2,'prev2');
   const prodData = Object.values(pMap);
   prodData.forEach(r => { r.proj = proj(r.cur); r.diff = r.proj - r.prev; });
-  mrState = { prodData, p, totCur, safe, fb, bqOk };
+  mrState = { prodData, p, totCur, safe, fb, bqOk, buildCh };
 
 
   // ─────────── BQ 경고 배너 ───────────
@@ -5483,6 +5495,12 @@ function buildMrProdTable(prodData, filter, p, totCur, safe, fb) {
 </table></div>${pgH}`;
 }
 
+let mrChType = ''; // 채널별 매출 분석 공구/일반 필터
+function mrChFilter(val) {
+  mrChType = val;
+  const el = document.getElementById('mrChTableWrap');
+  if (el && mrState?.buildCh) el.innerHTML = mrState.buildCh(val);
+}
 function mrFc(key, val) {
   mrProdFilter[key] = val; mrProdFilter.page = 0;
   if (mrState && mrState.bqOk) document.getElementById('mrProdTableWrap').innerHTML =
