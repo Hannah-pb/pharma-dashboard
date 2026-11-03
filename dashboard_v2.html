@@ -5322,7 +5322,12 @@ async function renderMonthlyReport() {
   const yRows = bqOk ? ROWS.filter(r => r.year === Y) : [];
   const byMonth = Array.from({length:13}, () => []);
   yRows.forEach(r => { if (r.month >= 1 && r.month <= 12) byMonth[r.month].push(r); });
-  const mRev = (k, seg) => bqOk ? S(SEG[seg] ? byMonth[k].filter(SEG[seg]) : byMonth[k]) : piv(PK[seg], k);
+  // 일반 = 채널 + 기타. raw 시트엔 채널분만 있어 기타 = 피벗 '일반 매출' − raw 일반 (피벗 연도만)
+  const pivYear = PIVOT_DATA ? curYear : null;
+  const etcYM = (y, k) => bqOk && y === pivYear && k >= 1 && k <= 12
+    ? Math.max(0, piv('ilban', k) - S(ROWS.filter(r => r.year === y && r.month === k && !isG(r)))) : 0;
+  const etcM = Array.from({length:13}, (_,k) => etcYM(Y, k));
+  const mRev = (k, seg) => bqOk ? S(SEG[seg] ? byMonth[k].filter(SEG[seg]) : byMonth[k]) + (seg === 'gongu' ? 0 : etcM[k]) : piv(PK[seg], k);
 
   // ── 당월 예상 마감 (진행 중인 달: 실적 ÷ 경과일 × 월 일수 / 그 외: 실적) ──
   const isCurrentMo = M && Y === curYear && M === curMonth;
@@ -5375,8 +5380,8 @@ async function renderMonthlyReport() {
   } else {
     const rev = mRev(M, 'all'), pj = proj(rev), tgt = tgt2('domestic', M), a = ach(pj, tgt);
     const pm  = M === 1 ? { y:Y-1, m:12 } : { y:Y, m:M-1 };
-    const prevRev = bqOk ? S(F(ROWS, pm)) : (pm.y === Y ? piv('domestic', pm.m) : 0);
-    const yrRev   = bqOk ? S(F(ROWS, { y:Y-1, m:M })) : 0;
+    const prevRev = bqOk ? S(F(ROWS, pm)) + etcYM(pm.y, pm.m) : (pm.y === Y ? piv('domestic', pm.m) : 0);
+    const yrRev   = bqOk ? S(F(ROWS, { y:Y-1, m:M })) + etcYM(Y-1, M) : 0;
     const cum     = Array.from({length:M}, (_,i) => mRev(i+1, 'all')).reduce((s,v) => s+v, 0);
     const annT    = K.ann('domestic', 'target');
     const tag     = inProg ? '(예상)' : '';
@@ -5418,7 +5423,7 @@ async function renderMonthlyReport() {
       stats = [['공구 진행', nOrEm(n,'회')], ['회당 평균', n ? fb(rev/n) : '—'], ['판매량', nOrEm(qty,'개')]];
     } else {
       const o = rows.reduce((s,r) => s + (r.ord || 0), 0);              // 시트 '주문수' 합계
-      stats = [['주문수', nOrEm(o,'건')], ['객단가', o ? nOrEm(rev/o,'원') : '—'], ['판매량', nOrEm(qty,'개')]];
+      stats = [['주문수', nOrEm(o,'건')], ['객단가', o ? nOrEm(S(rows)/o,'원') : '—'], ['판매량', nOrEm(qty,'개')]];   // 주문수·판매량·객단가는 채널(raw) 기준
     }
     return `<div class="kpi">
       <div class="kpi-label">${label}</div>
@@ -5449,6 +5454,7 @@ async function renderMonthlyReport() {
     // 연간: 채널 × 1~12월
     const chs = {};
     yRows.filter(typeOk).forEach(r => { (chs[r.ch||'기타'] ||= Array(13).fill(0))[r.month] += r.rev || 0; });
+    if (mrView.type !== '공구' && etcM.some(v => v > 0)) { const a = chs['기타'] ||= Array(13).fill(0); MOS.forEach(k => a[k] += etcM[k]); }
     const list = Object.entries(chs).map(([ch,arr]) => ({ ch, arr, tot: arr.reduce((s,v)=>s+v,0) })).sort((a,b) => b.tot-a.tot);
     const sumArr = Array(13).fill(0); list.forEach(x => x.arr.forEach((v,i) => sumArr[i] += v));
     const base = sumArr.reduce((s,v)=>s+v,0);
@@ -5462,18 +5468,20 @@ async function renderMonthlyReport() {
     // 월: 달성률·전월비는 예상마감 기준
     const pm = M === 1 ? { y:Y-1, m:12 } : { y:Y, m:M-1 };
     const cRows = byMonth[M].filter(typeOk), pRows = F(ROWS, pm).filter(typeOk);
-    const sumCh = (rows, ch) => S(rows.filter(r => (r.ch||'기타') === ch));
-    const list  = [...new Set(cRows.map(r => r.ch||'기타'))].sort((a,b) => sumCh(cRows,b) - sumCh(cRows,a));
-    const base  = S(cRows);
+    const withEtc = mrView.type !== '공구';
+    const etcCur = withEtc ? etcM[M] : 0, etcPrev = withEtc ? etcYM(pm.y, pm.m) : 0;
+    const sumCh = (rows, ch) => S(rows.filter(r => (r.ch||'기타') === ch)) + (ch === '기타' ? (rows === cRows ? etcCur : etcPrev) : 0);
+    const list  = [...new Set([...cRows.map(r => r.ch||'기타'), ...(etcCur > 0 ? ['기타'] : [])])].sort((a,b) => sumCh(cRows,b) - sumCh(cRows,a));
+    const base  = S(cRows) + etcCur;
     // 채널 목표는 일반 채널 목표 → 일반 필터에서만. 합계 목표는 국내/공구/일반별
     const chTgt  = ch => mrView.type === '일반' && CH_KEY[ch] ? tgt2(CH_KEY[ch], M) : null;
     const sumTgt = tgt2(mrView.type === '공구' ? 'gongu' : mrView.type === '일반' ? 'ilban' : 'domestic', M);
     const row = (label, cur, prev, t2, style='') => { const pj = proj(cur);
-      return `<tr${style}><td>${label}</td><td class="num">${fb(cur)}</td><td class="num" style="font-weight:700">${fb(pj)}</td><td class="num">${t2?fb(t2):'—'}</td><td>${ach(pj,t2).html}</td><td class="num">${fb(prev)}</td><td>${safe(pj,prev).html}</td><td class="num">${base>0?(cur/base*100).toFixed(1):0}%</td></tr>`; };
+      return `<tr${style}><td>${label}</td><td class="num"${inProg?'':' style="font-weight:700"'}>${fb(cur)}</td>${inProg?`<td class="num" style="font-weight:700">${fb(pj)}</td>`:''}<td class="num">${t2?fb(t2):'—'}</td><td>${ach(pj,t2).html}</td><td class="num">${fb(prev)}</td><td>${safe(pj,prev).html}</td><td class="num">${base>0?(cur/base*100).toFixed(1):0}%</td></tr>`; };
     chTable = !list.length ? emptyH : `<div class="tbl-wrap"><table class="mr-ch-tbl mr-tbl-eq">
-      <colgroup><col style="width:140px">${'<col>'.repeat(7)}</colgroup>
-      <thead><tr><th>채널</th><th>${M}월</th><th>예상마감</th><th>목표</th><th>달성률</th><th>전월</th><th>전월비</th><th>비중</th></tr></thead>
-      <tbody>${list.map(ch => row(ch, sumCh(cRows,ch), sumCh(pRows,ch), chTgt(ch))).join('')}${row('합계', base, S(pRows), sumTgt, SUM_STYLE)}</tbody></table></div>`;
+      <colgroup><col style="width:140px">${'<col>'.repeat(inProg?7:6)}</colgroup>
+      <thead><tr><th>채널</th><th>${M}월</th>${inProg?'<th>예상마감</th>':''}<th>목표</th><th>달성률</th><th>전월</th><th>전월비</th><th>비중</th></tr></thead>
+      <tbody>${list.map(ch => row(ch, sumCh(cRows,ch), sumCh(pRows,ch), chTgt(ch))).join('')}${row('합계', base, S(pRows) + etcPrev, sumTgt, SUM_STYLE)}</tbody></table></div>`;
   }
   const typeSel = `<select onchange="mrSetView({type:this.value})">
       <option value="">공구/일반 전체</option>
@@ -5510,7 +5518,7 @@ async function renderMonthlyReport() {
     else { r.proj = proj(r.cur); r.diff = r.proj - r.prev; }
   });
   const prodBase = prodData.reduce((s,r) => s + (M ? r.cur : r.total), 0);
-  mrState = { prodData, mode: M ? 'month' : 'year', p: { cur:{m:M}, prev:pm, prev2:pm2 }, base: prodBase, safe, fb, bqOk };
+  mrState = { prodData, mode: M ? 'month' : 'year', inProg, p: { cur:{m:M}, prev:pm, prev2:pm2 }, base: prodBase, safe, fb, bqOk };
 
   const chOpts = [...new Set([...(M ? byMonth[M] : yRows).map(r => r.ch||'기타'), ...(mrView.channel ? [mrView.channel] : [])])].sort();
   const brandList = [...new Set(prodData.map(r => r.brand).filter(Boolean))].sort();
@@ -5549,9 +5557,9 @@ async function renderMonthlyReport() {
 
 function buildMrProdTable() {
   const st = mrState; if (!st) return '';
-  const { prodData, mode, p, base, safe, fb } = st, f = mrProdFilter;
+  const { prodData, mode, p, base, safe, fb, inProg } = st, f = mrProdFilter;
   const MOS = Array.from({length:12}, (_,i) => i+1);
-  const keys = mode === 'year' ? ['brand','prod',...MOS.map(k => 'm'+k),'total'] : ['brand','prod','prev2','prev','cur','proj','diff'];
+  const keys = mode === 'year' ? ['brand','prod',...MOS.map(k => 'm'+k),'total'] : ['brand','prod','prev2','prev','cur',...(inProg?['proj']:[]),'diff'];
   const s = keys.includes(f.sortCol) ? f.sortCol : (mode === 'year' ? 'total' : 'cur');
   const d = keys.includes(f.sortCol) && f.sortDir === 'asc' ? 1 : -1;
   let rows = [...prodData];
@@ -5574,16 +5582,16 @@ function buildMrProdTable() {
       ${MOS.map(k => `<td class="num">${r['m'+k] ? fb(r['m'+k]) : '—'}</td>`).join('')}
       <td class="num" style="font-weight:700">${fb(r.total)}</td><td class="num">${share(r)}%</td></tr>`).join('');
   } else {
-    colg  = `<colgroup><col style="width:90px"><col style="width:200px">${'<col>'.repeat(7)}</colgroup>`;
+    colg  = `<colgroup><col style="width:90px"><col style="width:200px">${'<col>'.repeat(inProg?7:6)}</colgroup>`;
     head  = th('brand','브랜드') + th('prod','상품명') + th('prev2', p.prev2.m+'월') + th('prev', p.prev.m+'월') + th('cur', p.cur.m+'월')
-          + th('proj','당월예상마감') + '<th>전월비</th>' + th('diff','차액') + '<th>비중</th>';
+          + (inProg ? th('proj','당월예상마감') : '') + '<th>전월비</th>' + th('diff','차액') + '<th>비중</th>';
     bodyH = pageRows.map(r => { const isNew = !r.prev && r.cur > 0; return `<tr>
       <td style="color:#64748b;font-size:.72rem">${r.brand||''}</td>
       <td title="${r.prod}">${r.prod}${isNew?'<span class="up" style="font-size:.68rem;margin-left:4px">NEW</span>':''}</td>
       <td style="color:#94a3b8" class="num">${r.prev2>0?fb(r.prev2):'—'}</td>
       <td class="num">${r.prev>0?fb(r.prev):'—'}</td>
-      <td class="num">${r.cur>0?fb(r.cur):'—'}</td>
-      <td class="num" style="font-weight:700">${r.proj>0?fb(r.proj):'—'}</td>
+      <td class="num"${inProg?"":" style=\"font-weight:700\""}>${r.cur>0?fb(r.cur):'—'}</td>
+      ${inProg ? `<td class="num" style="font-weight:700">${r.proj>0?fb(r.proj):'—'}</td>` : ''}
       <td>${isNew?'<span class="up">신규</span>':safe(r.proj,r.prev).html}</td>
       <td class="num ${r.diff>0?'up':r.diff<0?'down':''}">${r.diff?(r.diff>0?'+':'')+fb(r.diff):'—'}</td>
       <td class="num">${share(r)}%</td></tr>`; }).join('');
