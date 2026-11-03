@@ -5293,6 +5293,7 @@ function mrHash() {
   const q = [];
   if (mrView.year !== new Date().getFullYear()) q.push('y=' + mrView.year);
   if (mrView.month)   q.push('m=' + mrView.month);
+  if (mrView.tab === 'all' && mrView.type) q.push('type=' + encodeURIComponent(mrView.type));
   if (mrView.channel) q.push('ch=' + encodeURIComponent(mrView.channel));
   return '#domestic' + (SEG_SLUG[mrView.tab] ? '/' + SEG_SLUG[mrView.tab] : '') + (q.length ? '?' + q.join('&') : '');
 }
@@ -5303,9 +5304,8 @@ function mrParseHash(h) {
   mrView.year    = y >= 2000 ? y : new Date().getFullYear();
   mrView.month   = m >= 1 && m <= 12 ? m : 0;
   mrView.tab     = segFromSlug(path.split('/')[1] || '');
-  if (mrView.tab === 'all' && qs.get('type') === '공구') mrView.tab = 'gongu';   // 이전 링크 호환
-  if (mrView.tab === 'all' && qs.get('type') === '일반') mrView.tab = 'ilban';
-  mrView.type    = SEG_TYPE[mrView.tab];
+  // 전체 탭은 공구/일반 필터를 type 파라미터로 유지
+  mrView.type    = mrView.tab === 'all' ? (MR_TYPES.includes(qs.get('type')) ? qs.get('type') : '') : SEG_TYPE[mrView.tab];
   mrView.channel = qs.get('ch') || '';
 }
 // 카드 HTML을 클릭 가능한 링크 카드로 (판매분석 해당 탭으로 이동)
@@ -5556,9 +5556,15 @@ async function renderMonthlyReport() {
       <thead><tr><th>채널</th><th>${M}월</th>${inProg?'<th>예상마감</th>':''}<th>목표</th><th>달성률</th><th>전월</th><th>전월비</th><th>비중</th></tr></thead>
       <tbody>${list.map(ch => row(ch, sumCh(cRows,ch), sumCh(pRows,ch), chTgt(ch))).join('')}${row('합계', base, S(pRows) + etcPrev, sumTgt, SUM_STYLE)}</tbody></table></div>`;
   }
+  // 공구/일반 필터 — 전체 탭에서만 (공구·일반 탭은 탭 자체가 필터)
+  const typeSel = mrView.tab !== 'all' ? '' : `<select onchange="mrSetView({type:this.value})">
+      <option value="">공구/일반 전체</option>
+      ${MR_TYPES.map(t => `<option value="${t}" ${mrView.type===t?'selected':''}>${t}</option>`).join('')}
+    </select>`;
   const chHtml = `
 <div class="card" style="margin-bottom:16px">
   <div class="card-title">채널별 매출 분석</div>
+  ${typeSel ? `<div class="mr-filter-bar">${typeSel}</div>` : ''}
   ${M ? projNote : ''}
   ${chTable}
 </div>`;
@@ -5609,6 +5615,7 @@ async function renderMonthlyReport() {
   </div>
   <div class="mr-filter-bar">
     <input type="text" placeholder="상품명 검색…" oninput="mrFc('search',this.value)" value="${mrProdFilter.search}">
+    ${typeSel}
     <select onchange="mrSetView({channel:this.value})">
       <option value="">채널 전체</option>
       ${chOpts.map(c => `<option value="${c}" ${mrView.channel===c?'selected':''}>${c}</option>`).join('')}
