@@ -454,6 +454,30 @@ tr.alarm-yellow:hover td{background:#fef08a!important}
 .mr-card.dom{border-top:3px solid #2563eb}
 .mr-card.ovr{border-top:3px solid #059669}
 .mr-card.gongu{border-top:3px solid #8b5cf6}
+/* 국내 판매분석: 월 선택 시 히어로·카드 */
+.mr-hero-cmp{margin-top:8px;font-size:.8rem;opacity:.92}
+.mr-hero-cmp .sep{margin:0 8px;opacity:.5}
+.kd-hero .up{color:#86efac}.kd-hero .down{color:#fca5a5}.kd-hero .gray{color:rgba(255,255,255,.55)}
+.mr-hero-cum{min-width:260px;font-size:.92em;opacity:.92}
+.mr-kpi-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.mr-kpi-stats div{background:#f8fafc;border-radius:8px;padding:8px 10px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.mr-kpi-stats span{font-size:.68rem;color:#64748b}
+.mr-kpi-stats b{font-size:.92rem;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* 12개월 미니 막대 */
+.mr-mini{display:flex;gap:4px;height:64px;margin-top:14px;padding-top:10px;border-top:1px solid #f1f5f9}
+.mr-mini-col{flex:1;display:flex;flex-direction:column;cursor:pointer;min-width:0}
+.mr-mini-col.off{cursor:default;opacity:.35}
+.mr-mini-track{flex:1;display:flex;align-items:flex-end}
+.mr-mini-bar{width:100%;background:#d5dde9;border-radius:2px 2px 0 0;transition:background .12s}
+.mr-mini.all .mr-mini-bar{background:#8ea3c4}
+.mr-mini-col:not(.off):hover .mr-mini-bar{background:#64748b}
+.mr-mini-bar.on{background:#1d3f72!important}
+.mr-mini-col span{font-size:.6rem;color:#94a3b8;text-align:center;margin-top:3px;line-height:1}
+/* 표 열 간격 동일 */
+.mr-tbl-eq,.mr-tbl-year{table-layout:fixed}
+.mr-tbl-year{min-width:1100px}
+.mr-prod-tbl.mr-tbl-year{min-width:1500px}
+.mr-tbl-eq td,.mr-tbl-year td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mr-card.ilban{border-top:3px solid #10b981}
 .mr-card-title{font-size:.75rem;font-weight:700;color:#64748b;letter-spacing:.06em;margin-bottom:6px}
 .mr-card-val{font-size:1.8rem;font-weight:800;color:#1e293b;margin-bottom:2px}
@@ -916,7 +940,7 @@ let   mrLoaded      = false;
 let   mrLoading     = null;
 let   selectedReportMonth = '';
 let   mrState       = null;
-let   mrProdFilter  = { search:'', salesType:'', channel:'', brand:'', sortCol:'cur', sortDir:'desc', page:0, pageSize:50 };
+let   mrProdFilter  = { search:'', brand:'', sortCol:'', sortDir:'desc', page:0, pageSize:50 }; // 공구/일반·채널은 mrView
 
 // Column indices resolved from CSV header row at load time
 let C = {};
@@ -1001,6 +1025,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (initHash === 'inventory-domestic' || initHash === 'inventory-overseas') {
       invRegion = initHash.slice('inventory-'.length);
       initHash = 'inventory';
+    }
+    if (initHash === 'domestic' || initHash.startsWith('domestic?')) {
+      mrParseHash(initHash);
+      initHash = 'monthly-report';
     }
     switchPage(PAGE_TITLES[initHash] != null && initHash ? initHash : 'kpi');
   }).catch(err => {
@@ -1402,7 +1430,7 @@ function bindNav() {
   document.querySelectorAll('.nav-child:not(.inv-region-child)').forEach(el => {
     el.addEventListener('click', () => {
       const pg = el.dataset.page;
-      history.replaceState(null, '', '#' + pg);
+      history.replaceState(null, '', pageHash(pg));
       const subtab = el.dataset.subtab;
       document.querySelectorAll('.nav-parent').forEach(c=>c.classList.remove('active'));
       document.querySelectorAll('.nav-child').forEach(c=>c.classList.remove('active'));
@@ -1436,7 +1464,7 @@ function bindNav() {
   document.querySelectorAll('.nav-grandchild').forEach(el => {
     el.addEventListener('click', () => {
       const pg = el.dataset.page;
-      history.replaceState(null, '', '#' + pg);
+      history.replaceState(null, '', pageHash(pg));
       document.querySelectorAll('.nav-grandchild').forEach(c=>c.classList.remove('active'));
       document.querySelectorAll('.nav-great-grandchild').forEach(c=>c.classList.remove('active'));
       document.querySelectorAll('.nav-child').forEach(c=>c.classList.remove('active'));
@@ -1458,7 +1486,7 @@ function bindNav() {
   document.querySelectorAll('.nav-great-grandchild').forEach(el => {
     el.addEventListener('click', () => {
       const pg = el.dataset.page;
-      history.replaceState(null, '', '#' + pg);
+      history.replaceState(null, '', pageHash(pg));
       document.querySelectorAll('.nav-great-grandchild').forEach(c=>c.classList.remove('active'));
       document.querySelectorAll('.nav-grandchild').forEach(c=>c.classList.remove('active'));
       document.querySelectorAll('.nav-child').forEach(c=>c.classList.remove('active'));
@@ -1547,8 +1575,15 @@ function bindSidebar() {
   });
 }
 
+// 페이지별 URL 해시 (국내 판매분석은 상태 포함: #domestic?m=10&type=공구)
+function pageHash(pg) {
+  if (pg === 'inventory') return '#inventory-' + invRegion;
+  if (pg === 'monthly-report') return mrHash();
+  return '#' + pg;
+}
+
 function switchPage(pg) {
-  history.replaceState(null, '', pg === 'inventory' ? '#inventory-' + invRegion : '#' + pg);
+  history.replaceState(null, '', pageHash(pg));
   document.querySelectorAll('.nav-item').forEach(el=>el.classList.toggle('active', el.dataset.page===pg));
   document.querySelectorAll('.nav-parent').forEach(el=>el.classList.remove('active'));
   document.querySelectorAll('.nav-child').forEach(el=>el.classList.remove('active'));
@@ -2395,7 +2430,7 @@ function renderPage(pg) {
     return;
   }
   if (pg === 'monthly-report') {
-    renderMonthlyReport(selectedReportMonth);
+    renderMonthlyReport();
     return;
   }
   if (pg === 'overseas-sales') {
@@ -2775,11 +2810,11 @@ function _kpiKit() {
   const n = getKpiNow();
   const pn  = v => { const x = parseFloat(String(v ?? '').replace(/[,s₩]/g,'')); return isNaN(x) ? 0 : x; };
   const ytd = (key, fld, maxMo = n.m) => {
-    const d = PIVOT_DATA[key]; if (!d || !d[fld]) return 0;
+    const d = PIVOT_DATA?.[key]; if (!d || !d[fld]) return 0;
     return Object.entries(d[fld].monthly || {}).filter(([mo]) => +mo <= maxMo).reduce((s,[,v]) => s + pn(v), 0);
   };
-  const ann  = (key, fld) => pn(PIVOT_DATA[key]?.[fld]?.annual);
-  const monV = (key, fld, mo) => pn(PIVOT_DATA[key]?.[fld]?.monthly?.[mo]);
+  const ann  = (key, fld) => pn(PIVOT_DATA?.[key]?.[fld]?.annual);
+  const monV = (key, fld, mo) => pn(PIVOT_DATA?.[key]?.[fld]?.monthly?.[mo]);
   const fmt  = v => fmtM(v);
   const fmtB = (v, d=1) => (v && !isNaN(v) && v > 0) ? (v/1e8).toFixed(d) : null;
   const pctCls = pct => pct === null || pct === undefined ? '' : pct >= 100 ? 'good' : pct >= 90 ? 'warning' : 'critical';
@@ -5135,6 +5170,8 @@ async function loadMonthlyReportData() {
         const idxQty   = fi('수량');
         const idxRev   = fi('실결제금액');
         const idxFqty   = fi('최종 수량');
+        const idxCid    = fi('채널상품ID');   // 공구 진행 횟수 = 채널상품ID 수
+        const idxOrdCnt = fiEx('주문수');     // 일반 주문수 = 시트 '주문수' 합계
         const idxCat    = fi('건기');
         const idxExcl   = fi('매출제외');
         const idxOrderDate = 2; // C열 = 주문일 (고정)
@@ -5154,7 +5191,9 @@ async function loadMonthlyReportData() {
           prod:     _ps(r[idxProd]),
           qty:      _pi(r[idxQty]),
           rev:      _pn(r[idxRev]),
-          fqty:     _pi(r[idxFqty]),
+          fqty:     _pn(r[idxFqty]),
+          cid:      idxCid >= 0 ? _ps(r[idxCid]) : '',
+          ord:      idxOrdCnt >= 0 ? _pn(r[idxOrdCnt]) : 0,
           category: _ps(r[idxCat]),
           exclude:  idxExcl >= 0 ? _ps(r[idxExcl]) : '',
         })).filter(r =>
@@ -5187,66 +5226,71 @@ async function loadMonthlyReportData() {
   return mrLoading;
 }
 
-function onMrMonth(ym) {
-  selectedReportMonth = ym;
-  mrProdFilter = { search:'', salesType:'', channel:'', brand:'', sortCol:'cur', sortDir:'desc', page:0, pageSize:50 };
-  renderMonthlyReport(ym);
+// ── 국내 판매분석 상태: {year, month, type, channel} 하나로 관리 + URL 해시 반영 ──
+//    예) #domestic?m=10&type=공구&ch=스마트스토어   (month 0 = 연간 전체)
+let mrView = { year: new Date().getFullYear(), month: 0, type: '', channel: '' };
+const MR_TYPES = ['공구', '일반'];
+
+function mrHash() {
+  const q = [];
+  if (mrView.year !== new Date().getFullYear()) q.push('y=' + mrView.year);
+  if (mrView.month)   q.push('m=' + mrView.month);
+  if (mrView.type)    q.push('type=' + encodeURIComponent(mrView.type));
+  if (mrView.channel) q.push('ch=' + encodeURIComponent(mrView.channel));
+  return '#domestic' + (q.length ? '?' + q.join('&') : '');
+}
+function mrParseHash(h) {
+  const qs = new URLSearchParams(h.split('?')[1] || '');
+  const y = parseInt(qs.get('y')), m = parseInt(qs.get('m'));
+  mrView.year    = y >= 2000 ? y : new Date().getFullYear();
+  mrView.month   = m >= 1 && m <= 12 ? m : 0;
+  mrView.type    = MR_TYPES.includes(qs.get('type')) ? qs.get('type') : '';
+  mrView.channel = qs.get('ch') || '';
+}
+function mrSetView(patch) {
+  Object.assign(mrView, patch);
+  mrProdFilter.page = 0;
+  history.replaceState(null, '', mrHash());
+  renderMonthlyReport();
+}
+function onMrMonth(v) {   // 'YYYY-all' | 'YYYY-M'
+  const [y, m] = v.split('-');
+  mrSetView({ year: +y, month: m === 'all' ? 0 : +m });
 }
 
-async function renderMonthlyReport(ym) {
+async function renderMonthlyReport() {
   const spinner = document.getElementById('mrSpinner');
   const errEl   = document.getElementById('mrError');
   const body    = document.getElementById('mrBody');
   if (!spinner || !body) return;
-  spinner.style.display = ''; errEl.style.display = 'none'; body.innerHTML = '';
+  if (!mrLoaded) { spinner.style.display = ''; body.innerHTML = ''; }
+  errEl.style.display = 'none';
 
-  const status = await loadMonthlyReportData().catch(() => ({ bqOk:false, ihubOk:false }));
-  const bqOk   = status?.bqOk   !== false;
-  const ihubOk = status?.ihubOk !== false;
-
-  // 데이터 기준일 표시
-  const noteEl = document.getElementById('mrLoadNote');
-  if (noteEl) {
-    noteEl.textContent = mrRawDate ? `데이터 기준: ${mrRawDate}` : (bqOk ? '' : '데이터 로드 실패');
-  }
-
-  // 기준월 셀렉터: BQ 없으면 PIVOT_DATA 기반 월 목록
-  // 마감된 월만 선택 가능 (이번 달 이후 제외)
-  const _now = new Date();
-  // 이번 달 포함 (진행 중인 현재 월도 선택 가능)
-  const _cutoff = `${_now.getFullYear()}-${String(_now.getMonth()+1).padStart(2,'0')}`;
-
-  // 올해 1월~현재 월은 BQ 유무와 무관하게 항상 포함
-  const allYearMonths = Array.from({length: _now.getMonth()+1}, (_, i) =>
-    `${_now.getFullYear()}-${String(i+1).padStart(2,'0')}`
-  ).reverse();
-
-  let availMonths;
-  if (bqOk && ROWS.length > 0) {
-    const bqMos = [...new Set(ROWS.map(r => `${r.year}-${String(r.month).padStart(2,'0')}`))]
-      .filter(m => m.length === 7 && m <= _cutoff);
-    availMonths = [...new Set([...allYearMonths, ...bqMos])].sort().reverse();
-  } else {
-    availMonths = allYearMonths;
-  }
-  if (!ym || !availMonths.includes(ym)) {
-    ym = availMonths[0] || '';
-    selectedReportMonth = ym;
-  }
-  const sel = document.getElementById('mrMonthSel');
-  if (sel) {
-    sel.innerHTML = availMonths.map(m => {
-      const [y, mo] = m.split('-');
-      return `<option value="${m}" ${m===ym?'selected':''}>${y}년 ${parseInt(mo)}월</option>`;
-    }).join('');
-  }
+  const status = await loadMonthlyReportData().catch(() => ({ bqOk:false }));
+  const bqOk   = status?.bqOk !== false;
   spinner.style.display = 'none';
-  if (!ym) return;
 
-  // ── 기간 ──
-  const [curY, curMo] = ym.split('-').map(Number);
-  const sub = (y, m, n) => { m -= n; while(m <= 0){ m += 12; y--; } return {y, m}; };
-  const p = { cur:{y:curY,m:curMo}, prev:sub(curY,curMo,1), prev2:sub(curY,curMo,2), prevYr:{y:curY-1,m:curMo} };
+  const noteEl = document.getElementById('mrLoadNote');
+  if (noteEl) noteEl.textContent = mrRawDate ? `데이터 기준: ${mrRawDate}` : (bqOk ? '' : '데이터 로드 실패');
+
+  // ── 선택 가능한 연·월 (데이터 있는 달 + 올해 1월~이번 달) ──
+  const now = new Date(), curYear = now.getFullYear(), curMonth = now.getMonth() + 1;
+  const ymSet = {};
+  if (bqOk) ROWS.forEach(r => {
+    if (r.year > 0 && r.month >= 1 && r.month <= 12 && (r.year < curYear || (r.year === curYear && r.month <= curMonth)))
+      (ymSet[r.year] ||= new Set()).add(r.month);
+  });
+  ymSet[curYear] ||= new Set();
+  for (let k = 1; k <= curMonth; k++) ymSet[curYear].add(k);
+  if (!ymSet[mrView.year]) mrView.year = curYear;
+  if (mrView.month && !ymSet[mrView.year].has(mrView.month)) mrView.month = 0;
+  const Y = mrView.year, M = mrView.month;
+
+  const sel = document.getElementById('mrMonthSel');
+  if (sel) sel.innerHTML = Object.keys(ymSet).map(Number).sort((a,b) => b-a).map(y =>
+    `<option value="${y}-all" ${y===Y && !M ? 'selected' : ''}>${y}년 전체</option>` +
+    [...ymSet[y]].sort((a,b) => b-a).map(k => `<option value="${y}-${k}" ${y===Y && k===M ? 'selected' : ''}>${y}년 ${k}월</option>`).join('')
+  ).join('');
 
   // ── 헬퍼 ──
   const F    = (rows, {y,m}) => rows.filter(r => r.year===y && r.month===m);
@@ -5267,46 +5311,46 @@ async function renderMonthlyReport(ym) {
   };
   const bpct = (v,t) => t > 0 ? Math.min(100, v/t*100).toFixed(1) : '0';
   const fb   = v => { if(!v||isNaN(v)) return '—'; const a=Math.abs(v); return a>=1e8?(v/1e8).toFixed(1)+'억':a>=1e4?Math.round(v/1e4).toLocaleString()+'만':Math.round(v).toLocaleString(); };
-  const pBar = (cur,t,cls) => !t||t===0 ? '' : `<div class="mr-progbar"><div class="mr-progbar-fill ${cls}" style="width:${bpct(cur,t)}%"></div></div>`;
-  const MR_CH = ['스마트스토어','친한 스토어','카페24','쿠팡','카카오톡스토어'];
-  const ml = `${p.cur.m}월`;
-
-  // ── 국내 집계 ──
-  const domAll   = F(ROWS, p.cur);
-  const domPrev  = F(ROWS, p.prev);
-  const domPrev2 = F(ROWS, p.prev2);
-  const domYr    = F(ROWS, p.prevYr);
-  // BQ 우선 (실거래 상세), BQ 실패 시 PIVOT_DATA fallback
-  const domGongu  = bqOk ? S(domAll.filter(r => r.dist==='3.공동구매'))                              : piv('gongu',    p.cur.m);
-  const domIlban  = bqOk ? S(domAll.filter(r => r.dist!=='3.공동구매'))                              : piv('ilban',    p.cur.m);
-  const domCh     = bqOk ? S(domAll.filter(r => r.dist!=='3.공동구매' && MR_CH.includes(r.ch)))      : piv('channel',  p.cur.m);
-  const domGita   = domIlban - domCh;
-  const domTotal  = bqOk ? S(domAll)                                                                  : piv('domestic', p.cur.m);
-  const domGonguP = bqOk ? S(domPrev.filter(r => r.dist==='3.공동구매'))                             : piv('gongu',    p.prev.m);
-  const domIlbanP = bqOk ? S(domPrev.filter(r => r.dist!=='3.공동구매'))                             : piv('ilban',    p.prev.m);
-  const domChP    = bqOk ? S(domPrev.filter(r => r.dist!=='3.공동구매' && MR_CH.includes(r.ch)))     : piv('channel',  p.prev.m);
-  const domGitaP  = domIlbanP - domChP;
-  const domTotalP = bqOk ? S(domPrev)                                                                 : piv('domestic', p.prev.m);
-  const domTotalYr= bqOk ? S(domYr)  : 0;
-  const domGonguYr= bqOk ? S(domYr.filter(r => r.dist==='3.공동구매')) : 0;
-  const domIlbanYr= bqOk ? S(domYr.filter(r => r.dist!=='3.공동구매')) : 0;
-
-  // ── 전체 (국내 페이지: 국내만 — 해외는 판매분석 > 해외) ──
-  const totCur  = domTotal;
-  const totPrev = domTotalP;
-  const totYr   = domTotalYr;
-
-  // ── 목표 (채널 표 공구 행에서 사용) ──
-  const tGongu   = tgt2('gongu', p.cur.m);
-  const achGongu = ach(domGongu, tGongu);
-
-  // ─────────── 상단 카드: 해외 페이지·KPI 대시보드와 동일 (PIVOT_DATA · 같은 헬퍼) ───────────
+  const isG  = r => r.dist === '3.공동구매';
+  const SEG  = { all: null, gongu: isG, ilban: r => !isG(r) };
+  const PK   = { all: 'domestic', gongu: 'gongu', ilban: 'ilban' };
+  const typeOk = r => !mrView.type || (mrView.type === '공구') === isG(r);
+  const chOk   = r => !mrView.channel || (r.ch||'기타') === mrView.channel;
   const K = _kpiKit();
-  const dRev=K.rev('domestic'),dTgt=K.ytd('domestic','target'),dAnnT=K.ann('domestic','target'),dAnnF=K.ann('domestic','fcast');
-  const gRev=K.rev('gongu'),gTgt=K.ytd('gongu','target'),gAnnT=K.ann('gongu','target'),gAnnF=K.ann('gongu','fcast');
-  const iRev=K.rev('ilban'),iTgt=K.ytd('ilban','target'),iAnnT=K.ann('ilban','target'),iAnnF=K.ann('ilban','fcast');
-  const dPace = dTgt > 0 ? dRev / dTgt * 100 : null;
-  const heroHtml = `
+
+  // ── 연도 행 / 월별 버킷 ──
+  const yRows = bqOk ? ROWS.filter(r => r.year === Y) : [];
+  const byMonth = Array.from({length:13}, () => []);
+  yRows.forEach(r => { if (r.month >= 1 && r.month <= 12) byMonth[r.month].push(r); });
+  const mRev = (k, seg) => bqOk ? S(SEG[seg] ? byMonth[k].filter(SEG[seg]) : byMonth[k]) : piv(PK[seg], k);
+
+  // ── 당월 예상 마감 (진행 중인 달: 실적 ÷ 경과일 × 월 일수 / 그 외: 실적) ──
+  const isCurrentMo = M && Y === curYear && M === curMonth;
+  const daysInMo = M ? new Date(Y, M, 0).getDate() : 0;
+  const lastDay  = M && bqOk ? byMonth[M].reduce((mx,r) => Math.max(mx, r.day||0), 0) : 0;
+  const projRatio = isCurrentMo && lastDay > 0 && lastDay < daysInMo ? daysInMo / lastDay : 1;
+  const proj = v => Math.round((v||0) * projRatio);
+  const inProg = projRatio !== 1;
+  const projNote = inProg
+    ? `<div style="font-size:.72rem;color:#94a3b8;margin:-6px 0 10px">예상마감 = ${M}월 1~${lastDay}일 실적 ÷ ${lastDay}일 × ${daysInMo}일</div>` : '';
+
+  // ── 12개월 미니 막대 (선택 월 진하게, 클릭 시 기준월 변경) ──
+  const miniBars = seg => {
+    const vals = Array.from({length:12}, (_,i) => mRev(i+1, seg));
+    const max  = Math.max(...vals, 1);
+    return `<div class="mr-mini${M ? '' : ' all'}">${vals.map((v,i) => {
+      const k = i+1, ok = ymSet[Y].has(k);
+      return `<div class="mr-mini-col${ok ? '' : ' off'}"${ok ? ` onclick="mrSetView({month:${k}})" title="${k}월 ${fb(v)}"` : ''}>
+        <div class="mr-mini-track"><div class="mr-mini-bar${k===M ? ' on' : ''}" style="height:${v>0 ? Math.max(4, Math.round(v/max*100)) : 0}%"></div></div><span>${k}</span></div>`;
+    }).join('')}</div>`;
+  };
+
+  // ─────────── 히어로 ───────────
+  let heroHtml;
+  if (!M) {
+    const dRev=K.rev('domestic'),dTgt=K.ytd('domestic','target'),dAnnT=K.ann('domestic','target'),dAnnF=K.ann('domestic','fcast');
+    const dPace = dTgt > 0 ? dRev / dTgt * 100 : null;
+    heroHtml = `
 <section class="kd-hero">
   <div>
     <div class="kd-hero-chip">누적 국내매출</div>
@@ -5328,196 +5372,252 @@ async function renderMonthlyReport(ym) {
   </div>
 </section>
 <p class="kd2-footnote">예상 마감은 시트의 예상행 기준이며 실제와 다를 수 있습니다</p>`;
+  } else {
+    const rev = mRev(M, 'all'), pj = proj(rev), tgt = tgt2('domestic', M), a = ach(pj, tgt);
+    const pm  = M === 1 ? { y:Y-1, m:12 } : { y:Y, m:M-1 };
+    const prevRev = bqOk ? S(F(ROWS, pm)) : (pm.y === Y ? piv('domestic', pm.m) : 0);
+    const yrRev   = bqOk ? S(F(ROWS, { y:Y-1, m:M })) : 0;
+    const cum     = Array.from({length:M}, (_,i) => mRev(i+1, 'all')).reduce((s,v) => s+v, 0);
+    const annT    = K.ann('domestic', 'target');
+    const tag     = inProg ? '(예상)' : '';
+    heroHtml = `
+<section class="kd-hero">
+  <div>
+    <div class="kd-hero-chip">${Y}년 ${M}월 국내매출</div>
+    <div class="kd-hero-value num">${K.fmtB(rev)??'—'}<span class="kd-hero-unit">억원</span></div>
+    <div class="kd-hero-note">${inProg ? `예상 마감 ${K.fmt(pj)} · ${M}월 1~${lastDay}일 기준` : '국내 전체(공구+일반)'}</div>
+    <div class="kd-hero-pace ${a.cls}">
+      <span class="hpb-label">월 목표 대비${tag}</span>
+      <span class="hpb-value num">${a.pct!==null ? a.pct.toFixed(1)+'%' : '—'}</span>
+      <span class="hpb-note num">목표 ${tgt ? K.fmt(tgt) : '—'}</span>
+    </div>
+    <div class="mr-hero-cmp">전월비${tag} ${safe(pj, prevRev).html}<span class="sep">·</span>전년동월비${tag} ${safe(pj, yrRev).html}</div>
+  </div>
+  <div class="kd-hero-goal mr-hero-cum">
+    <div class="kd-hero-goal-label">1~${M}월 누적 / 연간 목표 ${K.fmt(annT)} 대비</div>
+    <div class="kd-hero-goal-rows">${K.goalRow('누적', cum, annT)}</div>
+  </div>
+</section>
+<p class="kd2-footnote">${inProg ? '진행 중인 달의 목표 대비·전월비는 예상마감 기준입니다' : '&nbsp;'}</p>`;
+  }
+
+  // ─────────── 공구 / 일반 카드 ───────────
+  const segCard = seg => {
+    const label = seg === 'gongu' ? '공구' : '일반';
+    if (!M) {
+      const tile = K.kpiTile(label, K.rev(seg), K.ytd(seg,'target'), K.ann(seg,'target'), K.ann(seg,'fcast'), null);
+      return tile.replace(/<\/div>\s*$/, miniBars(seg) + '</div>');
+    }
+    const rows = bqOk ? byMonth[M].filter(SEG[seg]) : [];
+    const rev = mRev(M, seg), pj = proj(rev), tgt = tgt2(seg, M), a = ach(pj, tgt);
+    const qty = rows.reduce((s,r) => s + (r.fqty || r.qty || 0), 0);
+    const nOrEm = (v, unit) => v ? Math.round(v).toLocaleString() + unit : '—';
+    let stats;
+    if (seg === 'gongu') {
+      const n = new Set(rows.map(r => r.cid).filter(Boolean)).size;   // 공구 상품 페이지(채널상품ID) 수
+      stats = [['공구 진행', nOrEm(n,'회')], ['회당 평균', n ? fb(rev/n) : '—'], ['판매량', nOrEm(qty,'개')]];
+    } else {
+      const o = rows.reduce((s,r) => s + (r.ord || 0), 0);              // 시트 '주문수' 합계
+      stats = [['주문수', nOrEm(o,'건')], ['객단가', o ? nOrEm(rev/o,'원') : '—'], ['판매량', nOrEm(qty,'개')]];
+    }
+    return `<div class="kpi">
+      <div class="kpi-label">${label}</div>
+      <div class="kpi-value num">${K.fmtB(rev)??'—'}<sup>억</sup></div>
+      <div class="kpi-progress">
+        ${tgt ? `
+          <div class="kpi-pace ${a.cls}">${M}월 목표대비${inProg?'(예상)':''} <b class="num">${a.pct.toFixed(1)}%</b></div>
+          <div class="kpi-progress-track"><div class="kpi-progress-fill" style="width:${bpct(pj,tgt)}%${a.pct>=100?';background:#0ca30c':''}"></div></div>
+          <div class="kpi-progress-caption"><span class="num">${K.fmt(pj)}${inProg?' 예상':''}</span><span class="fc num">목표 ${K.fmt(tgt)}</span></div>` : ''}
+      </div>
+      <div class="mr-kpi-stats">${stats.map(([k,v]) => `<div><span>${k}</span><b class="num">${v}</b></div>`).join('')}</div>
+      ${miniBars(seg)}
+    </div>`;
+  };
   const hierHtml = `
 <section class="tier2-grid">
-  <div class="tier2-col">
-    ${K.kpiTile('공구', gRev, gTgt, gAnnT, gAnnF, null)}
-  </div>
-  <div class="tier2-col">
-    ${K.kpiTile('일반', iRev, iTgt, iAnnT, iAnnF, null)}
-  </div>
+  <div class="tier2-col">${segCard('gongu')}</div>
+  <div class="tier2-col">${segCard('ilban')}</div>
 </section>`;
 
-  // ─────────── 당월 예상 마감 (진행 중인 달: 실적 ÷ 경과일 × 월 일수 / 마감된 달: 실적) ───────────
-  const _nowD = new Date();
-  const isCurrentMo = p.cur.y === _nowD.getFullYear() && p.cur.m === (_nowD.getMonth()+1);
-  const daysInMo = new Date(p.cur.y, p.cur.m, 0).getDate();
-  const lastDay  = bqOk ? domAll.reduce((mx,r) => Math.max(mx, r.day||0), 0) : 0;
-  const projRatio = isCurrentMo && lastDay > 0 && lastDay < daysInMo ? daysInMo / lastDay : 1;
-  const proj = v => Math.round((v||0) * projRatio);
-  const projNote = projRatio !== 1
-    ? `<div style="font-size:.72rem;color:#94a3b8;margin:-6px 0 10px">예상마감 = ${p.cur.m}월 1~${lastDay}일 실적 ÷ ${lastDay}일 × ${daysInMo}일</div>`
-    : '';
-
-  // ─────────── 채널별 테이블 (공구/일반 필터) ───────────
+  // ─────────── 채널별 매출 분석 ───────────
   const CH_KEY = {'스마트스토어':'ss','카페24':'c24','쿠팡':'coupang','카카오톡스토어':'kakaoStore'};
-  const isGongu = r => r.dist === '3.공동구매';
-  // type: '' 전체 | 'gongu' 공구 | 'ilban' 일반 — 달성률·전월비는 예상마감 기준
-  const buildCh = type => {
-    const pick = rows => type==='gongu' ? rows.filter(isGongu) : type==='ilban' ? rows.filter(r => !isGongu(r)) : rows;
-    const cRows = pick(domAll), pRows = pick(domPrev);
+  const emptyH = '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:.85rem">데이터 없음</div>';
+  const SUM_STYLE = ' style="border-top:2px solid #e8edf3;background:#f8fafc;font-weight:700"';
+  const MOS = Array.from({length:12}, (_,i) => i+1);
+  let chTable;
+  if (!M) {
+    // 연간: 채널 × 1~12월
+    const chs = {};
+    yRows.filter(typeOk).forEach(r => { (chs[r.ch||'기타'] ||= Array(13).fill(0))[r.month] += r.rev || 0; });
+    const list = Object.entries(chs).map(([ch,arr]) => ({ ch, arr, tot: arr.reduce((s,v)=>s+v,0) })).sort((a,b) => b.tot-a.tot);
+    const sumArr = Array(13).fill(0); list.forEach(x => x.arr.forEach((v,i) => sumArr[i] += v));
+    const base = sumArr.reduce((s,v)=>s+v,0);
+    const row = (label, arr, style='') => { const t = arr.reduce((s,v)=>s+v,0);
+      return `<tr${style}><td>${label}</td>${MOS.map(k => `<td class="num">${arr[k] ? fb(arr[k]) : '—'}</td>`).join('')}<td class="num" style="font-weight:700">${fb(t)}</td><td class="num">${base>0?(t/base*100).toFixed(1):0}%</td></tr>`; };
+    chTable = !list.length ? emptyH : `<div class="tbl-wrap"><table class="mr-ch-tbl mr-tbl-year">
+      <colgroup><col style="width:120px">${MOS.map(()=>'<col>').join('')}<col><col></colgroup>
+      <thead><tr><th>채널</th>${MOS.map(k => `<th>${k}월</th>`).join('')}<th>합계</th><th>비중</th></tr></thead>
+      <tbody>${list.map(x => row(x.ch, x.arr)).join('')}${row('합계', sumArr, SUM_STYLE)}</tbody></table></div>`;
+  } else {
+    // 월: 달성률·전월비는 예상마감 기준
+    const pm = M === 1 ? { y:Y-1, m:12 } : { y:Y, m:M-1 };
+    const cRows = byMonth[M].filter(typeOk), pRows = F(ROWS, pm).filter(typeOk);
     const sumCh = (rows, ch) => S(rows.filter(r => (r.ch||'기타') === ch));
-    const chList = [...new Set(cRows.map(r => r.ch||'기타'))].sort((a,b) => sumCh(cRows,b) - sumCh(cRows,a));
-    const base = S(cRows);
-    // 채널 목표는 일반 채널 목표 → 일반 필터에서만 표시. 합계 목표는 필터별(국내/공구/일반)
-    const chTgt  = ch => type==='ilban' && CH_KEY[ch] ? tgt2(CH_KEY[ch], p.cur.m) : null;
-    const sumTgt = type==='gongu' ? tGongu : type==='ilban' ? tgt2('ilban', p.cur.m) : tgt2('domestic', p.cur.m);
-    const row = (label, cur, prev, t2, style='') => {
-      const pj = proj(cur);
-      const share = base>0 ? (cur/base*100).toFixed(1) : 0;
-      return `<tr${style}><td>${label}</td><td class="num">${fb(cur)}</td><td class="num" style="font-weight:700">${fb(pj)}</td><td class="num">${t2?fb(t2):'—'}</td><td>${ach(pj, t2).html}</td><td class="num">${fb(prev)}</td><td>${safe(pj,prev).html}</td><td class="num">${share}%</td></tr>`;
-    };
-    if (!chList.length) return '<div style="padding:20px;text-align:center;color:#94a3b8;font-size:.85rem">데이터 없음</div>';
-    return `<div class="tbl-wrap"><table class="mr-ch-tbl">
-    <thead><tr><th>채널</th><th>${ml}</th><th>예상마감</th><th>목표</th><th>달성률</th><th>전월</th><th>전월비</th><th>비중</th></tr></thead>
-    <tbody>
-      ${chList.map(ch => row(ch, sumCh(cRows,ch), sumCh(pRows,ch), chTgt(ch))).join('')}
-      ${row('합계', base, S(pRows), sumTgt, ' style="border-top:2px solid #e8edf3;background:#f8fafc;font-weight:700"')}
-    </tbody>
-  </table></div>`;
-  };
+    const list  = [...new Set(cRows.map(r => r.ch||'기타'))].sort((a,b) => sumCh(cRows,b) - sumCh(cRows,a));
+    const base  = S(cRows);
+    // 채널 목표는 일반 채널 목표 → 일반 필터에서만. 합계 목표는 국내/공구/일반별
+    const chTgt  = ch => mrView.type === '일반' && CH_KEY[ch] ? tgt2(CH_KEY[ch], M) : null;
+    const sumTgt = tgt2(mrView.type === '공구' ? 'gongu' : mrView.type === '일반' ? 'ilban' : 'domestic', M);
+    const row = (label, cur, prev, t2, style='') => { const pj = proj(cur);
+      return `<tr${style}><td>${label}</td><td class="num">${fb(cur)}</td><td class="num" style="font-weight:700">${fb(pj)}</td><td class="num">${t2?fb(t2):'—'}</td><td>${ach(pj,t2).html}</td><td class="num">${fb(prev)}</td><td>${safe(pj,prev).html}</td><td class="num">${base>0?(cur/base*100).toFixed(1):0}%</td></tr>`; };
+    chTable = !list.length ? emptyH : `<div class="tbl-wrap"><table class="mr-ch-tbl mr-tbl-eq">
+      <colgroup><col style="width:140px">${'<col>'.repeat(7)}</colgroup>
+      <thead><tr><th>채널</th><th>${M}월</th><th>예상마감</th><th>목표</th><th>달성률</th><th>전월</th><th>전월비</th><th>비중</th></tr></thead>
+      <tbody>${list.map(ch => row(ch, sumCh(cRows,ch), sumCh(pRows,ch), chTgt(ch))).join('')}${row('합계', base, S(pRows), sumTgt, SUM_STYLE)}</tbody></table></div>`;
+  }
+  const typeSel = `<select onchange="mrSetView({type:this.value})">
+      <option value="">공구/일반 전체</option>
+      ${MR_TYPES.map(t => `<option value="${t}" ${mrView.type===t?'selected':''}>${t}</option>`).join('')}
+    </select>`;
   const chHtml = `
 <div class="card" style="margin-bottom:16px">
   <div class="card-title">채널별 매출 분석</div>
-  <div class="mr-filter-bar">
-    <select onchange="mrChFilter(this.value)">
-      <option value="">공구/일반 전체</option>
-      <option value="gongu" ${mrChType==='gongu'?'selected':''}>공구</option>
-      <option value="ilban" ${mrChType==='ilban'?'selected':''}>일반</option>
-    </select>
-  </div>
-  ${projNote}
-  <div id="mrChTableWrap">${buildCh(mrChType)}</div>
+  <div class="mr-filter-bar">${typeSel}</div>
+  ${M ? projNote : ''}
+  ${chTable}
 </div>`;
 
-  // ─────────── 상품 상세 ───────────
+  // ─────────── 상품별 매출 상세 (공구/일반·채널은 원본 행 단위로 거른 뒤 집계) ───────────
+  const pm  = M === 1 ? { y:Y-1, m:12 } : { y:Y, m:M-1 };
+  const pm2 = M <= 2 ? { y:Y-1, m:M+10 } : { y:Y, m:M-2 };
+  const keep = r => typeOk(r) && chOk(r);
   const pMap = {};
-  const addP = (rows,key) => rows.forEach(r => {
-    const k = String(r.prod||'기타').trim()||'기타';
-    if (!pMap[k]) pMap[k] = { prod:k, brand:r.brand||'', ch:r.ch||'', dist:r.dist||'', cur:0, prev:0, prev2:0 };
-    pMap[k][key] += r.rev||0;
-    if (key==='cur') { pMap[k].ch=r.ch||''; pMap[k].dist=r.dist||''; pMap[k].brand=r.brand||''; }
+  const addP = (rows, key) => rows.forEach(r => {
+    if (!keep(r)) return;
+    const k = String(r.prod||'기타').trim() || '기타';
+    pMap[k] ||= { prod:k, brand:r.brand||'', total:0, cur:0, prev:0, prev2:0 };
+    if (r.brand) pMap[k].brand = r.brand;
+    pMap[k][key] = (pMap[k][key] || 0) + (r.rev||0);
   });
-  addP(domAll,'cur'); addP(domPrev,'prev'); addP(domPrev2,'prev2');
+  if (!M) {
+    yRows.forEach(r => addP([r], 'm' + r.month));
+  } else {
+    addP(byMonth[M], 'cur'); addP(F(ROWS, pm), 'prev'); addP(F(ROWS, pm2), 'prev2');
+  }
   const prodData = Object.values(pMap);
-  prodData.forEach(r => { r.proj = proj(r.cur); r.diff = r.proj - r.prev; });
-  mrState = { prodData, p, totCur, safe, fb, bqOk, buildCh };
+  prodData.forEach(r => {
+    if (!M) r.total = MOS.reduce((s,k) => s + (r['m'+k]||0), 0);
+    else { r.proj = proj(r.cur); r.diff = r.proj - r.prev; }
+  });
+  const prodBase = prodData.reduce((s,r) => s + (M ? r.cur : r.total), 0);
+  mrState = { prodData, mode: M ? 'month' : 'year', p: { cur:{m:M}, prev:pm, prev2:pm2 }, base: prodBase, safe, fb, bqOk };
 
+  const chOpts = [...new Set([...(M ? byMonth[M] : yRows).map(r => r.ch||'기타'), ...(mrView.channel ? [mrView.channel] : [])])].sort();
+  const brandList = [...new Set(prodData.map(r => r.brand).filter(Boolean))].sort();
 
-  // ─────────── BQ 경고 배너 ───────────
+  // ─────────── BQ 경고 ───────────
   const bqWarnHtml = !bqOk ? `
 <div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:10px 16px;margin-bottom:14px;font-size:.8rem;color:#92400e;display:flex;align-items:center;gap:8px">
   <span style="font-size:1rem">⚠️</span>
-  <span>상세 판매 데이터(BigQuery)를 불러오지 못했습니다. 합계는 PIVOT_DATA 기준으로 표시되며, 상품·채널 상세 데이터는 제한됩니다.</span>
+  <span>상세 판매 데이터를 불러오지 못했습니다. 합계는 PIVOT_DATA 기준으로 표시되며, 상품·채널 상세 데이터는 제한됩니다.</span>
 </div>` : '';
-  const bqSectionWarn = !bqOk ? `<div style="text-align:center;color:#94a3b8;padding:20px;font-size:.82rem">⚠️ BigQuery 데이터 없음 — 상세 내역 표시 불가</div>` : '';
+  const bqSectionWarn = `<div style="text-align:center;color:#94a3b8;padding:20px;font-size:.82rem">⚠️ 상세 판매 데이터 없음 — 상세 내역 표시 불가</div>`;
 
   // ─────────── DOM 조립 ───────────
-  const brandList  = [...new Set(prodData.map(r=>r.brand).filter(Boolean))].sort();
-  const chListFull = [...new Set(prodData.map(r=>r.ch).filter(Boolean))].sort();
-  body.innerHTML = bqWarnHtml + heroHtml + hierHtml + (bqOk ? chHtml : `<div class="card" style="margin-bottom:16px"><div class="card-title">채널별 매출 분석</div>${bqSectionWarn}</div>`) + `
+  body.innerHTML = bqWarnHtml + heroHtml + hierHtml
+    + (bqOk ? chHtml : `<div class="card" style="margin-bottom:16px"><div class="card-title">채널별 매출 분석</div>${bqSectionWarn}</div>`) + `
 <div class="card" style="margin-bottom:16px">
   <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
     <span>상품별 매출 상세</span>
-    <span style="font-size:.75rem;color:#94a3b8">전체 ${prodData.length}개 상품</span>
+    <span style="font-size:.75rem;color:#94a3b8">${M ? `${Y}년 ${M}월` : `${Y}년 전체`} · ${prodData.length}개 상품</span>
   </div>
   <div class="mr-filter-bar">
     <input type="text" placeholder="상품명 검색…" oninput="mrFc('search',this.value)" value="${mrProdFilter.search}">
-    <select onchange="mrFc('salesType',this.value)">
-      <option value="">공구/일반 전체</option>
-      <option value="gongu" ${mrProdFilter.salesType==='gongu'?'selected':''}>공구</option>
-      <option value="ilban" ${mrProdFilter.salesType==='ilban'?'selected':''}>일반</option>
-    </select>
-    <select onchange="mrFc('channel',this.value)">
+    ${typeSel}
+    <select onchange="mrSetView({channel:this.value})">
       <option value="">채널 전체</option>
-      ${chListFull.map(c=>`<option value="${c}" ${mrProdFilter.channel===c?'selected':''}>${c}</option>`).join('')}
+      ${chOpts.map(c => `<option value="${c}" ${mrView.channel===c?'selected':''}>${c}</option>`).join('')}
     </select>
     <select onchange="mrFc('brand',this.value)">
       <option value="">브랜드 전체</option>
-      ${brandList.map(b=>`<option value="${b}" ${mrProdFilter.brand===b?'selected':''}>${b}</option>`).join('')}
+      ${brandList.map(b => `<option value="${b}" ${mrProdFilter.brand===b?'selected':''}>${b}</option>`).join('')}
     </select>
   </div>
-  <div id="mrProdTableWrap">${bqOk ? buildMrProdTable(prodData, mrProdFilter, p, totCur, safe, fb) : bqSectionWarn}</div>
+  <div id="mrProdTableWrap">${bqOk ? buildMrProdTable() : bqSectionWarn}</div>
 </div>`;
 }
 
-function buildMrProdTable(prodData, filter, p, totCur, safe, fb) {
+function buildMrProdTable() {
+  const st = mrState; if (!st) return '';
+  const { prodData, mode, p, base, safe, fb } = st, f = mrProdFilter;
+  const MOS = Array.from({length:12}, (_,i) => i+1);
+  const keys = mode === 'year' ? ['brand','prod',...MOS.map(k => 'm'+k),'total'] : ['brand','prod','prev2','prev','cur','proj','diff'];
+  const s = keys.includes(f.sortCol) ? f.sortCol : (mode === 'year' ? 'total' : 'cur');
+  const d = keys.includes(f.sortCol) && f.sortDir === 'asc' ? 1 : -1;
   let rows = [...prodData];
-  if (filter.search)    rows = rows.filter(r => r.prod.toLowerCase().includes(filter.search.toLowerCase()));
-  if (filter.salesType === 'gongu') rows = rows.filter(r => r.dist==='3.공동구매');
-  if (filter.salesType === 'ilban') rows = rows.filter(r => r.dist!=='3.공동구매');
-  if (filter.channel)   rows = rows.filter(r => r.ch === filter.channel);
-  if (filter.brand)     rows = rows.filter(r => r.brand === filter.brand);
-  const s=filter.sortCol, d=filter.sortDir==='asc'?1:-1;
+  if (f.search) rows = rows.filter(r => r.prod.toLowerCase().includes(f.search.toLowerCase()));
+  if (f.brand)  rows = rows.filter(r => r.brand === f.brand);
   // ▼(desc) = 큰 값이 위 / ▲(asc) = 작은 값이 위
   rows.sort((a,b) => { const x=a[s]||0, y=b[s]||0; return x===y ? 0 : (x>y ? d : -d); });
-  const total=rows.length, start=filter.page*filter.pageSize;
-  const pageRows=rows.slice(start, start+filter.pageSize);
-  const arw = c => filter.sortCol===c ? (filter.sortDir==='asc'?' ▲':' ▼') : '';
-  const th  = c => `onclick="mrSort('${c}')"`;
-  const totF = rows.reduce((s,r)=>s+r.cur, 0);
-  const bodyH = pageRows.map(r => {
-    const isNew = r.prev===0 && r.cur>0;
-    const share = totCur>0?(r.cur/totCur*100).toFixed(1):'0';
-    return `<tr>
+  const total = rows.length, start = f.page * f.pageSize;
+  const pageRows = rows.slice(start, start + f.pageSize);
+  const arw = c => s === c ? (d === 1 ? ' ▲' : ' ▼') : '';
+  const th  = (c, label) => `<th onclick="mrSort('${c}')">${label}${arw(c)}</th>`;
+  const val = mode === 'year' ? (r => r.total) : (r => r.cur);
+  const share = r => base > 0 ? (val(r)/base*100).toFixed(1) : '0';
+  let head, colg, bodyH;
+  if (mode === 'year') {
+    colg  = `<colgroup><col style="width:90px"><col style="width:190px">${'<col>'.repeat(14)}</colgroup>`;
+    head  = th('brand','브랜드') + th('prod','상품명') + MOS.map(k => th('m'+k, k+'월')).join('') + th('total','합계') + '<th>비중</th>';
+    bodyH = pageRows.map(r => `<tr>
+      <td style="color:#64748b;font-size:.72rem">${r.brand||''}</td><td title="${r.prod}">${r.prod}</td>
+      ${MOS.map(k => `<td class="num">${r['m'+k] ? fb(r['m'+k]) : '—'}</td>`).join('')}
+      <td class="num" style="font-weight:700">${fb(r.total)}</td><td class="num">${share(r)}%</td></tr>`).join('');
+  } else {
+    colg  = `<colgroup><col style="width:90px"><col style="width:200px">${'<col>'.repeat(7)}</colgroup>`;
+    head  = th('brand','브랜드') + th('prod','상품명') + th('prev2', p.prev2.m+'월') + th('prev', p.prev.m+'월') + th('cur', p.cur.m+'월')
+          + th('proj','당월예상마감') + '<th>전월비</th>' + th('diff','차액') + '<th>비중</th>';
+    bodyH = pageRows.map(r => { const isNew = !r.prev && r.cur > 0; return `<tr>
       <td style="color:#64748b;font-size:.72rem">${r.brand||''}</td>
-      <td>${r.prod}${isNew?'<span class="up" style="font-size:.68rem;margin-left:4px">NEW</span>':''}</td>
+      <td title="${r.prod}">${r.prod}${isNew?'<span class="up" style="font-size:.68rem;margin-left:4px">NEW</span>':''}</td>
       <td style="color:#94a3b8" class="num">${r.prev2>0?fb(r.prev2):'—'}</td>
       <td class="num">${r.prev>0?fb(r.prev):'—'}</td>
       <td class="num">${r.cur>0?fb(r.cur):'—'}</td>
       <td class="num" style="font-weight:700">${r.proj>0?fb(r.proj):'—'}</td>
       <td>${isNew?'<span class="up">신규</span>':safe(r.proj,r.prev).html}</td>
       <td class="num ${r.diff>0?'up':r.diff<0?'down':''}">${r.diff?(r.diff>0?'+':'')+fb(r.diff):'—'}</td>
-      <td class="num">${share}%</td>
-    </tr>`;
-  }).join('');
-  const totalPages=Math.ceil(total/filter.pageSize);
-  const pgH = totalPages<=1 ? '' : `<div class="mr-pagination">
-    <span style="color:#94a3b8">${total}개 중 ${start+1}–${Math.min(start+filter.pageSize,total)}</span>
-    <button class="mr-pg-btn" ${filter.page===0?'disabled':''} onclick="mrPage(${filter.page-1})">◀</button>
-    <span>${filter.page+1} / ${totalPages}</span>
-    <button class="mr-pg-btn" ${filter.page>=totalPages-1?'disabled':''} onclick="mrPage(${filter.page+1})">▶</button>
+      <td class="num">${share(r)}%</td></tr>`; }).join('');
+  }
+  const totalPages = Math.ceil(total / f.pageSize);
+  const pgH = totalPages <= 1 ? '' : `<div class="mr-pagination">
+    <span style="color:#94a3b8">${total}개 중 ${start+1}–${Math.min(start+f.pageSize,total)}</span>
+    <button class="mr-pg-btn" ${f.page===0?'disabled':''} onclick="mrPage(${f.page-1})">◀</button>
+    <span>${f.page+1} / ${totalPages}</span>
+    <button class="mr-pg-btn" ${f.page>=totalPages-1?'disabled':''} onclick="mrPage(${f.page+1})">▶</button>
   </div>`;
-  return `<div style="font-size:.76rem;color:#64748b;margin-bottom:8px">표시: <b>${total}개</b> 상품 · 합계 <b class="num">${fb(totF)}</b></div>
-<div class="tbl-wrap"><table class="mr-prod-tbl">
-  <thead><tr>
-    <th ${th('brand')}>브랜드${arw('brand')}</th>
-    <th ${th('prod')}>상품명${arw('prod')}</th>
-    <th ${th('prev2')}>${p.prev2.m}월${arw('prev2')}</th>
-    <th ${th('prev')}>${p.prev.m}월${arw('prev')}</th>
-    <th ${th('cur')}>${p.cur.m}월${arw('cur')}</th>
-    <th ${th('proj')}>당월예상마감${arw('proj')}</th>
-    <th>전월비</th>
-    <th ${th('diff')}>차액${arw('diff')}</th>
-    <th>비중</th>
-  </tr></thead>
+  return `<div style="font-size:.76rem;color:#64748b;margin-bottom:8px">표시: <b>${total}개</b> 상품 · 합계 <b class="num">${fb(rows.reduce((t,r)=>t+val(r),0))}</b></div>
+<div class="tbl-wrap"><table class="mr-prod-tbl ${mode==='year'?'mr-tbl-year':'mr-tbl-eq'}">${colg}
+  <thead><tr>${head}</tr></thead>
   <tbody>${bodyH}</tbody>
 </table></div>${pgH}`;
 }
 
-let mrChType = ''; // 채널별 매출 분석 공구/일반 필터
-function mrChFilter(val) {
-  mrChType = val;
-  const el = document.getElementById('mrChTableWrap');
-  if (el && mrState?.buildCh) el.innerHTML = mrState.buildCh(val);
-}
+// 검색·브랜드는 표만 다시 그림 (공구/일반·채널은 mrSetView로 전체 상태 변경)
 function mrFc(key, val) {
   mrProdFilter[key] = val; mrProdFilter.page = 0;
-  if (mrState && mrState.bqOk) document.getElementById('mrProdTableWrap').innerHTML =
-    buildMrProdTable(mrState.prodData, mrProdFilter, mrState.p, mrState.totCur, mrState.safe, mrState.fb);
+  if (mrState?.bqOk) document.getElementById('mrProdTableWrap').innerHTML = buildMrProdTable();
 }
 function mrSort(col) {
   if (mrProdFilter.sortCol === col) mrProdFilter.sortDir = mrProdFilter.sortDir==='desc' ? 'asc' : 'desc';
   else { mrProdFilter.sortCol = col; mrProdFilter.sortDir = 'desc'; }
   mrProdFilter.page = 0;
-  if (mrState && mrState.bqOk) document.getElementById('mrProdTableWrap').innerHTML =
-    buildMrProdTable(mrState.prodData, mrProdFilter, mrState.p, mrState.totCur, mrState.safe, mrState.fb);
+  if (mrState?.bqOk) document.getElementById('mrProdTableWrap').innerHTML = buildMrProdTable();
 }
 function mrPage(pg) {
   mrProdFilter.page = pg;
-  if (mrState && mrState.bqOk) document.getElementById('mrProdTableWrap').innerHTML =
-    buildMrProdTable(mrState.prodData, mrProdFilter, mrState.p, mrState.totCur, mrState.safe, mrState.fb);
+  if (mrState?.bqOk) document.getElementById('mrProdTableWrap').innerHTML = buildMrProdTable();
 }
+
 </script>
 </body>
 </html>
