@@ -951,6 +951,8 @@ let   mrLoaded      = false;
 let   mrLoading     = null;
 let   selectedReportMonth = '';
 let   mrState       = null;
+let mrMetric = 'rev';   // 국내 상품별 상세: 'rev' 매출 | 'qty' 수량
+function mrSetMetric(m) { mrMetric = m; renderMonthlyReport(); }
 let   mrProdFilter  = { search:'', brand:'', sortCol:'', sortDir:'desc', page:0, pageSize:50 }; // 공구/일반·채널은 mrView
 
 // Column indices resolved from CSV header row at load time
@@ -2885,7 +2887,7 @@ function _ovrMetricToggle() {
 
 function ovrSetMetric(metric) {
   ovrMetric = metric;
-  document.querySelectorAll('.ovr-metric-tg button').forEach(b =>
+  document.querySelectorAll('#ovrBody .ovr-metric-tg button').forEach(b =>
     b.classList.toggle('active', (b.textContent==='수량') === (metric==='qty')));
   _ovrRerenderViews();
 }
@@ -5817,7 +5819,7 @@ async function renderMonthlyReport() {
     const k = String(r.prod||'기타').trim() || '기타';
     pMap[k] ||= { prod:k, brand:r.brand||'', total:0, cur:0, prev:0, prev2:0 };
     if (r.brand) pMap[k].brand = r.brand;
-    pMap[k][key] = (pMap[k][key] || 0) + (r.rev||0);
+    pMap[k][key] = (pMap[k][key] || 0) + (mrMetric === 'qty' ? (r.fqty || r.qty || 0) : (r.rev || 0));
   });
   if (!M) {
     yRows.forEach(r => addP([r], 'm' + r.month));
@@ -5830,7 +5832,7 @@ async function renderMonthlyReport() {
     else { r.proj = proj(r.cur); r.diff = r.proj - r.prev; }
   });
   const prodBase = prodData.reduce((s,r) => s + (M ? r.cur : r.total), 0);
-  mrState = { prodData, mode: M ? 'month' : 'year', inProg, p: { cur:{m:M}, prev:pm, prev2:pm2 }, base: prodBase, safe, fb, bqOk };
+  mrState = { prodData, mode: M ? 'month' : 'year', inProg, p: { cur:{m:M}, prev:pm, prev2:pm2 }, base: prodBase, safe, fb: mrMetric === 'qty' ? (v => v ? Math.round(v).toLocaleString() + '개' : '—') : fb, bqOk };
 
   const chOpts = [...new Set([...(M ? byMonth[M] : yRows).map(r => r.ch||'기타'), ...(mrView.channel ? [mrView.channel] : [])])].sort();
   const brandList = [...new Set(prodData.map(r => r.brand).filter(Boolean))].sort();
@@ -5848,8 +5850,14 @@ async function renderMonthlyReport() {
   const prodCard = `
 <div class="card" style="margin-bottom:16px">
   <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
-    <span>상품별 매출 상세</span>
-    <span style="font-size:.75rem;color:#94a3b8">${M ? `${Y}년 ${M}월` : `${Y}년 전체`} · ${prodData.length}개 상품</span>
+    <span>상품별 상세</span>
+    <span style="display:flex;align-items:center;gap:10px">
+      <span style="font-size:.75rem;color:#94a3b8;font-weight:500">${M ? `${Y}년 ${M}월` : `${Y}년 전체`} · ${prodData.length}개 상품</span>
+      <span class="ovr-metric-tg">
+        <button class="${mrMetric==='rev'?'active':''}" onclick="mrSetMetric('rev')">매출</button>
+        <button class="${mrMetric==='qty'?'active':''}" onclick="mrSetMetric('qty')">수량</button>
+      </span>
+    </span>
   </div>
   <div class="mr-filter-bar">
     <input type="text" placeholder="상품명 검색…" oninput="mrFc('search',this.value)" value="${mrProdFilter.search}">
