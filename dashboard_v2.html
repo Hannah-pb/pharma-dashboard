@@ -2692,10 +2692,10 @@ async function renderOverseasSales() {
   <div class="tier2-col">${segCard('ilban')}</div>
 </section>`;
 
-  // ─────────── 전체 탭: 월별 실적 (브랜드별 · 매출/수량 전환) ───────────
+  // ─────────── 전체 탭: 해외 공구 / 해외 일반 (각각 매출/수량 전환) ───────────
   const allSecHtml = `
 <div class="ovr-section">
-  <div class="ovr-section-title">월별 실적 · 공구+일반${_ovrMetricToggle()}</div>
+  <div class="ovr-section-title">해외 공구${_ovrMetricToggle()}</div>
   <div class="ovr-ch-cards cols2">
     <div class="ovr-ch-card ydy"><div class="ovr-ch-name">YDY</div><div class="ovr-ch-val num" id="ovrChYdy">—</div></div>
     <div class="ovr-ch-card mylabs"><div class="ovr-ch-name">마이랩스</div><div class="ovr-ch-val num" id="ovrChMylabs">—</div></div>
@@ -2705,8 +2705,24 @@ async function renderOverseasSales() {
     <button class="ovr-tab${ovrGonguBrand==='YDY'?' active':''}" onclick="ovrSwitchGongu('YDY',this)">YDY</button>
     <button class="ovr-tab${ovrGonguBrand==='MYLABS'?' active':''}" onclick="ovrSwitchGongu('MYLABS',this)">마이랩스</button>
   </div>
-  <div class="ovr-chart-wrap" style="height:220px"><canvas id="ovrAllChart"></canvas></div>
-  <div id="ovrAllTable"></div>
+  <div class="ovr-chart-wrap" style="height:180px"><canvas id="ovrGonguChart"></canvas></div>
+  <div id="ovrGonguTable"></div>
+</div>
+
+<div class="ovr-section">
+  <div class="ovr-section-title">해외 일반${_ovrMetricToggle()}</div>
+  <div class="ovr-ch-cards">
+    <div class="ovr-ch-card ihub"><div class="ovr-ch-name">아이허브</div><div class="ovr-ch-val num" id="ovrChIhub">—</div></div>
+    <div class="ovr-ch-card ss"><div class="ovr-ch-name">스마트스토어</div><div class="ovr-ch-val num" id="ovrChSs">—</div></div>
+    <div class="ovr-ch-card amz"><div class="ovr-ch-name">아마존</div><div class="ovr-ch-val num" id="ovrChAmz">—</div></div>
+  </div>
+  <div class="ovr-chart-wrap" style="height:180px"><canvas id="ovrIlbanChart"></canvas></div>
+  <div class="ovr-tabs">
+    <button class="ovr-tab${ovrIlbanCh==='ALL'?' active':''}" onclick="ovrSwitchIlban('ALL',this)">전체</button>
+    <button class="ovr-tab${ovrIlbanCh==='아이허브'?' active':''}" onclick="ovrSwitchIlban('아이허브',this)">아이허브</button>
+    <button class="ovr-tab${ovrIlbanCh==='스마트스토어'?' active':''}" onclick="ovrSwitchIlban('스마트스토어',this)">스마트스토어</button>
+  </div>
+  <div id="ovrIlbanTable"></div>
 </div>`;
 
   // ─────────── 공구/일반 탭: 월별 흐름 ───────────
@@ -2806,7 +2822,7 @@ async function renderOverseasSales() {
   else if (ovrTab === 'ilban') main = flowHtml('ilban') + (M ? ilbanDetail() : '');
   else                         main = heroHtml + cardsHtml + allSecHtml;
   body.innerHTML = segTabBar(ovrTab, 'ovrSetView') + main;
-  if (ovrTab === 'all') _renderAllView(d, availMonths, fw);
+  if (ovrTab === 'all') { _renderGonguView(d, availMonths, fw); _renderIlbanView(d, availMonths, fw); }
   else drawFlow(ovrTab);
 }
 
@@ -2878,7 +2894,8 @@ function _ovrRerenderViews() {
   if (!OVR_DATA) return;
   const fw = v => { if(!v||isNaN(v)) return '—'; const a=Math.abs(v); return a>=1e8?(v/1e8).toFixed(1)+'억':a>=1e4?Math.round(v/1e4).toLocaleString()+'만':Math.round(v).toLocaleString(); };
   const availMonths = Array.from({length:12},(_,i)=>i+1).filter(m=>(OVR_DATA.total[m]||0)>0);
-  _renderAllView(OVR_DATA, availMonths, fw);
+  _renderGonguView(OVR_DATA, availMonths, fw);
+  _renderIlbanView(OVR_DATA, availMonths, fw);
 }
 
 function _renderGonguView(d, availMonths, fw) {
@@ -2904,8 +2921,9 @@ function _renderGonguView(d, availMonths, fw) {
     if (el) el.innerHTML = _ovrProdTable(prods, months, _ovrFq);
     return;
   }
-  const ydyData    = availMonths.map(m => d.ydy[m]||0);
-  const mylabsData = availMonths.map(m => d.mylabs[m]||0);
+  // 브랜드별 값은 상품 표 합계로 (시트의 YDY/마이랩스 요약행과 어긋나는 경우가 있어 표와 일치시킴)
+  const ydyData    = _ovrSumMonths(d.gonguProds.filter(p => !_ovrIsMylabs(p)), availMonths);
+  const mylabsData = _ovrSumMonths(d.gonguProds.filter(_ovrIsMylabs), availMonths);
   setCh('ovrChYdy',    fw(ydyData.reduce((s,v)=>s+v,0)));
   setCh('ovrChMylabs', fw(mylabsData.reduce((s,v)=>s+v,0)));
 
