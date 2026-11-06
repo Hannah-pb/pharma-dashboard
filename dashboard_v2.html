@@ -952,6 +952,13 @@ let   mrLoading     = null;
 let   selectedReportMonth = '';
 let   mrState       = null;
 let mrMetric = 'rev';   // 국내 상품별 상세: 'rev' 매출 | 'qty' 수량
+let flowMetric = 'rev'; // 월별 흐름 그래프: 'rev' 매출 | 'qty' 수량 (국내·해외 공통)
+function flowMetricTg(render) {
+  return `<span class="ovr-metric-tg">
+    <button class="${flowMetric==='rev'?'active':''}" onclick="flowMetric='rev';${render}()">매출</button>
+    <button class="${flowMetric==='qty'?'active':''}" onclick="flowMetric='qty';${render}()">수량</button>
+  </span>`;
+}
 function mrSetMetric(m) { mrMetric = m; renderMonthlyReport(); }
 let   mrProdFilter  = { search:'', brand:'', sortCol:'', sortDir:'desc', page:0, pageSize:50 }; // 공구/일반·채널은 mrView
 
@@ -2736,11 +2743,11 @@ async function renderOverseasSales() {
       ? [nf(x.n,'회'), fw(x.rev), nf(x.qty,'개'), x.n ? fw(x.rev/x.n) : '—', achH(x.rev, x.t) + (x.k ? ingTag(x.k) : '')]
       : [fw(x.rev), nf(x.qty,'개'), achH(x.rev, x.t) + (x.k ? ingTag(x.k) : '')];
     const heads = isGs ? ['공구 횟수','매출','판매량','회당 평균 매출','목표 대비'] : ['매출','판매량','목표 대비'];
-    const revIdx = isGs ? 2 : 1;
+    const revIdx = flowMetric === 'qty' ? (isGs ? 3 : 2) : (isGs ? 2 : 1);
     const tr = (x, label, cls, click) => `<tr class="${cls}" onclick="${click}">${[label, ...cells(x)].map((c,i) => `<td${i===revIdx?' style="font-weight:700"':''}>${c}</td>`).join('')}</tr>`;
     return `
 <div class="card" style="margin-bottom:16px">
-  <div class="card-title">해외 ${SEG_TYPE[seg]} 월별 흐름 <span style="font-size:.74rem;color:#94a3b8;font-weight:500">· 월을 누르면 기준월이 바뀝니다</span></div>
+  <div class="card-title" style="display:flex;justify-content:space-between;align-items:center"><span>해외 ${SEG_TYPE[seg]} 월별 흐름 <span style="font-size:.74rem;color:#94a3b8;font-weight:500">· 월을 누르면 기준월이 바뀝니다</span></span>${flowMetricTg('renderOverseasSales')}</div>
   <div style="height:200px;margin-bottom:14px"><canvas id="ovrFlowChart"></canvas></div>
   <div class="tbl-wrap"><table class="mr-ch-tbl mr-tbl-eq mr-flow-tbl">
     <colgroup><col style="width:100px">${heads.map(() => '<col>').join('')}</colgroup>
@@ -2752,18 +2759,19 @@ async function renderOverseasSales() {
 </div>`;
   };
   const drawFlow = seg => {
-    const data = flowData(seg);
+    const data = flowData(seg), isQ = flowMetric === 'qty';
+    const fv = v => isQ ? nf(v,'개') : fw(v);
     mkChart('ovrFlowChart', {
       data: { labels: data.map(x => x.k + '월'), datasets: [
-        { type:'bar', label:'매출', data: data.map(x => x.rev), borderRadius:3, order:2,
+        { type:'bar', label: isQ ? '판매량' : '매출', data: data.map(x => isQ ? x.qty : x.rev), borderRadius:3, order:2,
           backgroundColor: data.map(x => !M ? '#8ea3c4' : x.k === M ? '#1d3f72' : '#d5dde9') },
-        { type:'line', label:'목표', data: data.map(x => x.t || null), borderColor:'#94a3b8', borderDash:[4,4], borderWidth:1.5, pointRadius:2, tension:.2, order:1 },
+        ...(isQ ? [] : [{ type:'line', label:'목표', data: data.map(x => x.t || null), borderColor:'#94a3b8', borderDash:[4,4], borderWidth:1.5, pointRadius:2, tension:.2, order:1 }]),
       ] },
       options: { responsive:true, maintainAspectRatio:false,
         onClick: (e, els) => { if (els.length) ovrSetView({ month: data[els[0].index].k }); },
         onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
-        plugins: { legend:{ labels:{ boxWidth:10, font:{size:10} } }, tooltip:{ callbacks:{ label: c => `${c.dataset.label} ${fw(c.raw)}` } } },
-        scales: { y:{ ticks:{ callback: v => fw(v), font:{size:10} }, grid:{ color:'rgba(0,0,0,.04)' } }, x:{ grid:{ display:false }, ticks:{ font:{size:10} } } } }
+        plugins: { legend:{ labels:{ boxWidth:10, font:{size:10} } }, tooltip:{ callbacks:{ label: c => `${c.dataset.label} ${fv(c.raw)}` } } },
+        scales: { y:{ ticks:{ callback: v => fv(v), font:{size:10} }, grid:{ color:'rgba(0,0,0,.04)' } }, x:{ grid:{ display:false }, ticks:{ font:{size:10} } } } }
     });
   };
 
@@ -5899,11 +5907,11 @@ async function renderMonthlyReport() {
       ? [nf(d.n,'회'), fb(d.rev), nf(d.qty,'개'), d.n ? fb(d.rev/d.n) : '—', d.ord ? nf(d.raw/d.ord,'원') : '—', achC(d)]
       : [fb(d.rev), nf(d.ord,'건'), d.ord ? nf(d.raw/d.ord,'원') : '—', nf(d.qty,'개'), achC(d)];
     const heads = isGs ? ['공구 횟수','매출','판매량','회당 평균 매출','객단가','목표 대비'] : ['매출','주문수','객단가','판매량','목표 대비'];
-    const revIdx = isGs ? 2 : 1;
+    const revIdx = flowMetric === 'qty' ? (isGs ? 3 : 4) : (isGs ? 2 : 1);
     const tr = (d, label, cls, click) => `<tr class="${cls}" onclick="${click}">${[label, ...cells(d)].map((c,i) => `<td${i===revIdx?' style="font-weight:700"':''}>${c}</td>`).join('')}</tr>`;
     return `
 <div class="card" style="margin-bottom:16px">
-  <div class="card-title">${SEG_TYPE[seg]} 월별 흐름 <span style="font-size:.74rem;color:#94a3b8;font-weight:500">· 월을 누르면 기준월이 바뀝니다</span></div>
+  <div class="card-title" style="display:flex;justify-content:space-between;align-items:center"><span>${SEG_TYPE[seg]} 월별 흐름 <span style="font-size:.74rem;color:#94a3b8;font-weight:500">· 월을 누르면 기준월이 바뀝니다</span></span>${flowMetricTg('renderMonthlyReport')}</div>
   <div style="height:200px;margin-bottom:14px"><canvas id="mrFlowChart"></canvas></div>
   <div class="tbl-wrap"><table class="mr-ch-tbl mr-tbl-eq mr-flow-tbl">
     <colgroup><col style="width:100px">${heads.map(() => '<col>').join('')}</colgroup>
@@ -5915,18 +5923,19 @@ async function renderMonthlyReport() {
 </div>`;
   };
   const drawFlow = seg => {
-    const data = flowData(seg);
+    const data = flowData(seg), isQ = flowMetric === 'qty';
+    const fv = v => isQ ? nf(v,'개') : fb(v);
     mkChart('mrFlowChart', {
       data: { labels: data.map(d => d.k + '월'), datasets: [
-        { type:'bar', label:'매출', data: data.map(d => d.rev), borderRadius:3, order:2,
+        { type:'bar', label: isQ ? '판매량' : '매출', data: data.map(d => isQ ? d.qty : d.rev), borderRadius:3, order:2,
           backgroundColor: data.map(d => !M ? '#8ea3c4' : d.k === M ? '#1d3f72' : '#d5dde9') },
-        { type:'line', label:'목표', data: data.map(d => d.t || null), borderColor:'#94a3b8', borderDash:[4,4], borderWidth:1.5, pointRadius:2, tension:.2, order:1 },
+        ...(isQ ? [] : [{ type:'line', label:'목표', data: data.map(d => d.t || null), borderColor:'#94a3b8', borderDash:[4,4], borderWidth:1.5, pointRadius:2, tension:.2, order:1 }]),
       ] },
       options: { responsive:true, maintainAspectRatio:false,
         onClick: (e, els) => { if (els.length) mrSetView({ month: data[els[0].index].k }); },
         onHover: (e, els) => { e.native.target.style.cursor = els.length ? 'pointer' : 'default'; },
-        plugins: { legend:{ labels:{ boxWidth:10, font:{size:10} } }, tooltip:{ callbacks:{ label: c => `${c.dataset.label} ${fb(c.raw)}` } } },
-        scales: { y:{ ticks:{ callback: v => fb(v), font:{size:10} }, grid:{ color:'rgba(0,0,0,.04)' } }, x:{ grid:{ display:false }, ticks:{ font:{size:10} } } } }
+        plugins: { legend:{ labels:{ boxWidth:10, font:{size:10} } }, tooltip:{ callbacks:{ label: c => `${c.dataset.label} ${fv(c.raw)}` } } },
+        scales: { y:{ ticks:{ callback: v => fv(v), font:{size:10} }, grid:{ color:'rgba(0,0,0,.04)' } }, x:{ grid:{ display:false }, ticks:{ font:{size:10} } } } }
     });
   };
 
