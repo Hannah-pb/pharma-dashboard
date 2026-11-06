@@ -5491,6 +5491,7 @@ async function loadMonthlyReportData() {
           r.year > 0 && r.month > 0 && r.ch !== '' && r.rev !== 0
           && r.category !== '뷰티'           // 뷰티 제외
           && r.exclude !== '한독'             // 한독 매출제외
+          && !r.brand.includes('한독')        // 매출제외 칸이 비어 있어도 한독 브랜드는 제외
         );
 
         // 데이터 기준일: 마지막 유효 행의 C열(주문일)
