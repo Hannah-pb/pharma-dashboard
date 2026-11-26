@@ -5975,8 +5975,9 @@ async function renderMonthlyReport() {
   // ─────────── DOM 조립 (탭별) ───────────
   const tab = mrView.tab;
   let main;
-  if (tab === 'gongu')      main = flowHtml('gongu') + (M ? (bqOk ? gonguDetail() : bqSectionWarn) : '');
-  else if (tab === 'ilban') main = flowHtml('ilban') + (M ? chSection + prodCard : '');
+  // 공구·일반 탭도 전체 탭의 채널별·상품별 분석을 해당 구분만 걸러서 표시
+  if (tab === 'gongu')      main = flowHtml('gongu') + chSection + prodCard + (M ? (bqOk ? gonguDetail() : bqSectionWarn) : '');
+  else if (tab === 'ilban') main = flowHtml('ilban') + chSection + prodCard;
   else                      main = heroHtml + hierHtml + chSection + prodCard;
   body.innerHTML = bqWarnHtml + segTabBar(tab, 'mrSetView') + main;
   if (tab !== 'all') drawFlow(tab);
